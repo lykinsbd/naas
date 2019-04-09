@@ -15,6 +15,7 @@ downloads/
 eggs/
 .eggs/
 lib/
+lib64
 lib64/
 parts/
 sdist/
@@ -89,6 +90,9 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+bin/
+share/
+pyvenv.cfg
 
 # Spyder project settings
 .spyderproject
@@ -102,3 +106,6 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# Intellij/Pycharm
+.idea/
