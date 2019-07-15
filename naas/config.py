@@ -49,8 +49,6 @@ class _DefaultSettings(object):
     """Disable flask debugger"""
     DEBUG = False
 
-    LOG_HOST = "syslog.nsi.rackspace.com"
-
     LOG_LEVELS = {"CRITICAL": 50, "ERROR": 40, "WARNING": 30, "INFO": 20, "DEBUG": 10, "NOTSET": 0}
 
     if "dev" in APP_ENVIRONMENT:
