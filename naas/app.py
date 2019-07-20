@@ -15,7 +15,7 @@ from naas.config import app_configure
 from naas.library.errorhandlers import api_error_generator
 from naas.resources.root import HelloWorld
 from naas.resources.healthcheck import HealthCheck
-from naas.resources.commands import Commands
+from naas.resources.send_commands import GetResults, SendCommands
 
 
 app = Flask(__name__)
@@ -43,5 +43,6 @@ api = Api(app, errors=api_errors, catch_all_404s=True)
 
 # Add resources (wrappers for Flask views)
 api.add_resource(HelloWorld, "/")
-api.add_resource(HealthCheck, "/healthcheck/")
-api.add_resource(Commands, "/commands/")
+api.add_resource(HealthCheck, "/healthcheck")
+api.add_resource(SendCommands, "/send_commands")
+api.add_resource(GetResults, "/send_commands/<string:job_id>")

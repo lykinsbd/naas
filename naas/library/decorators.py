@@ -30,14 +30,33 @@ def valid_payload(f):
         v.has_credentials()
         v.has_platform()
         logger.info(
-            "%s is issuing %s commands to %s", request.json["user"], len(request.json["commands"]), request.json["ip"]
+            "%s is issuing %s command(s) to %s",
+            request.json["username"],
+            len(request.json["commands"]),
+            request.json["ip"],
         )
         logger.debug(
             "%s is issuing the following commands to %s: %s",
-            request.json["user"],
+            request.json["username"],
             request.json["ip"],
             request.json["commands"],
         )
+        return f(*args, **kwargs)
+
+    return wrapper
+
+
+def valid_job_id(f):
+    """
+    Decorator function to check validity of a NAAS job_id
+    :param f:
+    :return:
+    """
+
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        v = validation.Validate()
+        v.has_uuid()
         return f(*args, **kwargs)
 
     return wrapper

@@ -9,11 +9,18 @@
 
 import os
 
+from redis import Redis
+from rq import Queue
+
 
 # Cert/Key File Locations
 CERT_KEY_FILE = "/app/key.pem"
 CERT_FILE = "/app/cert.crt"
 CERT_BUNDLE_FILE = "/app/bundle.crt"
+
+# Redis config
+REDIS_HOST = os.environ.get("REDIS_MASTER_SERVICE_HOST", "redis")
+REDIS_PORT = 6379
 
 
 def app_configure(app):
@@ -34,6 +41,9 @@ def app_configure(app):
 
         # Today we're not differentiating on environment...
         pass
+
+    q = Queue("naas", connection=Redis(host="redis"))
+    app.config["q"] = q
 
 
 class _DefaultSettings(object):

@@ -1,0 +1,32 @@
+version: '3.7'
+services:
+  api:
+    image: lykinsbd/naas:latest
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: any
+    ports:
+      - 5000:5000
+    logging:
+      options:
+        max-size: "5m"
+        max-file: "2"
+    depends_on:
+      - redis
+      - worker
+  redis:
+    image: redis:5-alpine
+  worker:
+    image: lykinsbd/naas:latest
+    deploy:
+      mode: replicated
+      replicas: 2
+      restart_policy:
+        condition: any
+    command: rq worker naas --url redis://redis:6379
+    healthcheck:
+      disable: true
+    depends_on:
+      - redis

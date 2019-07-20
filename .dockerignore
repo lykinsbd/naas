@@ -1,0 +1,67 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+.Python
+env/
+build/
+develop-eggs/
+dist/
+
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*,cover
+
+# Auto-generated documentation
+docs/src/apidocs/
+docs/gh-pages/
+docs/man/
+#docs/gh-pages
+docs/gh-pages/.doctrees
+share/
+
+# Doctest results
+docs/doctests/
+
+# Pycharm
+.idea/
+
+# Virtualenv files
+bin/
+include/
+pip-selfcheck.json
+local/
+pyvenv.cfg
+
+# mac files
+.DS_Store
+
+# User Config
+.config/
+
+# Secrets
+*.key
