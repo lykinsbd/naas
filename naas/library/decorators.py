@@ -24,7 +24,6 @@ def valid_payload(f):
         v = validation.Validate()
         v.is_json()
         v.is_ip_addr(request.json["ip"], "ip")
-        v.is_config_set()
         v.is_command_set()
         v.custom_port()
         v.has_platform()
@@ -40,22 +39,6 @@ def valid_payload(f):
             request.json["ip"],
             request.json["commands"],
         )
-        return f(*args, **kwargs)
-
-    return wrapper
-
-
-def valid_job_id(f):
-    """
-    Decorator function to check validity of a NAAS job_id
-    :param f:
-    :return:
-    """
-
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        v = validation.Validate()
-        v.is_uuid()
         return f(*args, **kwargs)
 
     return wrapper

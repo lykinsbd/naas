@@ -48,21 +48,11 @@ class Validate(object):
         if s is None:
             self._error("value cannot be null")
 
-    @staticmethod
-    def is_config_set():
-        request.json.setdefault("config_set", False)
-
     def is_command_set(self):
         if not request.json.get("commands"):
             self._error("please provide commands in a list")
         if not isinstance(request.json["commands"], list):
             self._error("please provide commands in a list", code=422)
-
-    def has_credentials(self):
-        if not request.json.get("username") or not request.json.get("password"):
-            self._error("you must provide a username and password")
-        if not isinstance(request.json["username"], str) or not isinstance(request.json["password"], str):
-            self._error("username and password must be strings", code=422)
 
     def has_platform(self):
         if not request.json.get("platform"):

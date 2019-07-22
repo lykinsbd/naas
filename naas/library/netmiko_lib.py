@@ -20,16 +20,16 @@ logger = logging.getLogger(name="NAAS")
 
 
 def netmiko_send_command(
-        ip: str,
-        username: str,
-        password: str,
-        platform: str,
-        commands: "Sequence[str]",
-        port: int = 22,
-        enable: "Optional[str]" = None,
-        config_set: bool = False,
-        delay_factor: int = 2,
-        verbose: bool = False,
+    ip: str,
+    username: str,
+    password: str,
+    platform: str,
+    commands: "Sequence[str]",
+    port: int = 22,
+    enable: "Optional[str]" = None,
+    config_set: bool = False,
+    delay_factor: int = 2,
+    verbose: bool = False,
 ) -> "Tuple[Optional[dict], Optional[str]]":
 
     """
@@ -74,9 +74,7 @@ def netmiko_send_command(
         net_output = {}
         if config_set:
             logger.debug("%s:Sending config_set: %s", netmiko_device["ip"], commands)
-            net_output["config_set_output"] = net_connect.send_config_set(
-                commands, delay_factor=delay_factor
-            )
+            net_output["config_set_output"] = net_connect.send_config_set(commands, delay_factor=delay_factor)
         else:
             for command in commands:
                 logger.debug("%s:Sending %s", netmiko_device["ip"], command)

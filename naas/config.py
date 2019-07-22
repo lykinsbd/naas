@@ -8,6 +8,8 @@
 """
 
 import os
+import random
+import string
 
 from redis import Redis
 from rq import Queue
@@ -42,7 +44,15 @@ def app_configure(app):
         # Today we're not differentiating on environment...
         pass
 
-    q = Queue("naas", connection=Redis(host="redis"))
+    # Initialize a Redis connection and store it for later
+    redis = Redis(host="redis")
+    app.config["redis"] = redis
+
+    # Create a random string to use as a Salt for the UN/PW hashes, stash it in redis
+    redis.set("salt", "".join(random.choice(string.ascii_lowercase) for _ in range(10)))
+
+    # Initialize an rq Queue and store it for later
+    q = Queue("naas", connection=redis)
     app.config["q"] = q
 
 
