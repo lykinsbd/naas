@@ -13,9 +13,9 @@ from flask import Flask
 from flask_restful import Api
 from naas.config import app_configure
 from naas.library.errorhandlers import api_error_generator
-from naas.resources.root import HelloWorld
+from naas.resources.get_results import GetResults
 from naas.resources.healthcheck import HealthCheck
-from naas.resources.send_commands import GetResults, SendCommands
+from naas.resources.send_command import SendCommand
 
 
 app = Flask(__name__)
@@ -26,7 +26,7 @@ app.config["JSON_SORT_KEYS"] = False
 app_configure(app)
 
 # Setup logging:
-logger = logging.getLogger("NAAS")
+logger = logging.getLogger(name="NAAS")
 logger.propagate = False  # fix duplicate messages
 if not logger.handlers:
     logger.setLevel(logging.INFO)
@@ -42,7 +42,6 @@ api_errors = api_error_generator()
 api = Api(app, errors=api_errors, catch_all_404s=True)
 
 # Add resources (wrappers for Flask views)
-api.add_resource(HelloWorld, "/")
-api.add_resource(HealthCheck, "/healthcheck")
-api.add_resource(SendCommands, "/send_commands")
-api.add_resource(GetResults, "/send_commands/<string:job_id>")
+api.add_resource(HealthCheck, "/", "/healthcheck")
+api.add_resource(SendCommand, "/send_command")
+api.add_resource(GetResults, "/send_command/<string:job_id>")
