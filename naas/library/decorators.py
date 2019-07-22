@@ -27,17 +27,16 @@ def valid_payload(f):
         v.is_config_set()
         v.is_command_set()
         v.custom_port()
-        v.has_credentials()
         v.has_platform()
         logger.info(
             "%s is issuing %s command(s) to %s",
-            request.json["username"],
+            request.authorization.username,
             len(request.json["commands"]),
             request.json["ip"],
         )
         logger.debug(
             "%s is issuing the following commands to %s: %s",
-            request.json["username"],
+            request.authorization.username,
             request.json["ip"],
             request.json["commands"],
         )
@@ -56,7 +55,7 @@ def valid_job_id(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
         v = validation.Validate()
-        v.has_uuid()
+        v.is_uuid()
         return f(*args, **kwargs)
 
     return wrapper

@@ -25,7 +25,7 @@ services:
       replicas: 2
       restart_policy:
         condition: any
-    command: rq worker naas --url redis://redis:6379
+    command: python worker.py
     healthcheck:
       disable: true
     depends_on:

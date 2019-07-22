@@ -23,13 +23,15 @@ class SendCommands(Resource):
             ip: str
             port: int
             platform: str
-            username: str
-            password: str
             enable: Optional[str]
             config_set: bool
             commands: Sequence[str]
+        Secured by Basic Auth, which is then passed to the network device.
         :return: A dict of the job ID and 202 response code.
         """
+
+        # Grab creds off the basic_auth header
+        auth = request.authorization
 
         # Enqueue your job, and return the job ID
         q = current_app.config["q"]
@@ -38,9 +40,9 @@ class SendCommands(Resource):
             ip=request.json["ip"],
             port=request.json["port"],
             platform=request.json["platform"],
-            username=request.json["username"],
-            password=request.json["password"],
-            enable=request.json.get("enable", request.json["password"]),
+            username=auth.username,
+            password=auth.password,
+            enable=request.json.get("enable", auth.password),
             config_set=request.json["config_set"],
             commands=request.json["commands"],
         )

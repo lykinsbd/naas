@@ -25,7 +25,7 @@ RUN mkdir /app
 WORKDIR "/app"
 
 # Copy requirements.txt, gunicorn.py and the tarball of NAAS into place
-COPY ["${tarball}", "requirements.txt", "gunicorn.py", "/app/"]
+COPY ["${tarball}", "requirements.txt", "gunicorn.py", "worker.py", "/app/"]
 
 # Install all the things, below is a full breakdown of this monster RUN command:
 
