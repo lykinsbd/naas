@@ -5,7 +5,7 @@ from os import environ
 bind = "0.0.0.0:5000"
 chdir = "/app"
 
-workers = 40
+workers = 50
 worker_class = "sync"
 timeout = 300
 

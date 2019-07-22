@@ -7,10 +7,12 @@
  Description: Handle launching of rq workers
 """
 
+import random
+import string
+
 from argparse import ArgumentParser, Namespace
 from logging import basicConfig, getLogger
 from naas.library.netmiko_lib import netmiko_send_command  # noqa
-from random_word import RandomWords
 from redis import Redis
 from rq import Connection, Worker, Queue
 from multiprocessing import Process
@@ -40,12 +42,12 @@ def main() -> None:
     # Launch the workers
     logger.debug("Creating %s workers", args.workers)
     processes = []
-    rand_words = RandomWords()
+    random_word = ''.join(random.choice(string.ascii_lowercase) for _ in range(5))
     for w in range(1, args.workers + 1):
         proc = Process(
             target=worker_launch,
             kwargs={
-                "name": f"naas_{w}_{rand_words.get_random_word()}",
+                "name": f"naas_{w}_{random_word}",
                 "queues": args.queues,
                 "redis_host": args.redis,
                 "redis_port": args.port,
@@ -64,7 +66,7 @@ def arg_parsing() -> Namespace:
 
     argparser = ArgumentParser(description="RQ Multi-worker Launcher")
     argparser.add_argument(
-        "workers", type=int, nargs="?", default=50, help="The number of workers to launch. Default: 50"
+        "workers", type=int, nargs="?", default=100, help="The number of workers to launch. Default: 100"
     )
     argparser.add_argument(
         "-q",
