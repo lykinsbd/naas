@@ -2,14 +2,9 @@
 # -*- coding: UTF-8 -*-
 
 
-import logging
-
-from flask import request
+from flask import current_app, request
 from functools import wraps
 from naas.library import validation
-
-
-logger = logging.getLogger(name="NAAS")
 
 
 def valid_payload(f):
@@ -27,13 +22,13 @@ def valid_payload(f):
         v.is_command_set()
         v.custom_port()
         v.has_platform()
-        logger.info(
+        current_app.logger.info(
             "%s is issuing %s command(s) to %s",
             request.authorization.username,
             len(request.json["commands"]),
             request.json["ip"],
         )
-        logger.debug(
+        current_app.logger.debug(
             "%s is issuing the following commands to %s: %s",
             request.authorization.username,
             request.json["ip"],

@@ -20,20 +20,12 @@ from naas.resources.send_command import SendCommand
 
 app = Flask(__name__)
 
-# Setup your app
-app.config["JSON_SORT_KEYS"] = False
-
 app_configure(app)
 
 # Setup logging:
 logger = logging.getLogger(name="NAAS")
-logger.propagate = False  # fix duplicate messages
-if not logger.handlers:
-    logger.setLevel(logging.INFO)
-    stderr_handler = logging.StreamHandler()
-    normal_formatter = logging.Formatter("%(levelname)s - %(message)s")
-    stderr_handler.setFormatter(normal_formatter)
-    logger.addHandler(stderr_handler)
+app.logger.handlers = logger.handlers
+app.logger.setLevel(logger.level)
 
 # Get the error handling dict
 api_errors = api_error_generator()

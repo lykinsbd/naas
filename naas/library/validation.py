@@ -3,14 +3,10 @@
 
 
 import ipaddress
-import logging
 
-from flask import request
+from flask import current_app, request
 from uuid import UUID
 from werkzeug.exceptions import UnprocessableEntity, BadRequest
-
-
-logger = logging.getLogger("NAAS")
 
 
 class Validate(object):
@@ -62,7 +58,7 @@ class Validate(object):
 
     @staticmethod
     def _error(message, code=400):
-        logger.error(message)
+        current_app.logger.error(message)
         if code == 400:
             raise BadRequest
         elif code == 422:
@@ -76,5 +72,5 @@ class ValidateHTTP(object):
 
     @staticmethod
     def _error():
-        logger.error("Invalid HTTP request")
+        current_app.logger.error("Invalid HTTP request")
         raise BadRequest

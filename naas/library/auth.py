@@ -2,10 +2,6 @@
 
 from flask import current_app
 from hashlib import sha512
-from logging import getLogger
-
-
-logger = getLogger(name="NAAS")
 
 
 def job_locker(username: str, password: str, job_id: str) -> None:
@@ -19,11 +15,11 @@ def job_locker(username: str, password: str, job_id: str) -> None:
 
     redis = current_app.config["redis"]
     salt = redis.get("salt").decode()
-    logger.debug("Salting %s:<redacted> with %s...", username, salt)
+    current_app.logger.debug("Salting %s:<redacted> with %s...", username, salt)
     pork = username + ":" + password + salt
     salt_shaker = sha512(pork.encode())
     salted_pork = salt_shaker.hexdigest()  # Particularly nice
-    logger.debug("Locking job %s with %s", job_id, salted_pork)
+    current_app.logger.debug("Locking job %s with %s", job_id, salted_pork)
     redis.set(job_id, salted_pork)
 
 
@@ -38,18 +34,18 @@ def job_key(username: str, password: str, job_id: str) -> bool:
 
     redis = current_app.config["redis"]
     salt = redis.get("salt").decode()
-    logger.debug("Salting %s:<redacted> with %s...", username, salt)
+    current_app.logger.debug("Salting %s:<redacted> with %s...", username, salt)
     pork = username + ":" + password + salt
     salt_shaker = sha512(pork.encode())
     salted_pork = salt_shaker.hexdigest()  # Particularly nice
 
     try:
         maybe_pork = redis.get(job_id).decode()
-        logger.debug("Attempting to unlock job %s with %s", job_id, salted_pork)
+        current_app.logger.debug("Attempting to unlock job %s with %s", job_id, salted_pork)
         if maybe_pork == salted_pork:
             return True
         else:
-            logger.debug("Job %s returned %s", job_id, maybe_pork)
+            current_app.logger.debug("Job %s returned %s", job_id, maybe_pork)
             return False
     except Exception:
         return False

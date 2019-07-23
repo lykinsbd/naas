@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 
-import logging
 
 from naas import __version__
-
-logger = logging.getLogger(name="NAAS")
 
 
 class SshAuthentication(Exception):

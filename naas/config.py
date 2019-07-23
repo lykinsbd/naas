@@ -27,8 +27,27 @@ REDIS_PORT = 6379
 
 def app_configure(app):
 
-    app.config.from_object(_DefaultSettings)
+    # Configure our environment
+    app_environment = os.environ.get("APP_ENVIRONMENT", "dev")
 
+    # Default set the env to "dev" if something invalid is specified
+    if app_environment.lower() not in ["dev", "staging", "production"]:
+        app_environment = "dev"
+
+    app.config["APP_ENVIRONMENT"] = app_environment
+
+    # Disable flask debugger
+    app.config["DEBUG"] = False
+
+    if "dev" in app.config["APP_ENVIRONMENT"]:
+        app.config["LOG_LEVEL"] = os.environ.get("LOG_LEVEL", "DEBUG")
+    else:
+        app.config["LOG_LEVEL"] = os.environ.get("LOG_LEVEL", "INFO")
+
+    # Push our log level up to an environment variable.
+    os.environ["LOG_LEVEL"] = app.config["LOG_LEVEL"]
+
+    # Configure environment specific variables
     if app.config["APP_ENVIRONMENT"].lower() == "dev":
 
         # Today we're not differentiating on environment...
@@ -44,6 +63,9 @@ def app_configure(app):
         # Today we're not differentiating on environment...
         pass
 
+    # Turn off JSON Key sorting
+    app.config["JSON_SORT_KEYS"] = False
+
     # Initialize a Redis connection and store it for later
     redis = Redis(host="redis")
     app.config["redis"] = redis
@@ -54,24 +76,3 @@ def app_configure(app):
     # Initialize an rq Queue and store it for later
     q = Queue("naas", connection=redis)
     app.config["q"] = q
-
-
-class _DefaultSettings(object):
-    """Set base variables based on deployment"""
-
-    VALID_ENVIRONMENTS = ["dev", "staging", "production"]
-    APP_ENVIRONMENT = os.environ.get("APP_ENVIRONMENT", "dev")
-
-    """Default set the env to "dev" if something invalid is specified"""
-    if APP_ENVIRONMENT.lower() not in VALID_ENVIRONMENTS:
-        APP_ENVIRONMENT = "dev"
-
-    """Disable flask debugger"""
-    DEBUG = False
-
-    LOG_LEVELS = {"CRITICAL": 50, "ERROR": 40, "WARNING": 30, "INFO": 20, "DEBUG": 10, "NOTSET": 0}
-
-    if "dev" in APP_ENVIRONMENT:
-        LOG_LEVEL = LOG_LEVELS.get(os.environ.get("LOG_LEVEL", "DEBUG"), "DEBUG")
-    else:
-        LOG_LEVEL = LOG_LEVELS.get(os.environ.get("LOG_LEVEL", "INFO"), "INFO")
