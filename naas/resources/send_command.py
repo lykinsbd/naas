@@ -1,7 +1,7 @@
 # API Resources
 
 from flask_restful import Resource
-from flask import current_app, request
+from flask import current_app, g, request
 from naas import __version__
 from naas.library.auth import job_locker, salted_hash
 from naas.library.decorators import valid_post
@@ -14,7 +14,7 @@ class SendCommand(Resource):
     def get():
         return {"app": "naas", "version": __version__}
 
-    @valid_payload
+    @valid_post
     def post(self):
         """
         Will enqueue an attempt to run commands on a device.
@@ -35,8 +35,13 @@ class SendCommand(Resource):
         if auth.username is None:
             raise Unauthorized
 
+        # Grab x-request-id
+        request_id = g.request_id
+
         # Enqueue your job, and return the job ID
-        current_app.logger.debug("Enqueueing job for %s@%s:%s", auth.username, request.json["ip"], request.json["port"])
+        current_app.logger.debug(
+            "%s: Enqueueing job for %s@%s:%s", request_id, auth.username, request.json["ip"], request.json["port"]
+        )
         q = current_app.config["q"]
         job = q.enqueue(
             netmiko_send_command,
@@ -47,10 +52,11 @@ class SendCommand(Resource):
             password=auth.password,
             enable=request.json.get("enable", auth.password),
             commands=request.json["commands"],
+            job_id=request_id,
         )
         job_id = job.get_id()
-        current_app.logger.debug(
-            "Enqueued job (%s) for %s@%s:%s", job_id, auth.username, request.json["ip"], request.json["port"]
+        current_app.logger.info(
+            "%s: Enqueued job for %s@%s:%s", job_id, auth.username, request.json["ip"], request.json["port"]
         )
 
         # Generate the un/pw hash:
@@ -59,4 +65,5 @@ class SendCommand(Resource):
         # Stash the job_id in redis, with the user/pass hash so that only that user can retrieve results
         job_locker(salted_creds=user_hash, job_id=job_id)
 
-        return {"job_id": job_id, "app": "naas", "version": __version__}, 202
+        # Return our payload containing job_id, a 202 Accepted, and the X-Request-ID header
+        return {"job_id": job_id, "app": "naas", "version": __version__}, 202, {"X-Request-ID": job_id}

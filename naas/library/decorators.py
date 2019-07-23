@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 
-
-from flask import current_app, request
+from flask import current_app, g, request
 from functools import wraps
 from naas.library import validation
+from uuid import uuid4
 
 
-def valid_payload(f):
+def valid_post(f):
     """
     Decorator function to check validity of a NAAS payload
     :param f:
@@ -22,16 +22,28 @@ def valid_payload(f):
         v.is_command_set()
         v.custom_port()
         v.has_platform()
+
+        # Capture or create the x-request-id
+        if "x-request-id" not in v.http.headers.keys():
+            g.request_id = str(uuid4())
+        else:
+            g.request_id = v.http.headers["x-request-id"]
+
+        # Log this request's details
         current_app.logger.info(
-            "%s is issuing %s command(s) to %s",
+            "%s: %s is issuing %s command(s) to %s:%s",
+            g.request_id,
             request.authorization.username,
             len(request.json["commands"]),
             request.json["ip"],
+            request.json["port"],
         )
         current_app.logger.debug(
-            "%s is issuing the following commands to %s: %s",
+            "%s: %s is issuing the following commands to %s:%s: %s",
+            g.request_id,
             request.authorization.username,
             request.json["ip"],
+            request.json["port"],
             request.json["commands"],
         )
         return f(*args, **kwargs)
