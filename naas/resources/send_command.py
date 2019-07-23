@@ -3,8 +3,8 @@
 from flask_restful import Resource
 from flask import current_app, request
 from naas import __version__
-from naas.library.auth import job_locker
-from naas.library.decorators import valid_payload
+from naas.library.auth import job_locker, salted_hash
+from naas.library.decorators import valid_post
 from naas.library.netmiko_lib import netmiko_send_command
 from werkzeug.exceptions import Unauthorized
 
@@ -53,7 +53,10 @@ class SendCommand(Resource):
             "Enqueued job (%s) for %s@%s:%s", job_id, auth.username, request.json["ip"], request.json["port"]
         )
 
+        # Generate the un/pw hash:
+        user_hash = salted_hash(username=auth.username, password=auth.password)
+
         # Stash the job_id in redis, with the user/pass hash so that only that user can retrieve results
-        job_locker(username=auth.username, password=auth.password, job_id=job_id)
+        job_locker(salted_creds=user_hash, job_id=job_id)
 
         return {"job_id": job_id, "app": "naas", "version": __version__}, 202
