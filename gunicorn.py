@@ -5,9 +5,9 @@ from os import environ
 # Setup basic attributes of our web-server
 bind = "0.0.0.0:5000"
 chdir = "/app"
-
-workers = 50
-worker_class = "sync"
+workers = 8
+worker_class = "gthread"
+threads = 32
 timeout = 300
 
 # Configure access logging
