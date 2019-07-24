@@ -2,12 +2,10 @@
 # please tag the repo with the new version number.
 version = $(shell git for-each-ref --sort=-taggerdate --format '%(refname:short)' refs/tags | head -n 1)
 
-.phony: all container
+.PHONY: all
+all: help
 
-all:
-	@echo The current tagged version is $(version)
-	@echo Run 'make container' to build a new container and tag it with this version.
-
+.PHONY: clean
 clean:  ## delete temporary files
 	# Distribution directory
 	-rm -rf dist build
@@ -20,7 +18,13 @@ clean:  ## delete temporary files
 	# Extra stuff installed by pip
 	-rm -rf share
 
-container:
+.PHONY: distclean
+distclean: clean  ## delete anything that's not part of the repo
+	git reset HEAD --hard
+	git clean -fxd
+
+.PHONY: build_container
+build_container:  ## build the NAAS docker container
 	@echo Checking for untagged changes...
 	test -z "$(shell git status --porcelain)"
 	git diff-index --quiet $(version)
@@ -30,8 +34,28 @@ container:
 	--tag lykinsbd/naas:$(version) \
 	--tag lykinsbd/naas:latest .
 
-container_push: ## push the docker container to artifactory
+.PHONY: push_container
+push_container: ## push the NAAS docker container to artifactory
 	docker push lykinsbd/naas:$(version)
 	docker push lykinsbd/naas:latest
 
-release: container_build container_push ## build and push a release to docker hub
+release: build_container push_container ## build and push the NAAS docker container to docker hub
+
+.PHONY: banner
+banner:
+	@echo ""
+	@echo " ███▄▄▄▄      ▄████████    ▄████████    ▄████████ "
+	@echo " ███▀▀▀██▄   ███    ███   ███    ███   ███    ███ "
+	@echo " ███   ███   ███    ███   ███    ███   ███    █▀  "
+	@echo " ███   ███   ███    ███   ███    ███   ███        "
+	@echo " ███   ███ ▀███████████ ▀███████████ ▀███████████ "
+	@echo " ███   ███   ███    ███   ███    ███          ███ "
+	@echo " ███   ███   ███    ███   ███    ███    ▄█    ███ "
+	@echo "  ▀█   █▀    ███    █▀    ███    █▀   ▄████████▀  "
+	@echo "                                                  "
+	@echo ""
+
+.PHONY: help
+help: banner
+# Help function shamelessly stolen from the Rackspace Engineering Handbook
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
