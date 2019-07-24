@@ -50,11 +50,11 @@ class Validate(object):
         if not isinstance(request.json["commands"], list):
             self._error("please provide commands in a list", code=422)
 
-    def has_platform(self):
-        if not request.json.get("platform"):
-            self._error("you must provide a netmiko platform")
-        if not isinstance(request.json["platform"], str):
-            self._error("platform must be a string", code=422)
+    def has_device_type(self):
+        if not request.json.get("device_type"):
+            self._error("you must provide a netmiko device_type")
+        if not isinstance(request.json["device_type"], str):
+            self._error("device_type must be a string", code=422)
 
     @staticmethod
     def _error(message, code=400):

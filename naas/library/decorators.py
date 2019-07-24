@@ -21,7 +21,7 @@ def valid_post(f):
         v.is_ip_addr(request.json["ip"], "ip")
         v.is_command_set()
         v.custom_port()
-        v.has_platform()
+        v.has_device_type()
 
         # Capture or create the x-request-id
         if "x-request-id" not in v.http.headers.keys():

@@ -23,7 +23,7 @@ def netmiko_send_command(
     ip: str,
     username: str,
     password: str,
-    platform: str,
+    device_type: str,
     commands: "Sequence[str]",
     port: int = 22,
     enable: "Optional[str]" = None,
@@ -40,7 +40,7 @@ def netmiko_send_command(
     :param username: What is the username for this connection?
     :param password: What is the password?
     :param commands: List of the commands to issue to the device
-    :param platform: What Netmiko platform type are we connecting to?
+    :param device_type: What Netmiko device type are we connecting to?
     :param port: What TCP Port are we connecting to?
     :param enable: If this device requires a second auth/Enable password, what is it?
     :param config_set: Is this a set of config changes, or a list of individual commands?
@@ -55,7 +55,7 @@ def netmiko_send_command(
 
     # Create device dict to pass netmiko
     netmiko_device = {
-        "device_type": platform,
+        "device_type": device_type,
         "ip": ip,
         "username": username,
         "password": password,

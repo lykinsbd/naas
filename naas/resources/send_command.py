@@ -22,7 +22,7 @@ class SendCommand(Resource):
         Requires you submit the following in the payload:
             ip: str
             port: int
-            platform: str
+            device_type: str
             enable: Optional[str]
             config_set: bool
             commands: Sequence[str]
@@ -51,7 +51,7 @@ class SendCommand(Resource):
             netmiko_send_command,
             ip=request.json["ip"],
             port=request.json["port"],
-            platform=request.json["platform"],
+            device_type=request.json["device_type"],
             username=auth.username,
             password=auth.password,
             enable=request.json.get("enable", auth.password),
