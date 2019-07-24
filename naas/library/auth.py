@@ -16,7 +16,7 @@ def salted_hash(username: str, password: str, salt: Optional[str] = None) -> str
 
     redis = current_app.config["redis"]
     if salt is None:
-        salt = redis.get("salt").decode()
+        salt = redis.get("naas_cred_salt").decode()
     current_app.logger.debug("Salting %s:<redacted> with %s...", username, salt)
     pork = username + ":" + password + salt
     salt_shaker = sha512(pork.encode())

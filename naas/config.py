@@ -71,7 +71,7 @@ def app_configure(app):
     app.config["redis"] = redis
 
     # Create a random string to use as a Salt for the UN/PW hashes, stash it in redis
-    redis.set("salt", "".join(random.choice(string.ascii_lowercase) for _ in range(10)))
+    redis.set("naas_cred_salt", "".join(random.choice(string.ascii_lowercase) for _ in range(10)))
 
     # Initialize an rq Queue and store it for later
     q = Queue("naas", connection=redis)
