@@ -32,9 +32,11 @@ def job_locker(salted_creds: str, job_id: str) -> None:
     :return:
     """
 
-    redis = current_app.config["redis"]
+    q = current_app.config["q"]
     current_app.logger.debug("Locking job %s with %s", job_id, salted_creds)
-    redis.set(job_id, salted_creds)
+    job = q.fetch_job(job_id=job_id)
+    job.meta["hash"] = salted_creds
+    job.save_meta()
 
 
 def job_unlocker(salted_creds: str, job_id: str) -> bool:
@@ -45,15 +47,17 @@ def job_unlocker(salted_creds: str, job_id: str) -> bool:
     :return:
     """
 
-    redis = current_app.config["redis"]
+    q = current_app.config["q"]
 
     try:
-        maybe_right = redis.get(job_id).decode()
         current_app.logger.debug("Attempting to unlock job %s with %s", job_id, salted_creds)
-        if maybe_right == salted_creds:
+        job = q.fetch_job(job_id=job_id)
+        stored_hash = job.meta.get("hash", "")
+        if stored_hash == salted_creds:
             return True
         else:
-            current_app.logger.debug("Job %s returned %s", job_id, maybe_right)
+            current_app.logger.debug("Job %s returned %s", job_id, stored_hash)
             return False
-    except Exception:
+    except Exception as e:
+        current_app.logger.debug("Error unlocking job: %s", e)
         return False

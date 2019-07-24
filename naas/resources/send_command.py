@@ -6,7 +6,7 @@ from naas import __version__
 from naas.library.auth import job_locker, salted_hash
 from naas.library.decorators import valid_post
 from naas.library.netmiko_lib import netmiko_send_command
-from werkzeug.exceptions import Unauthorized
+from werkzeug.exceptions import BadRequest, Unauthorized
 
 
 class SendCommand(Resource):
@@ -38,11 +38,15 @@ class SendCommand(Resource):
         # Grab x-request-id
         request_id = g.request_id
 
+        # Validate there isn't already a job by this ID
+        q = current_app.config["q"]
+        if q.fetch_job(request_id) is not None:
+            raise BadRequest
+
         # Enqueue your job, and return the job ID
         current_app.logger.debug(
             "%s: Enqueueing job for %s@%s:%s", request_id, auth.username, request.json["ip"], request.json["port"]
         )
-        q = current_app.config["q"]
         job = q.enqueue(
             netmiko_send_command,
             ip=request.json["ip"],

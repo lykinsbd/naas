@@ -29,11 +29,11 @@ class Validate(object):
         except ValueError:
             self._error("invalid IP Address")
 
-    def is_uuid(self, job_id: str):
+    def is_uuid(self, uuid: str):
         try:
-            _ = UUID(job_id, version=4)
+            _ = UUID(uuid, version=4)
         except ValueError:
-            self._error("invalid Job ID")
+            self._error("invalid UUID")
 
     def is_json(self):
         if not request.json:

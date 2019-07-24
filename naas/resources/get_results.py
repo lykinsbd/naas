@@ -20,7 +20,7 @@ class GetResults(Resource):
 
         # Validate our job_id
         v = Validate()
-        v.is_uuid(job_id=job_id)
+        v.is_uuid(uuid=job_id)
 
         # Ensure this user can access the job...
         auth = request.authorization

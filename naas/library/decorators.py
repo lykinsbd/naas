@@ -27,6 +27,7 @@ def valid_post(f):
         if "x-request-id" not in v.http.headers.keys():
             g.request_id = str(uuid4())
         else:
+            v.is_uuid(uuid=v.http.headers["x-request-id"])
             g.request_id = v.http.headers["x-request-id"]
 
         # Log this request's details
