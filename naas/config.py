@@ -21,8 +21,8 @@ CERT_FILE = "/app/cert.crt"
 CERT_BUNDLE_FILE = "/app/bundle.crt"
 
 # Redis config
-REDIS_HOST = os.environ.get("REDIS_MASTER_SERVICE_HOST", "redis")
-REDIS_PORT = 6379
+REDIS_HOST = os.environ.get("REDIS_HOST", "redis")
+REDIS_PORT = os.environ.get("REDIS_PORT", 6379)
 
 
 def app_configure(app):
