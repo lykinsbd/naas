@@ -9,7 +9,6 @@ from werkzeug.exceptions import Unauthorized, Forbidden
 
 
 class GetResults(Resource):
-
     @staticmethod
     def get(job_id: str):
         """

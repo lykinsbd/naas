@@ -7,6 +7,7 @@ Library to abstract Netmiko functions for use by the NAAS API.
 import logging
 import netmiko
 
+from naas.library.auth import tacacs_auth_lockout
 from paramiko import ssh_exception
 from socket import timeout
 from typing import TYPE_CHECKING
@@ -83,10 +84,11 @@ def netmiko_send_command(
         net_connect.disconnect()
 
     except (netmiko.NetMikoTimeoutException, timeout) as e:
-        logger.debug("%s:Netmiko cannot connect to device: %s", netmiko_device["ip"], e)
+        logger.debug("%s:Netmiko timed out connecting to device: %s", netmiko_device["ip"], e)
         return None, str(e)
     except netmiko.NetMikoAuthenticationException as e:
-        logger.debug("%s:Netmiko cannot connect to device: %s", netmiko_device["ip"], e)
+        logger.debug("%s:Netmiko authentication failure connecting to device: %s", netmiko_device["ip"], e)
+        tacacs_auth_lockout(username=username, report_failure=True)
         return None, str(e)
     except (ssh_exception.SSHException, ValueError) as e:
         logger.debug("%s:Netmiko cannot connect to device: %s", netmiko_device["ip"], e)

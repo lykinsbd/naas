@@ -67,7 +67,7 @@ def app_configure(app):
     app.config["JSON_SORT_KEYS"] = False
 
     # Initialize a Redis connection and store it for later
-    redis = Redis(host="redis")
+    redis = Redis(host=REDIS_HOST, port=REDIS_PORT)
     app.config["redis"] = redis
 
     # Create a random string to use as a Salt for the UN/PW hashes, stash it in redis
