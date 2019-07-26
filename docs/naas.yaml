@@ -1,0 +1,174 @@
+openapi: 3.0.0
+info:
+  version: 0.0.1
+  title: NAAS - Netmiko As A Service
+  contact:
+    email: lykinsbd@gmail.com
+    name: Brett Lykins
+
+servers:
+  - url: https://naas.your_own_site.com
+    description: NAAS
+
+paths:
+  /healthcheck:
+    get:
+      tags:
+      - /healthcheck
+      summary: Returns OK if the API is up
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/healthcheck_response_payload"
+
+  /send_command:
+    post:
+      security:
+        - BasicAuth: []
+      tags:
+        - /send_command
+      summary: Enqueue a job to execute the provided list of commands on a device
+      responses:
+        202:
+          description: Job Accepted/Enqueued for backend processing
+          content:
+            application/json:
+              schema:
+                $ref: ""
+        400 BadRequest:
+          $ref: "#/components/responses/400BadRequest"
+        400 DuplicateRequestID:
+          $ref: "#/components/responses/400DuplicateRequestID"
+        401 Unauthorized:
+          $ref: "#/components/responses/401Unauthorized"
+        403 Forbidden:
+          $ref: "#/components/responses/403Forbidden"
+        422 UnprocessableEntity:
+          $ref: "#/components/responses/422UnprocessableEntity"
+        500 InternalServerError:
+          $ref: "#/components/responses/500InternalServerError"
+
+  /send_command/{job_id}:
+    get:
+      security:
+        - BasicAuth: []
+      tags:
+        - /send_command
+      summary: Retrive the status and/or results for an initiated job
+      response:
+        200:
+          description: Job Status and any Output or Error
+          content:
+            application/json:
+              schema:
+                $ref: ""
+        400 BadRequest:
+          $ref: "#/components/responses/400BadRequest"
+        401 Unauthorized:
+          $ref: "#/components/responses/401Unauthorized"
+        403 Forbidden:
+          $ref: "#/components/responses/403Forbidden"
+        422 UnprocessableEntity:
+          $ref: "#/components/responses/422UnprocessableEntity"
+        500 InternalServerError:
+          $ref: "#/components/responses/500InternalServerError"
+
+  /send_config:
+    post:
+      security:
+        - BasicAuth: []
+      tags:
+        - /send_config
+      summary: Enqueue a job to execute the provided list of configuration commands on a device
+      responses:
+        202:
+          description: Job Accepted/Enqueued for backend processing
+          content:
+            application/json:
+              schema:
+                $ref: ""
+        400 BadRequest:
+          $ref: "#/components/responses/400BadRequest"
+        400 DuplicateRequestID:
+          $ref: "#/components/responses/400DuplicateRequestID"
+        401 Unauthorized:
+          $ref: "#/components/responses/401Unauthorized"
+        403 Forbidden:
+          $ref: "#/components/responses/403Forbidden"
+        422 UnprocessableEntity:
+          $ref: "#/components/responses/422UnprocessableEntity"
+        500 InternalServerError:
+          $ref: "#/components/responses/500InternalServerError"
+
+  /send_config/{job_id}:
+    get:
+      security:
+        - BasicAuth: []
+      tags:
+        - /send_config
+      summary: Retrive the status and/or results for an initiated job
+      response:
+        200:
+          description: Job Status and any Output or Error
+          content:
+            application/json:
+              schema:
+                $ref: ""
+        400 BadRequest:
+          $ref: "#/components/responses/400BadRequest"
+        401 Unauthorized:
+          $ref: "#/components/responses/401Unauthorized"
+        403 Forbidden:
+          $ref: "#/components/responses/403Forbidden"
+        422 UnprocessableEntity:
+          $ref: "#/components/responses/422UnprocessableEntity"
+        500 InternalServerError:
+          $ref: "#/components/responses/500InternalServerError"
+
+components:
+  parameters:
+    job_id:
+      in: path
+      name: job_id
+      required: true
+      schema:
+        type: string
+
+  responses:
+    400BadRequest:
+      description: Invalid syntax in request
+    400DuplicateRequestID:
+      description: Please provide a unique X-Request-ID
+    401Unauthorized:
+      description: Please provide a valid Username/Password
+    403Forbidden:
+      description: You are not currently allowed to access this resource
+    422UnprocessableEntity:
+      description: Please provide commands in List form
+    500InternalServerError:
+      description: The server encountered an internal error and was unable to complete your request.  Either the server is overloaded or there is an error in the application.
+
+  schemas:
+    AnyValue:
+      anyOf:
+        - type: string
+        - type: array
+          nullable: true
+        - type: object
+    healthcheck_response_payload:
+      type: object
+      properties:
+        status:
+          type: string
+        app:
+          type: string
+        version:
+          type: string
+
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: basic
