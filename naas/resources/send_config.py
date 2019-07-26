@@ -1,4 +1,4 @@
-# API Resource for wrapping netmiko's send_command() function
+# API Resource for wrapping netmiko's send_config() function
 
 from flask_restful import Resource
 from flask import current_app, g, request
@@ -10,7 +10,7 @@ from naas.library.netmiko_lib import netmiko_send_command
 from werkzeug.exceptions import Forbidden, Unauthorized
 
 
-class SendCommand(Resource):
+class SendConfig(Resource):
     @staticmethod
     def get():
         return {"app": "naas", "version": __version__}
@@ -18,7 +18,7 @@ class SendCommand(Resource):
     @valid_post
     def post(self):
         """
-        Will enqueue an attempt to run commands on a device.
+        Will enqueue an attempt to use netmiko's send_config_set() method to run commands/put configuration on a device.
 
         Requires you submit the following in the payload:
             ip: str

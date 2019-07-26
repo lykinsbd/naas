@@ -12,7 +12,7 @@ import string
 
 from argparse import ArgumentParser, Namespace
 from logging import basicConfig, getLogger
-from naas.library.netmiko_lib import netmiko_send_command  # noqa
+from naas.library.netmiko_lib import netmiko_send_command, netmiko_send_config  # noqa
 from redis import Redis
 from rq import Connection, Worker, Queue
 from multiprocessing import Process
