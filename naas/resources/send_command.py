@@ -3,10 +3,11 @@
 from flask_restful import Resource
 from flask import current_app, g, request
 from naas import __version__
-from naas.library.auth import job_locker, salted_hash
+from naas.library.auth import job_locker, salted_hash, tacacs_auth_lockout
+from naas.library.errorhandlers import DuplicateRequestID
 from naas.library.decorators import valid_post
 from naas.library.netmiko_lib import netmiko_send_command
-from werkzeug.exceptions import BadRequest, Unauthorized
+from werkzeug.exceptions import Forbidden, Unauthorized
 
 
 class SendCommand(Resource):
@@ -27,7 +28,7 @@ class SendCommand(Resource):
             config_set: bool
             commands: Sequence[str]
         Secured by Basic Auth, which is then passed to the network device.
-        :return: A dict of the job ID and 202 response code.
+        :return: A dict of the job ID, a 202 response code, and the job_id as the X-Request-ID header
         """
 
         # Grab creds off the basic_auth header
@@ -35,13 +36,17 @@ class SendCommand(Resource):
         if auth.username is None:
             raise Unauthorized
 
+        # Check if this user is locked out or not
+        if tacacs_auth_lockout(username=auth.username):
+            raise Forbidden
+
         # Grab x-request-id
         request_id = g.request_id
 
         # Validate there isn't already a job by this ID
         q = current_app.config["q"]
         if q.fetch_job(request_id) is not None:
-            raise BadRequest
+            raise DuplicateRequestID
 
         # Enqueue your job, and return the job ID
         current_app.logger.debug(

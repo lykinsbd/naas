@@ -5,15 +5,7 @@
 from naas import __version__
 
 
-class SshAuthentication(Exception):
-    pass
-
-
-class SshError(Exception):
-    pass
-
-
-class SshTimeout(Exception):
+class DuplicateRequestID(Exception):
     pass
 
 
@@ -26,6 +18,9 @@ def api_error_generator():
 
     api_errors = {
         "BadRequest": {"status": 400, "error": "Invalid syntax in request"},
+        "DuplicateRequestID": {"status": 400, "error": "Please provide a unique X-Request-ID"},
+        "Unauthorized": {"status": 401, "error": "Please provide a valid Username/Password"},
+        "Forbidden": {"status": 403, "error": "You are not currently allowed to access this resource"},
         "UnprocessableEntity": {"status": 422, "error": "Please provide commands in List form"},
         "InternalServerError": {
             "status": 500,
@@ -34,13 +29,10 @@ def api_error_generator():
                 "  Either the server is overloaded or there is an error in the application."
             ),
         },
-        "SshError": {"status": 502, "error": "SSH - Unknown Error connecting to device"},
-        "SshAuthentication": {"status": 502, "error": "SSH - Unable to authenticate to device"},
-        "SshTimeout": {"status": 504, "error": "SSH - Connection timed out to device"},
     }
 
-    # Error handling boilerplate to help make a valid payload
-    error_boilerplate = {"success": False, "output": None, "app": "naas", "version": __version__}
+    # Error handling boilerplate to help make our common response payload
+    error_boilerplate = {"app": "naas", "version": __version__}
     for err in api_errors:
         api_errors[err].update(error_boilerplate)
 
