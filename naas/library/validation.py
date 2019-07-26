@@ -21,6 +21,22 @@ class Validate(object):
         # If "port" is in payload, don't do anything, otherwise set it to 22
         request.json.setdefault("port", 22)
 
+    def save_config(self):
+        # If "save_config" bool is in payload, don't do anything, otherwise set it to False
+        request.json.setdefault("save_config", False)
+
+        # If it _was_ set, but it ain't a bool, get outta here fool
+        if not isinstance(request.json["save_config"], bool):
+            self._error("save_config must be a Boolean")
+
+    def commit(self):
+        # If "commit" bool is in payload, don't do anything, otherwise set it to False
+        request.json.setdefault("commit", False)
+
+        # If it _was_ set, but it ain't a bool, get outta here fool
+        if not isinstance(request.json["commit"], bool):
+            self._error("commit must be a Boolean")
+
     def is_ip_addr(self, ip, name=None):
         self._field_name = name
         self.is_not_none(ip, name)

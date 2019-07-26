@@ -6,7 +6,7 @@ from naas import __version__
 from naas.library.auth import job_locker, salted_hash, tacacs_auth_lockout
 from naas.library.errorhandlers import DuplicateRequestID
 from naas.library.decorators import valid_post
-from naas.library.netmiko_lib import netmiko_send_command
+from naas.library.netmiko_lib import netmiko_send_config
 from werkzeug.exceptions import Forbidden, Unauthorized
 
 
@@ -26,6 +26,7 @@ class SendConfig(Resource):
             device_type: str
             enable: Optional[str]
             commands: Sequence[str]
+            save_config: bool
         Secured by Basic Auth, which is then passed to the network device.
         :return: A dict of the job ID, a 202 response code, and the job_id as the X-Request-ID header
         """
@@ -52,7 +53,7 @@ class SendConfig(Resource):
             "%s: Enqueueing job for %s@%s:%s", request_id, auth.username, request.json["ip"], request.json["port"]
         )
         job = q.enqueue(
-            netmiko_send_command,
+            netmiko_send_config,
             ip=request.json["ip"],
             port=request.json["port"],
             device_type=request.json["device_type"],
@@ -60,6 +61,8 @@ class SendConfig(Resource):
             password=auth.password,
             enable=request.json.get("enable", auth.password),
             commands=request.json["commands"],
+            save_config=request.json["save_config"],
+            commit=request.json["commit"],
             job_id=request_id,
         )
         job_id = job.get_id()
