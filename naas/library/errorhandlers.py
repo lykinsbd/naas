@@ -21,7 +21,10 @@ def api_error_generator():
         "DuplicateRequestID": {"status": 400, "error": "Please provide a unique X-Request-ID"},
         "Unauthorized": {"status": 401, "error": "Please provide a valid Username/Password"},
         "Forbidden": {"status": 403, "error": "You are not currently allowed to access this resource"},
-        "UnprocessableEntity": {"status": 422, "error": "Please provide commands in List form"},
+        "UnprocessableEntity": {
+            "status": 422,
+            "error": "Invalid type of data in request payload, please see documentation",
+        },
         "InternalServerError": {
             "status": 500,
             "error": (
