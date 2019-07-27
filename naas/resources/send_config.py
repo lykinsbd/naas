@@ -22,11 +22,14 @@ class SendConfig(Resource):
 
         Requires you submit the following in the payload:
             ip: str
-            port: int
-            device_type: str
-            enable: Optional[str]
             commands: Sequence[str]
+        Optional:
+            port: int - Default 22
+            device_type: str - Default cisco_ios
+            enable: Optional[str] - Default the password provided for basic auth
             save_config: bool
+            commit: bool
+
         Secured by Basic Auth, which is then passed to the network device.
         :return: A dict of the job ID, a 202 response code, and the job_id as the X-Request-ID header
         """
