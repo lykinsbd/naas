@@ -68,7 +68,7 @@ class Validate(object):
 
     def has_device_type(self):
         if not request.json.get("device_type"):
-            self._error("you must provide a netmiko device_type")
+            request.json["device_type"] = "cisco_ios"
         if not isinstance(request.json["device_type"], str):
             self._error("device_type must be a string", code=422)
 
