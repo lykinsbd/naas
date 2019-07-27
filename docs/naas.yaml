@@ -58,6 +58,8 @@ paths:
       tags:
         - /send_command
       summary: Retrive the status and/or results for an initiated job
+      parameters:
+        - $ref: "#/components/parameters/job_id"
       response:
         200:
           description: Job Status and any Output or Error
@@ -110,6 +112,8 @@ paths:
       tags:
         - /send_config
       summary: Retrive the status and/or results for an initiated job
+      parameters:
+        - $ref: "#/components/parameters/job_id"
       response:
         200:
           description: Job Status and any Output or Error
