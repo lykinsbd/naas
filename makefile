@@ -23,23 +23,31 @@ distclean: clean  ## delete anything that's not part of the repo
 	git reset HEAD --hard
 	git clean -fxd
 
-.PHONY: build_container
-build_container:  ## build the NAAS docker container
+.PHONY: build_check
+build_check:  ## validate that environment is clean and ready for build
 	@echo Checking for untagged changes...
 	test -z "$(shell git status --porcelain)"
 	git diff-index --quiet $(version)
 	@echo Repo is clean.
+
+.PHONY: build_tarball
+build_tarball: build_check ## build the python sdist tarball of NAAS
+	@echo Building tarball...
+	python setup.py sdist
+
+.PHONY: build_container
+build_container: build_check ## build the NAAS docker container
 	@echo Building container...
 	docker build --pull --build-arg version="$(version)" \
 	--tag lykinsbd/naas:$(version) \
 	--tag lykinsbd/naas:latest .
 
 .PHONY: push_container
-push_container: ## push the NAAS docker container to artifactory
+push_container: ## push the NAAS docker container to Docker Hub
 	docker push lykinsbd/naas:$(version)
 	docker push lykinsbd/naas:latest
 
-release: build_container push_container ## build and push the NAAS docker container to docker hub
+release: build_tarball build_container push_container ## build tarball and container, push the NAAS docker container to Docker Hub
 
 .PHONY: banner
 banner:
