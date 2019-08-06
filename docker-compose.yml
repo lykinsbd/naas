@@ -13,9 +13,6 @@ services:
       options:
         max-size: "5m"
         max-file: "2"
-    depends_on:
-      - redis
-      - worker
   redis:
     image: redis:5-alpine
   worker:
@@ -28,5 +25,3 @@ services:
     command: python worker.py
     healthcheck:
       disable: true
-    depends_on:
-      - redis
