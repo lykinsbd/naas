@@ -17,7 +17,7 @@ from redis import Redis
 from rq import Connection, Worker, Queue
 from multiprocessing import Process
 from time import sleep
-from typing import Sequence
+from typing import Optional, Sequence
 
 
 logger = getLogger("rq_worker_init")
@@ -42,7 +42,7 @@ def main() -> None:
     # Launch the workers
     logger.debug("Creating %s workers", args.workers)
     processes = []
-    random_word = ''.join(random.choice(string.ascii_lowercase) for _ in range(5))
+    random_word = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
     for w in range(1, args.workers + 1):
         proc = Process(
             target=worker_launch,
@@ -51,6 +51,7 @@ def main() -> None:
                 "queues": args.queues,
                 "redis_host": args.redis,
                 "redis_port": args.port,
+                "redis_pw": args.auth_password,
                 "log_level": args.log_level,
             },
         )
@@ -77,10 +78,13 @@ def arg_parsing() -> Namespace:
         help="What queue(s) are we are working out of?  Default: naas",
     )
     argparser.add_argument(
-        "-r", "--redis", type=str, default="redis", help="What redis server are we using? Defualt: redis"
+        "-r", "--redis", type=str, default="redis", help="What Redis server are we using? Defualt: redis"
     )
     argparser.add_argument(
-        "-p", "--port", type=int, default=6379, help="What port is the redis server listening on? Default: 6379"
+        "-p", "--port", type=int, default=6379, help="What port is the Redis server listening on? Default: 6379"
+    )
+    argparser.add_argument(
+        "-a", "--auth_password", type=str, help="Password if the Redis server requires authentication."
     )
     argparser.add_argument(
         "-s",
@@ -101,20 +105,26 @@ def arg_parsing() -> Namespace:
     return argparser.parse_args()
 
 
-def worker_launch(name: str, queues: Sequence[Queue], redis_host: str, redis_port: int, log_level: str) -> None:
+def worker_launch(
+    name: str, queues: Sequence[Queue], redis_host: str, redis_port: int, log_level: str, redis_pw: Optional[str] = None
+) -> None:
     """
     Function for launching an rq worker
     :param name:
     :param queues:
     :param redis_host:
     :param redis_port:
+    :param redis_pw:
     :param log_level:
     :return:
     """
 
     # Initialize our Redis connection
     logger.debug("Initializing Redis connection to redis://%s:%s", redis_host, str(redis_port))
-    with Connection(connection=Redis(host=redis_host, port=redis_port)) as redis_conn:
+    redis_conn_dict = {"host": redis_host, "port": redis_port}
+    if redis_pw:
+        redis_conn_dict["password"] = redis_pw
+    with Connection(connection=Redis(**redis_conn_dict)) as redis_conn:
 
         logger.debug(
             "Starting rq worker %s, with connection to redis://%s:%s, to watch the following queue(s): %s",
