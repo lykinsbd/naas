@@ -30,6 +30,6 @@ services:
       --redis ${REDIS_HOST:-redis}
       --port ${REDIS_PORT:-6379}
       --auth_password ${REDIS_PASSWORD:-mah_redis_pw}
-      ${NAAS_WORKER_PROCESSES:-100}"
+      ${NAAS_WORKER_PROCESSES:-100}
     healthcheck:
       disable: true
