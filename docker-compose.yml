@@ -1,9 +1,9 @@
-version: '3.7'
+version: "3.7"
 services:
   api:
-    image: lykinsbd/naas:latest
+    image: "lykinsbd/naas:latest"
     deploy:
-      mode: replicated
+      mode: "replicated"
       replicas: 1
       restart_policy:
         condition: any
@@ -13,20 +13,23 @@ services:
       options:
         max-size: "5m"
         max-file: "2"
-    depends_on:
-      - redis
-      - worker
-  redis:
-    image: redis:5-alpine
+    environment:
+      - "REDIS_HOST=${REDIS_HOST:-redis}"
+      - "REDIS_PORT=${REDIS_PORT:-6379}"
+      - "REDIS_PASSWORD=${REDIS_PASSWORD:-mah_redis_pw}"
+      - "APP_ENVIRONMENT=dev"
   worker:
-    image: lykinsbd/naas:latest
+    image: "lykinsbd/naas:latest"
     deploy:
-      mode: replicated
-      replicas: 2
+      mode: "replicated"
+      replicas: ${NAAS_WORKER_REPLICAS:-2}
       restart_policy:
         condition: any
-    command: python worker.py
+    command: >-
+      python worker.py
+      --redis ${REDIS_HOST:-redis}
+      --port ${REDIS_PORT:-6379}
+      --auth_password ${REDIS_PASSWORD:-mah_redis_pw}
+      ${NAAS_WORKER_PROCESSES:-100}"
     healthcheck:
       disable: true
-    depends_on:
-      - redis

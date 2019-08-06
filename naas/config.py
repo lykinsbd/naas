@@ -23,6 +23,7 @@ CERT_BUNDLE_FILE = "/app/bundle.crt"
 # Redis config
 REDIS_HOST = os.environ.get("REDIS_HOST", "redis")
 REDIS_PORT = os.environ.get("REDIS_PORT", 6379)
+REDIS_PASSWORD = os.environ.get("REDIS_PASSWORD", "mah_redis_pw")
 
 
 def app_configure(app):
@@ -67,7 +68,7 @@ def app_configure(app):
     app.config["JSON_SORT_KEYS"] = False
 
     # Initialize a Redis connection and store it for later
-    redis = Redis(host=REDIS_HOST, port=REDIS_PORT)
+    redis = Redis(host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD)
     app.config["redis"] = redis
 
     # Create a random string to use as a Salt for the UN/PW hashes, stash it in redis

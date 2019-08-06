@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from flask import current_app
 from hashlib import sha512
 from pickle import dumps, loads
-from naas.config import REDIS_HOST, REDIS_PORT
+from naas.config import REDIS_HOST, REDIS_PORT, REDIS_PASSWORD
 from redis import Redis
 from typing import Optional
 
@@ -77,7 +77,7 @@ def tacacs_auth_lockout(username: str, report_failure: bool = False) -> bool:
     """
 
     # Can't use current_app.BLAH as we're not always in a Flask context for this, but sometimes in the RQ worker process
-    redis = Redis(host=REDIS_HOST, port=REDIS_PORT)
+    redis = Redis(host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD)
 
     # Get (or set) the current_failures entry for this hash
     failures = redis.hgetall("naas_failures_" + username)
