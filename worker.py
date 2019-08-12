@@ -12,7 +12,7 @@ import string
 
 from argparse import ArgumentParser, Namespace
 from logging import basicConfig, getLogger
-from naas.library.netmiko_lib import netmiko_send_command, netmiko_send_config  # noqa
+from naas.library.netmiko_lib import netmiko_send_command, netmiko_send_config  # noqa F401
 from redis import Redis
 from rq import Connection, Worker, Queue
 from multiprocessing import Process
@@ -98,7 +98,7 @@ def arg_parsing() -> Namespace:
         "-l",
         "--log_level",
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-        default="ERROR",
+        default="INFO",
         help="What log-level are we to log at",
     )
 
