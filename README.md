@@ -51,41 +51,58 @@ raw text response into useful data for their purposes.
 
 There are several deployement scenarios for NAAS, depending on if you have an existing redis instance, etc.
 
-### Full Deployment
+### Standard Deployment
 
-The simplest, "batteries included", deployment launches the API and Worker containers, as well as a Redis instance:
+The Standard Deployment of NAAS is the simplest, "batteries included", deployment.  It launches the API and Worker containers, as well as a Redis instance:
 
-1. Install Docker on a server that has access to your network devices
-2. Join that host to (or initialize) a Docker Swarm
+1. [Install Docker](https://docs.docker.com/install/) on a server or VM that has management/SSH access to your network devices
+2. Join that host to (or initialize) a [Docker Swarm](https://docs.docker.com/engine/swarm/swarm-tutorial/)
 3. Clone the repo down from Github
-4. Execute the following:
+    * `git clone https://github.com/lykinsbd/naas.git`
+4. If you wish to use a custom Redis password (recommended) set it via an environment variable:
+    * `REDIS_PASSWORD`: A string of the password you wish to use for the redis server
+5. Execute the following:
     * ```docker stack deploy --compose-file docker-compose.yml --compose-file docker-compose-redis.yml naas```
-5. Validate that your service has deployed:
+6. Validate that your service has deployed:
     * ```docker stack ps naas```
     * You should see 4 containers in the `Running` state:
         1. naas_api.1
         2. naas_worker.1
         3. naas_worker.2
         4. naas_redis.1
-6. Perform an HTTP GET to `https://<your_server_ip>:5000/healthcheck` and look for a 200 response.
+7. Perform an HTTP GET to `https://<your_server_ip>:8443/healthcheck` and look for a 200 response.
 
-### Use Existing Redis
+### Custom Deployment
 
-If you have an existing Redis instance you wish to use instead of a generic one launched by NAAS:
+NAAS can be customized to fit most environments through a combination of stacked Docker Compose files
+ and environment variables.  You may wish to utilize the Custom Deployment model if for example:
 
-1. Install Docker on a server that has access to your network devices
-2. Join that host to (or initialize) a Docker Swarm
+* You have an existing Redis instance you wish to use instead of a generic one launched by NAAS
+* You wish to expose the API on a different TCP port than the default (8443)
+
+To launch a more customized deployment, please follow these steps:
+
+1. [Install Docker](https://docs.docker.com/install/) on a server or VM that has management/SSH access to your network devices
+2. Join that host to (or initialize) a [Docker Swarm](https://docs.docker.com/engine/swarm/swarm-tutorial/)
 3. Clone the repo down from Github
-4. Ensure that the following environment variables are set in your launch environment:
+    * `git clone https://github.com/lykinsbd/naas.git`
+4. To use a custom Redis instance, ensure that the following environment variables are set in your launch environment:
     1. `REDIS_HOST`: A string of the IP/Hostname of the redis server you wish to use
     2. `REDIS_PORT`: An integer of the TCP Port number of the redis server you wish to use
     3. `REDIS_PASSWORD`: A string of the password for the redis server you wish to use (if authentication is needed)
-5. Execute the following:
-    * ```docker stack deploy --compose-file docker-compose.yml naas```
-6. Validate that your service has deployed:
+5. To use a custom local or global TCP port for the API front end, set the following environment variables in your launch environment:
+    1. `NAAS_LOCAL_PORT`: What TCP port do you want NAAS to utilize _inside_ the container (Default 443)
+    2. `NAAS_GLOBAL_PORT`: What TCP port do you want to expose NAAS on outside the applicaiton (Default 8443)
+6. Execute the following to launch NAAS:
+    1. With a custom Redis server as defined in step 4:
+        * ```docker stack deploy --compose-file docker-compose.yml naas```
+    2. With the default Redis container:
+        * ```docker stack deploy --compose-file docker-compose.yml --compose-file docker-compose-redis.yml naas```
+7. Validate that your service has deployed:
     * ```docker stack ps naas```
-    * You should see 3 containers in the `Running` state:
+    * You should see 3 containers in the `Running` state if you used a custom Redis server
+        (otherwise you'll see 4 as shown in the Standard Deployment):
         1. naas_api.1
         2. naas_worker.1
         3. naas_worker.2
-7. Perform an HTTP GET to `https://<your_server_ip>:5000/healthcheck` and look for a 200 response.
+8. Perform an HTTP GET to `https://<your_server_ip>:<NAAS_GLOBAL_PORT>/healthcheck` and look for a 200 response.
