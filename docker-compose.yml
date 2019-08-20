@@ -36,3 +36,13 @@ services:
       ${NAAS_WORKER_PROCESSES:-100}
     healthcheck:
       disable: true
+    networks:
+      - "naas_overlay"
+
+networks:
+
+  naas_overlay:
+    driver: overlay
+    driver_opts:
+      encrypted: 1
+    name: "naas_overlay"
