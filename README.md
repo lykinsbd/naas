@@ -86,23 +86,28 @@ To launch a more customized deployment, please follow these steps:
 2. Join that host to (or initialize) a [Docker Swarm](https://docs.docker.com/engine/swarm/swarm-tutorial/)
 3. Clone the repo down from Github
     * `git clone https://github.com/lykinsbd/naas.git`
-4. To use a custom Redis instance, ensure that the following environment variables are set in your launch environment:
-    1. `REDIS_HOST`: A string of the IP/Hostname of the redis server you wish to use
-    2. `REDIS_PORT`: An integer of the TCP Port number of the redis server you wish to use
-    3. `REDIS_PASSWORD`: A string of the password for the redis server you wish to use (if authentication is needed)
-5. To use a custom local or global TCP port for the API front end, set the following environment variables in your launch environment:
-    1. `NAAS_LOCAL_PORT`: What TCP port do you want NAAS to utilize _inside_ the container (Default 443)
-    2. `NAAS_GLOBAL_PORT`: What TCP port do you want to expose NAAS on outside the applicaiton (Default 8443)
-6. Execute the following to launch NAAS:
+4. You have the following options available for customization:
+    1. To use a custom Redis instance, ensure that the following environment variables are set in your launch environment:
+        1. `REDIS_HOST`: A string of the IP/Hostname of the redis server you wish to use (Default: redis)
+        2. `REDIS_PORT`: An integer of the TCP Port number of the redis server you wish to use (Default: 6379)
+        3. `REDIS_PASSWORD`: A string of the password for the redis server you wish to use (if authentication is needed)
+    2. To use a custom global/published TCP port for the API front end, 
+        set the following environment variable in your launch environment:
+        1. `NAAS_GLOBAL_PORT`: An integer of the TCP port you want to expose NAAS on to the outside world (Default: 8443)
+    3. To customize the number of NAAS worker containers or worker processes in a container, 
+        set the following environment variables in your launch environment:
+        1. `NAAS_WORKER_REPLICAS`: An integer of the number of Worker container replicas you want (Default: 2)
+        2. `NAAS_WORKER_PROCESSES`: An integer of the number of Worker processes you want in each Worker container (Default: 100)
+5. Execute the following to launch NAAS:
     1. With a custom Redis server as defined in step 4:
         * ```docker stack deploy --compose-file docker-compose.yml naas```
     2. With the default Redis container:
         * ```docker stack deploy --compose-file docker-compose.yml --compose-file docker-compose-redis.yml naas```
-7. Validate that your service has deployed:
+6. Validate that your service has deployed:
     * ```docker stack ps naas```
     * You should see 3 containers in the `Running` state if you used a custom Redis server
         (otherwise you'll see 4 as shown in the Standard Deployment):
         1. naas_api.1
         2. naas_worker.1
         3. naas_worker.2
-8. Perform an HTTP GET to `https://<your_server_ip>:<NAAS_GLOBAL_PORT>/healthcheck` and look for a 200 response.
+7. Perform an HTTP GET to `https://<your_server_ip>:<NAAS_GLOBAL_PORT>/healthcheck` and look for a 200 response.

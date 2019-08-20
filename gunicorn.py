@@ -3,7 +3,7 @@ from os import environ
 
 
 # Setup basic attributes of our web-server
-bind = f"0.0.0.0:{environ.get('NAAS_LOCAL_PORT', '443')}"
+bind = f"0.0.0.0:443"
 chdir = "/app"
 workers = 8
 worker_class = "gthread"
