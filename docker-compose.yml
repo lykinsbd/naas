@@ -1,15 +1,17 @@
 version: "3.7"
+
 services:
+
   api:
-    image: "lykinsbd/naas:latest"
+    image: "lykinsbd/naas:0.4.0"
     deploy:
       mode: "replicated"
       replicas: 1
       restart_policy:
         condition: any
     ports:
-      - target: "{$NAAS_LOCAL_PORT:-443}"
-        published: "{$NAAS_GLOBAL_PORT:-8443}:"
+      - target: 443
+        published: "${NAAS_GLOBAL_PORT:-8443}"
         protocol: "tcp"
         mode: "ingress"
     logging:
@@ -21,8 +23,11 @@ services:
       - "REDIS_PORT=${REDIS_PORT:-6379}"
       - "REDIS_PASSWORD=${REDIS_PASSWORD:-mah_redis_pw}"
       - "APP_ENVIRONMENT=dev"
+    networks:
+      - "naas_overlay"
+
   worker:
-    image: "lykinsbd/naas:latest"
+    image: "lykinsbd/naas:0.4.0"
     deploy:
       mode: "replicated"
       replicas: ${NAAS_WORKER_REPLICAS:-2}
@@ -36,3 +41,13 @@ services:
       ${NAAS_WORKER_PROCESSES:-100}
     healthcheck:
       disable: true
+    networks:
+      - "naas_overlay"
+
+networks:
+
+  naas_overlay:
+    driver: overlay
+    driver_opts:
+      encrypted: 1
+    name: "naas_overlay"

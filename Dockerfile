@@ -51,7 +51,7 @@ ENV API_VER ${version}
 # {"status":200,"content":null,"message":"naas is running.","request_id":"2bef8456-c25b-4884-9250-9a0eeb4b4654"}
 HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
     CMD [ $APP_ENVIRONMENT = "staging" ] && staging="-staging"; \
-    curl -k -f -H "Host: naas${staging}.localhost" https://127.0.0.1:5000/healthcheck
+    curl -k -f -H "Host: naas${staging}.localhost" https://127.0.0.1:443/healthcheck
 
 # When this container is run, it executes our code.
 CMD ["gunicorn", "-c", "gunicorn.py", "naas.app:app"]
