@@ -8,8 +8,8 @@ services:
       restart_policy:
         condition: any
     ports:
-      - target: "{$NAAS_LOCAL_PORT:-443}"
-        published: "{$NAAS_GLOBAL_PORT:-8443}:"
+      - target: "${NAAS_LOCAL_PORT:-443}"
+        published: "${NAAS_GLOBAL_PORT:-8443}"
         protocol: "tcp"
         mode: "ingress"
     logging:
