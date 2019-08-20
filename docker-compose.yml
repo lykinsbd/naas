@@ -1,7 +1,9 @@
 version: "3.7"
+
 services:
+
   api:
-    image: "lykinsbd/naas:latest"
+    image: "lykinsbd/naas:0.4.0"
     deploy:
       mode: "replicated"
       replicas: 1
@@ -25,7 +27,7 @@ services:
       - "naas_overlay"
 
   worker:
-    image: "lykinsbd/naas:latest"
+    image: "lykinsbd/naas:0.4.0"
     deploy:
       mode: "replicated"
       replicas: ${NAAS_WORKER_REPLICAS:-2}
