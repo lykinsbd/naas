@@ -27,7 +27,7 @@ class GetResults(Resource):
             raise Unauthorized
 
         # Create a credentials object
-        creds = Credentials(username=auth.username, password=auth.password, enable=request.json.get("enable", None))
+        creds = Credentials(username=auth.username, password=auth.password)
 
         # Salt the un/pw and pass that to the job_unlocker
         if not job_unlocker(salted_creds=creds.salted_hash(), job_id=job_id):

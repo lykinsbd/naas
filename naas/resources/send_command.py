@@ -64,6 +64,8 @@ class SendCommand(Resource):
             credentials=creds,
             commands=request.json["commands"],
             job_id=request_id,
+            result_ttl=86460,
+            failure_ttl=86460,
         )
         job_id = job.get_id()
         current_app.logger.info(
