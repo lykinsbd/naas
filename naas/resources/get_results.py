@@ -3,7 +3,7 @@
 from flask_restful import Resource
 from flask import current_app, request
 from naas import __version__
-from naas.library.auth import job_unlocker, salted_hash
+from naas.library.auth import Credentials, job_unlocker
 from naas.library.validation import Validate
 from werkzeug.exceptions import Unauthorized, Forbidden
 
@@ -25,8 +25,12 @@ class GetResults(Resource):
         auth = request.authorization
         if auth.username is None:
             raise Unauthorized
+
+        # Create a credentials object
+        creds = Credentials(username=auth.username, password=auth.password, enable=request.json.get("enable", None))
+
         # Salt the un/pw and pass that to the job_unlocker
-        if not job_unlocker(salted_creds=salted_hash(username=auth.username, password=auth.password), job_id=job_id):
+        if not job_unlocker(salted_creds=creds.salted_hash(), job_id=job_id):
             raise Forbidden
 
         # Create our return dict
