@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Optional, Sequence, Tuple
+    from naas.library.auth import Credentials
 
 
 logger = logging.getLogger(name="NAAS")
@@ -22,12 +23,10 @@ logger = logging.getLogger(name="NAAS")
 
 def netmiko_send_command(
     ip: str,
-    username: str,
-    password: str,
+    credentials: "Credentials",
     device_type: str,
     commands: "Sequence[str]",
     port: int = 22,
-    enable: "Optional[str]" = None,
     delay_factor: int = 2,
     verbose: bool = False,
 ) -> "Tuple[Optional[dict], Optional[str]]":
@@ -36,28 +35,22 @@ def netmiko_send_command(
     Instantiate a netmiko wrapper instance, feed me an IP, Platform Type, Username, Password, any commands to run.
 
     :param ip: What IP are we connecting to?
-    :param username: What is the username for this connection?
-    :param password: What is the password?
+    :param credentials: A naas.library.auth.Credentials object with the username/password/enable in it
     :param commands: List of the commands to issue to the device
     :param device_type: What Netmiko device type are we connecting to?
     :param port: What TCP Port are we connecting to?
-    :param enable: If this device requires a second auth/Enable password, what is it?
     :param delay_factor: Netmiko delay factor, default of 2, higher is slower but more reliable on laggy links
     :param verbose: Turn on Netmiko verbose logging
     :return: A Tuple of a dict of the results (if any) and a string describing the error (if any)
     """
 
-    # Setup any needed enable password if not provided.
-    if not enable:
-        enable = password
-
     # Create device dict to pass netmiko
     netmiko_device = {
         "device_type": device_type,
         "ip": ip,
-        "username": username,
-        "password": password,
-        "secret": enable,
+        "username": credentials.username,
+        "password": credentials.password,
+        "secret": credentials.enable,
         "port": port,
         "ssh_config_file": "/app/naas/ssh_config",
         "allow_agent": False,
@@ -82,7 +75,7 @@ def netmiko_send_command(
         return None, str(e)
     except netmiko.NetMikoAuthenticationException as e:
         logger.debug("%s:Netmiko authentication failure connecting to device: %s", ip, e)
-        tacacs_auth_lockout(username=username, report_failure=True)
+        tacacs_auth_lockout(username=credentials.username, report_failure=True)
         return None, str(e)
     except (ssh_exception.SSHException, ValueError) as e:
         logger.debug("%s:Netmiko cannot connect to device: %s", ip, e)
@@ -94,12 +87,10 @@ def netmiko_send_command(
 
 def netmiko_send_config(
     ip: str,
-    username: str,
-    password: str,
+    credentials: "Credentials",
     device_type: str,
     commands: "Sequence[str]",
     port: int = 22,
-    enable: "Optional[str]" = None,
     save_config: bool = False,
     commit: bool = False,
     delay_factor: int = 2,
@@ -110,12 +101,10 @@ def netmiko_send_config(
     Instantiate a netmiko wrapper instance, feed me an IP, Platform Type, Username, Password, any commands to run.
 
     :param ip: What IP are we connecting to?
-    :param username: What is the username for this connection?
-    :param password: What is the password?
+    :param credentials: A naas.library.auth.Credentials object with the username/password/enable in it
     :param commands: List of the commands to issue to the device
     :param device_type: What Netmiko device type are we connecting to?
     :param port: What TCP Port are we connecting to?
-    :param enable: If this device requires a second auth/Enable password, what is it?
     :param save_config: Do you want to save this configuration upon insertion?  Default: False, don't save the config
     :param commit: Do you want to commit this candidate configuration to the running config?  Default: False
     :param delay_factor: Netmiko delay factor, default of 2, higher is slower but more reliable on laggy links
@@ -123,17 +112,13 @@ def netmiko_send_config(
     :return: A Tuple of a dict of the results (if any) and a string describing the error (if any)
     """
 
-    # Setup any needed enable password if not provided.
-    if not enable:
-        enable = password
-
     # Create device dict to pass netmiko
     netmiko_device = {
         "device_type": device_type,
         "ip": ip,
-        "username": username,
-        "password": password,
-        "secret": enable,
+        "username": credentials.username,
+        "password": credentials.password,
+        "secret": credentials.enable,
         "port": port,
         "ssh_config_file": "/app/naas/ssh_config",
         "allow_agent": False,
@@ -171,7 +156,7 @@ def netmiko_send_config(
         return None, str(e)
     except netmiko.NetMikoAuthenticationException as e:
         logger.debug("%s:Netmiko authentication failure connecting to device: %s", ip, e)
-        tacacs_auth_lockout(username=username, report_failure=True)
+        tacacs_auth_lockout(username=credentials.username, report_failure=True)
         return None, str(e)
     except (ssh_exception.SSHException, ValueError) as e:
         logger.debug("%s:Netmiko cannot connect to device: %s", ip, e)

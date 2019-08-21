@@ -3,7 +3,7 @@
 from flask_restful import Resource
 from flask import current_app, g, request
 from naas import __version__
-from naas.library.auth import job_locker, salted_hash, tacacs_auth_lockout
+from naas.library.auth import Credentials, job_locker, tacacs_auth_lockout
 from naas.library.errorhandlers import DuplicateRequestID
 from naas.library.decorators import valid_post
 from naas.library.netmiko_lib import netmiko_send_config
@@ -43,6 +43,9 @@ class SendConfig(Resource):
         if tacacs_auth_lockout(username=auth.username):
             raise Forbidden
 
+        # Create a credentials object
+        creds = Credentials(username=auth.username, password=auth.password, enable=request.json.get("enable", None))
+
         # Grab x-request-id
         request_id = g.request_id
 
@@ -53,16 +56,14 @@ class SendConfig(Resource):
 
         # Enqueue your job, and return the job ID
         current_app.logger.debug(
-            "%s: Enqueueing job for %s@%s:%s", request_id, auth.username, request.json["ip"], request.json["port"]
+            "%s: Enqueueing job for %s@%s:%s", request_id, creds.username, request.json["ip"], request.json["port"]
         )
         job = q.enqueue(
             netmiko_send_config,
             ip=request.json["ip"],
             port=request.json["port"],
             device_type=request.json["device_type"],
-            username=auth.username,
-            password=auth.password,
-            enable=request.json.get("enable", auth.password),
+            credentials=creds,
             commands=request.json["commands"],
             save_config=request.json["save_config"],
             commit=request.json["commit"],
@@ -70,11 +71,11 @@ class SendConfig(Resource):
         )
         job_id = job.get_id()
         current_app.logger.info(
-            "%s: Enqueued job for %s@%s:%s", job_id, auth.username, request.json["ip"], request.json["port"]
+            "%s: Enqueued job for %s@%s:%s", job_id, creds.username, request.json["ip"], request.json["port"]
         )
 
         # Generate the un/pw hash:
-        user_hash = salted_hash(username=auth.username, password=auth.password)
+        user_hash = creds.salted_hash()
 
         # Stash the job_id in redis, with the user/pass hash so that only that user can retrieve results
         job_locker(salted_creds=user_hash, job_id=job_id)

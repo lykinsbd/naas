@@ -9,25 +9,6 @@ from redis import Redis
 from typing import Optional
 
 
-def salted_hash(username: str, password: str, salt: Optional[str] = None) -> str:
-    """
-    SHA512 (salted) hash the username/password and return the hexdigest
-    :param username:
-    :param password:
-    :param salt: If not provided, we'll fetch it from Redis
-    :return:
-    """
-
-    redis = current_app.config["redis"]
-    if salt is None:
-        salt = redis.get("naas_cred_salt").decode()
-    current_app.logger.debug("Salting %s:<redacted> with %s...", username, salt)
-    pork = username + ":" + password + salt
-    salt_shaker = sha512(pork.encode())
-    salted_pork = salt_shaker.hexdigest()  # Particularly nice
-    return salted_pork
-
-
 def job_locker(salted_creds: str, job_id: str) -> None:
     """
     Stash the job ID under the SHA512 (salted) hash of the username/password, so only that user can retrieve it
@@ -160,3 +141,47 @@ def report_tacacs_failure(username: str, existing_fail_count: int, existing_fail
     # Setup our failed dict we're stashing in Redis:
     failed_dict = {"failure_count": existing_fail_count + 1, "failure_timestamps": failure_timestamps}
     redis.hmset("naas_failures_" + username, failed_dict)
+
+
+class Credentials:
+    """
+    Dead simple object, built simply to hold credential information.
+    We need this primarily to prevent printing of credentials in log messages.
+    """
+
+    def __init__(self, username: str, password: str, enable: Optional[str] = None) -> None:
+        """
+        Instantiate our Credentials object
+        :param username:
+        :param password:
+        :param enable:  If not provided, will set to the password.
+        """
+
+        self.username = username
+        self.password = password
+        if enable is None:
+            self.enable = password
+        else:
+            self.enable = enable
+
+    def __repr__(self):
+        return f'{{"username": "{self.username}", "password": "<redacted>", "enable": "<redacted>"}}'
+
+    def __str__(self):
+        return self.username + ":<redacted>:<redacted>"
+
+    def salted_hash(self, salt: Optional[str] = None) -> str:
+        """
+        SHA512 (salted) hash the username/password and return the hexdigest
+        :param salt: If not provided, we'll fetch it from Redis
+        :return:
+        """
+
+        redis = current_app.config["redis"]
+        if salt is None:
+            salt = redis.get("naas_cred_salt").decode()
+        current_app.logger.debug("Salting %s:<redacted> with %s...", self.username, salt)
+        pork = self.username + ":" + self.password + salt
+        salt_shaker = sha512(pork.encode())
+        salted_pork = salt_shaker.hexdigest()  # Particularly nice
+        return salted_pork
