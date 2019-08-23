@@ -7,7 +7,7 @@ from naas.library.auth import Credentials, job_locker, tacacs_auth_lockout
 from naas.library.errorhandlers import DuplicateRequestID
 from naas.library.decorators import valid_post
 from naas.library.netmiko_lib import netmiko_send_command
-from werkzeug.exceptions import Forbidden, Unauthorized
+from werkzeug.exceptions import Forbidden
 
 
 class SendCommand(Resource):
@@ -34,8 +34,6 @@ class SendCommand(Resource):
 
         # Grab creds off the basic_auth header
         auth = request.authorization
-        if auth.username is None:
-            raise Unauthorized
 
         # Check if this user is locked out or not
         if tacacs_auth_lockout(username=auth.username):

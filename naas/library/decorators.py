@@ -17,6 +17,7 @@ def valid_post(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
         v = validation.Validate()
+        v.has_auth()
         v.is_json()
         v.is_ip_addr(request.json["ip"], "ip")
         v.is_command_set()
