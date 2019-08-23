@@ -6,7 +6,7 @@ import ipaddress
 
 from flask import current_app, request
 from uuid import UUID
-from werkzeug.exceptions import UnprocessableEntity, BadRequest
+from werkzeug.exceptions import BadRequest, Unauthorized, UnprocessableEntity
 
 
 class Validate(object):
@@ -72,6 +72,14 @@ class Validate(object):
         if not isinstance(request.json["device_type"], str):
             self._error("device_type must be a string", code=422)
 
+    def has_auth(self):
+        if (
+            not request.authorization
+            or request.authorization.username is None
+            or request.authorization.password is None
+        ):
+            self._error("you must authenticate with HTTP Basic authentication to use this resource", code=401)
+
     @staticmethod
     def _error(message, code=400):
         current_app.logger.error(message)
@@ -79,6 +87,8 @@ class Validate(object):
             raise BadRequest
         elif code == 422:
             raise UnprocessableEntity
+        elif code == 401:
+            raise Unauthorized
 
 
 class ValidateHTTP(object):
