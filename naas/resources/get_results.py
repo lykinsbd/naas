@@ -39,7 +39,7 @@ class GetResults(Resource):
             "status": None,
             "results": None,
             "error": None,
-            "app": "nass",
+            "app": "naas",
             "version": __version__,
         }
 
