@@ -2,7 +2,7 @@
 
 from flask_restful import Resource
 from flask import current_app, request
-from naas import __version__
+from naas import __base_response__
 from naas.library.auth import Credentials, job_unlocker
 from naas.library.validation import Validate
 from werkzeug.exceptions import Forbidden
@@ -33,14 +33,8 @@ class GetResults(Resource):
             raise Forbidden
 
         # Create our return dict
-        r_dict = {
-            "job_id": job_id,
-            "status": None,
-            "results": None,
-            "error": None,
-            "app": "naas",
-            "version": __version__,
-        }
+        r_dict = {"job_id": job_id, "status": None, "results": None, "error": None}
+        r_dict.update(__base_response__)
 
         # Fetch your job, and return the job status and results (if it's finished)
         q = current_app.config["q"]
