@@ -18,7 +18,7 @@ from time import sleep
 from typing import Optional, Sequence
 
 
-logger = getLogger("rq_worker_init")
+logger = getLogger("naas_worker")
 
 
 def main() -> None:
@@ -31,7 +31,11 @@ def main() -> None:
     args = arg_parsing()
 
     # Setup logging
-    basicConfig(level=args.log_level)
+    basicConfig(
+        level=args.log_level,
+        format="[%(asctime)s] [%(process)d] [%(levelname)s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S %z",
+    )
 
     # Sleep 10 seconds to allow Redis to come up
     logger.debug("Sleeping %s seconds to allow Redis to initialize.", args.sleep)
