@@ -18,11 +18,16 @@ services:
       options:
         max-size: "5m"
         max-file: "2"
+    # Set the environment variables from your launch environment that will be passed into the container
+    # `:-<value>` sets the default if environment variable is not set
     environment:
       - "REDIS_HOST=${REDIS_HOST:-redis}"
       - "REDIS_PORT=${REDIS_PORT:-6379}"
       - "REDIS_PASSWORD=${REDIS_PASSWORD:-mah_redis_pw}"
       - "APP_ENVIRONMENT=dev"
+      - "NAAS_CERT=${NAAS_CERT}"
+      - "NAAS_KEY=${NAAS_KEY}"
+      - "NAAS_CA_BUNDLE=${NAAS_CA_BUNDLE}"
     networks:
       - "naas_overlay"
 
