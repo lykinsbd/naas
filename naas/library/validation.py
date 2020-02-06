@@ -165,3 +165,16 @@ class Validate(object):
         if not isinstance(request.json["device_type"], str):
             current_app.logger.error("'device_type' not provided as a string")
             raise UnprocessableEntity
+
+    @staticmethod
+    def has_delay_factor() -> None:
+        """
+        Validate that the field `delay_factor` exists in a request payload (set it to `1` by default)
+        and that it is an int if it did already exist.
+        :return:
+        """
+        if not request.json.get("delay_factor"):
+            request.json["delay_factor"] = 1
+        if not isinstance(request.json["delay_factor"], int):
+            current_app.logger.error("'delay_factor not provided as an integer")
+            raise UnprocessableEntity

@@ -34,6 +34,7 @@ def valid_post(f):
         v.save_config()
         v.commit()
         v.has_device_type()
+        v.has_delay_factor()
 
         # Capture or create the x-request-id, and store it on the g object
         if "x-request-id" not in v.headers.keys():
