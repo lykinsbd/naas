@@ -27,7 +27,7 @@ def netmiko_send_command(
     device_type: str,
     commands: "Sequence[str]",
     port: int = 22,
-    delay_factor: int = 2,
+    delay_factor: int = 1,
     verbose: bool = False,
 ) -> "Tuple[Optional[dict], Optional[str]]":
 
@@ -39,7 +39,7 @@ def netmiko_send_command(
     :param commands: List of the commands to issue to the device
     :param device_type: What Netmiko device type are we connecting to?
     :param port: What TCP Port are we connecting to?
-    :param delay_factor: Netmiko delay factor, default of 2, higher is slower but more reliable on laggy links
+    :param delay_factor: Netmiko delay factor, default of 1, higher is slower but more reliable on laggy links
     :param verbose: Turn on Netmiko verbose logging
     :return: A Tuple of a dict of the results (if any) and a string describing the error (if any)
     """
@@ -93,7 +93,7 @@ def netmiko_send_config(
     port: int = 22,
     save_config: bool = False,
     commit: bool = False,
-    delay_factor: int = 2,
+    delay_factor: int = 1,
     verbose: bool = False,
 ) -> "Tuple[Optional[dict], Optional[str]]":
 
@@ -107,7 +107,7 @@ def netmiko_send_config(
     :param port: What TCP Port are we connecting to?
     :param save_config: Do you want to save this configuration upon insertion?  Default: False, don't save the config
     :param commit: Do you want to commit this candidate configuration to the running config?  Default: False
-    :param delay_factor: Netmiko delay factor, default of 2, higher is slower but more reliable on laggy links
+    :param delay_factor: Netmiko delay factor, default of 1, higher is slower but more reliable on laggy links
     :param verbose: Turn on Netmiko verbose logging
     :return: A Tuple of a dict of the results (if any) and a string describing the error (if any)
     """

@@ -38,28 +38,41 @@ logconfig_dict = {
     },
     "loggers": {"NAAS": {"level": logging_level, "handlers": ["NAAS_handler"]}},
     "disable_existing_loggers": False,
+    "root": {"level": logging_level, "handlers": ["NAAS_handler"]},  # Adding to handle bug in Gunicorn 20.0.4
 }
 
-# Try and find TLS file names
-KEY_FILE = environ.get("KEY_FILE", None)
-CERT_FILE = environ.get("CERT_FILE", None)
-BUNDLE_FILE = environ.get("BUNDLE_FILE", None)
+# Try and find TLS cert/key/bundle in Environment variables
+NAAS_CERT = environ.get("NAAS_CERT", None)
+NAAS_KEY = environ.get("NAAS_KEY", None)
+NAAS_CA_BUNDLE = environ.get("NAAS_CA_BUNDLE", None)
 
-# If we can't find a cert/key file, lets make something up
-if KEY_FILE is None and CERT_FILE is None:
-    KEY_FILE = "/app/key.pem"
-    CERT_FILE = "/app/cert.pem"
+CERT_FILE = "/app/cert.pem"
+KEY_FILE = "/app/key.pem"
+CA_BUNDLE_FILE = "/app/ca_bundle.pem"
 
+# If we can't find a cert or key lets make something up, otherwise print the cert into the files for Gunicorn
+if NAAS_CERT is None or NAAS_KEY is None:
     cert, key, = generate_selfsigned_cert("naas.local")
     with open(CERT_FILE, "w") as c:
         c.write(cert.decode())
-
     with open(KEY_FILE, "w") as k:
         k.write(key.decode())
+else:
+    with open(CERT_FILE, "w") as c:
+        c.write(NAAS_CERT + "\n")
+    with open(KEY_FILE, "w") as k:
+        k.write(NAAS_KEY + "\n")
+
+if NAAS_CA_BUNDLE is None:
+    CA_BUNDLE_FILE = None
+else:
+    with open(CA_BUNDLE_FILE, "w") as bundle:
+        bundle.write(NAAS_CA_BUNDLE + "\n")
 
 # Crypto configuration
 keyfile = KEY_FILE
 certfile = CERT_FILE
-ca_certs = BUNDLE_FILE
+if CA_BUNDLE_FILE is not None:
+    ca_certs = CA_BUNDLE_FILE
 ssl_version = 5
 ciphers = "HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!3DES:!MD5:!PSK"

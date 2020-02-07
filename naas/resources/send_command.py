@@ -45,6 +45,7 @@ class SendCommand(Resource):
             device_type=request.json["device_type"],
             credentials=g.credentials,
             commands=request.json["commands"],
+            delay_factor=request.json["delay_factor"],
             job_id=g.request_id,
             result_ttl=86460,
             failure_ttl=86460,

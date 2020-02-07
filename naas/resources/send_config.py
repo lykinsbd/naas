@@ -50,6 +50,7 @@ class SendConfig(Resource):
             commands=request.json["commands"],
             save_config=request.json["save_config"],
             commit=request.json["commit"],
+            delay_factor=request.json["delay_factor"],
             job_id=g.request_id,
             result_ttl=86460,
             failure_ttl=86460,
