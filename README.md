@@ -61,16 +61,22 @@ The Standard Deployment of NAAS is the simplest, "batteries included", deploymen
     * `git clone https://github.com/lykinsbd/naas.git`
 4. If you wish to use a custom Redis password (recommended) set it via an environment variable:
     * `REDIS_PASSWORD`: A string of the password you wish to use for the redis server
-5. Execute the following:
+5. If you wish to use a specific TLS Certificate/Key/Bundle (recommended), place them into environment variables.
+If the certificate lives is "cert.crt" on your machine, put it into an environment variable via the following:
+`` export NAAS_CERT=`cat cert.crt` ``
+    * `NAAS_CERT`: A string with the PEM formatted certificate you wish to use for NAAS
+    * `NAAS_KEY`: A string with the PEM formatted private key you wish to use for NAAS
+    * `NAAS_CA_BUNDLE`: A string with the PEM formatted CA/Issuing bundle certificates that issued `NAAS_CERT`
+6. Execute the following:
     * ```docker stack deploy --compose-file docker-compose.yml --compose-file docker-compose-redis.yml naas```
-6. Validate that your service has deployed:
+7. Validate that your service has deployed:
     * ```docker stack ps naas```
     * You should see 4 containers in the `Running` state:
         1. naas_api.1
         2. naas_worker.1
         3. naas_worker.2
         4. naas_redis.1
-7. Perform an HTTP GET to `https://<your_server_ip>:8443/healthcheck` and look for a 200 response.
+8. Perform an HTTP GET to `https://<your_server_ip>:8443/healthcheck` and look for a 200 response.
 
 ### Custom Deployment
 
