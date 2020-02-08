@@ -72,7 +72,6 @@ else:
 # Crypto configuration
 keyfile = KEY_FILE
 certfile = CERT_FILE
-if CA_BUNDLE_FILE is not None:
-    ca_certs = CA_BUNDLE_FILE
+ca_certs = CA_BUNDLE_FILE
 ssl_version = 5
 ciphers = "HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!3DES:!MD5:!PSK"
