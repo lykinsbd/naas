@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  version: 0.6.1
+  version: 0.6.2
   title: NAAS - Netmiko As A Service
   contact:
     email: lykinsbd@gmail.com

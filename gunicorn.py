@@ -50,24 +50,23 @@ CERT_FILE = "/app/cert.pem"
 KEY_FILE = "/app/key.pem"
 CA_BUNDLE_FILE = "/app/ca_bundle.pem"
 
-# If we can't find a cert or key lets make something up, otherwise print the cert into the files for Gunicorn
-if NAAS_CERT is None or NAAS_KEY is None:
+# If we were provided a cert/key/bundle, use those by printing into files for Gunicorn to ingest.
+if NAAS_CERT and NAAS_KEY and NAAS_CA_BUNDLE:
+    with open(CERT_FILE, "w") as c:
+        c.write(NAAS_CERT + "\n")
+    with open(KEY_FILE, "w") as k:
+        k.write(NAAS_KEY + "\n")
+    with open(CA_BUNDLE_FILE, "w") as bundle:
+        bundle.write(NAAS_CA_BUNDLE + "\n")
+
+# Otherwise if we can't find a cert or key lets make something up and put _that_ into the files for Gunicorn
+else:
     cert, key, = generate_selfsigned_cert("naas.local")
     with open(CERT_FILE, "w") as c:
         c.write(cert.decode())
     with open(KEY_FILE, "w") as k:
         k.write(key.decode())
-else:
-    with open(CERT_FILE, "w") as c:
-        c.write(NAAS_CERT + "\n")
-    with open(KEY_FILE, "w") as k:
-        k.write(NAAS_KEY + "\n")
-
-if NAAS_CA_BUNDLE is None:
     CA_BUNDLE_FILE = None
-else:
-    with open(CA_BUNDLE_FILE, "w") as bundle:
-        bundle.write(NAAS_CA_BUNDLE + "\n")
 
 # Crypto configuration
 keyfile = KEY_FILE
