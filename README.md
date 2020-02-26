@@ -8,7 +8,7 @@ NAAS is a web-based REST API wrapper for the widely-used [Netmiko](https://githu
 NAAS then wraps those Netmiko methods in a RESTful API interface to provide an interface
  for other automation tools (or users) to consume.
 
-NAAS is written in Python, and utilizes the following libraries/technologies:
+NAAS is written in Python (requires 3.7 or higher), and utilizes the following libraries/technologies:
     
 * [Netmiko](https://github.com/ktbyers/netmiko) for connectivity to network devices
 * [Flask](https://github.com/pallets/flask) for the service/API framework
