@@ -242,3 +242,38 @@ class TestValidateHasDelayFactor:
         with validation_app.test_request_context("/test", method="POST", json={"delay_factor": "5"}):
             with pytest.raises(UnprocessableEntity):
                 Validate.has_delay_factor()
+
+
+class TestValidateLockedOut:
+    """Tests for Validate.locked_out()."""
+
+    def test_locked_out_user_raises_error(self, validation_app):
+        """User that is locked out should raise LockedOut."""
+        from unittest.mock import patch
+
+        from naas.library.errorhandlers import LockedOut
+
+        with validation_app.test_request_context(
+            "/test", method="POST", headers={"Authorization": "Basic dXNlcjpwYXNz"}
+        ):
+            with patch("naas.library.validation.tacacs_auth_lockout", return_value=True):
+                with pytest.raises(LockedOut):
+                    Validate.locked_out()
+
+
+class TestValidateDuplicateRequestId:
+    """Tests for Validate.is_duplicate_job()."""
+
+    def test_duplicate_job_id_raises_error(self, validation_app):
+        """Duplicate job_id should raise DuplicateRequestID."""
+        from unittest.mock import MagicMock
+
+        from naas.library.errorhandlers import DuplicateRequestID
+
+        mock_queue = MagicMock()
+        mock_queue.fetch_job.return_value = MagicMock()  # Job exists
+        validation_app.config["q"] = mock_queue
+
+        with validation_app.app_context():
+            with pytest.raises(DuplicateRequestID):
+                Validate.is_duplicate_job("existing-job-id")
