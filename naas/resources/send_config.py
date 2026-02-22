@@ -1,10 +1,10 @@
 # API Resource for wrapping netmiko's send_config() function
 
-from flask_restful import Resource
 from flask import current_app, g, request
+from flask_restful import Resource
+
 from naas import __base_response__
 from naas.library.auth import job_locker
-
 from naas.library.decorators import valid_post
 from naas.library.netmiko_lib import netmiko_send_config
 

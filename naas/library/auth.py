@@ -1,12 +1,13 @@
 # Auth related functions
 
 from datetime import datetime, timedelta
-from flask import current_app
 from hashlib import sha512
 from pickle import dumps, loads
-from naas.config import REDIS_HOST, REDIS_PORT, REDIS_PASSWORD
+
+from flask import current_app
 from redis import Redis
-from typing import Optional
+
+from naas.config import REDIS_HOST, REDIS_PASSWORD, REDIS_PORT
 
 
 def job_locker(salted_creds: str, job_id: str) -> None:
@@ -81,7 +82,6 @@ def tacacs_auth_lockout(username: str, report_failure: bool = False) -> bool:
 
         # If there are at least 9 failures (and potentially this is the tenth), lets dig in some.
         elif failure_count >= 9:
-
             # Evaluate the timestamps of previous failures, if they're more than ten minutes ago, delete and carry on
             for timestamp in loads(failures[b"failure_timestamps"]):
                 if timestamp < datetime.now() - timedelta(minutes=10):
@@ -149,7 +149,7 @@ class Credentials:
     We need this primarily to prevent printing of credentials in log messages.
     """
 
-    def __init__(self, username: str, password: str, enable: Optional[str] = None) -> None:
+    def __init__(self, username: str, password: str, enable: str | None = None) -> None:
         """
         Instantiate our Credentials object
         :param username:
@@ -170,7 +170,7 @@ class Credentials:
     def __str__(self):
         return self.username + ":<redacted>:<redacted>"
 
-    def salted_hash(self, salt: Optional[str] = None) -> str:
+    def salted_hash(self, salt: str | None = None) -> str:
         """
         SHA512 (salted) hash the username/password and return the hexdigest
         :param salt: If not provided, we'll fetch it from Redis

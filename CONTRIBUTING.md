@@ -20,9 +20,46 @@ source .venv/bin/activate
 uv pip install -e ".[dev]"
 ```
 
-3. Run tests:
+3. Install pre-commit hooks:
+```bash
+pre-commit install
+```
+
+4. Run tests:
 ```bash
 pytest
+```
+
+## Development Commands
+
+We use [invoke](https://www.pyinvoke.org/) for common development tasks:
+
+```bash
+# Install dependencies
+invoke install
+
+# Run tests with coverage
+invoke test
+
+# Lint code
+invoke lint
+
+# Format code
+invoke format
+
+# Type check
+invoke typecheck
+
+# Run all checks
+invoke check
+
+# Clean generated files
+invoke clean
+```
+
+List all available tasks:
+```bash
+invoke --list
 ```
 
 ## Branching Strategy
@@ -118,10 +155,36 @@ chore(deps): upgrade netmiko to 4.6.0
 
 ## Code Style
 
-- Follow PEP 8
+We use automated code quality tools to maintain consistent standards:
+
+### Ruff (Linting & Formatting)
+- Fast Python linter and formatter
+- Replaces flake8, isort, and more
+- Auto-fixes most issues
+
+### Mypy (Type Checking)
+- Static type checker
+- Gradual typing support
+- Catches type errors early
+
+### Pre-commit Hooks
+Code quality checks run automatically on commit:
+- Ruff linting with auto-fix
+- Ruff formatting
+- Mypy type checking
+
+To run manually:
+```bash
+invoke format  # Format and fix issues
+invoke check   # Run all checks
+```
+
+### Guidelines
+- Follow PEP 8 (enforced by ruff)
 - Use type hints where appropriate
 - Add docstrings for public functions/classes
 - Keep functions focused and concise
+- Line length: 120 characters
 
 ## Testing
 

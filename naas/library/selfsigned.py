@@ -22,25 +22,24 @@
 # Edited Source: https://gist.github.com/lykinsbd/588462f8f37b846c605c8dee477245c5
 
 from datetime import datetime, timedelta
-from cryptography import x509
-from cryptography.x509.oid import NameOID
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
 from ipaddress import IPv4Address, IPv4Network, IPv6Address, IPv6Network
 from typing import TYPE_CHECKING
 
+from cryptography import x509
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.x509.oid import NameOID
 
 if TYPE_CHECKING:
-    from typing import Optional, Tuple, Union
+    pass
 
 
 def generate_selfsigned_cert(
     hostname: str,
-    public_ip: "Optional[Union[IPv4Address, IPv4Network, IPv6Address, IPv6Network]]" = None,
-    private_ip: "Optional[Union[IPv4Address, IPv4Network, IPv6Address, IPv6Network]]" = None,
-) -> "Tuple[bytes, bytes]":
+    public_ip: "IPv4Address | IPv4Network | IPv6Address | IPv6Network | None" = None,
+    private_ip: "IPv4Address | IPv4Network | IPv6Address | IPv6Network | None" = None,
+) -> "tuple[bytes, bytes]":
     """
     Generate a self-signed X509 certificate.
     :param hostname:  Must provide a hostname

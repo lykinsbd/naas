@@ -10,14 +10,19 @@ bcrypt==5.0.0
     # via
     #   naas (pyproject.toml)
     #   paramiko
+black==26.1.0
+    # via naas (pyproject.toml)
 blinker==1.9.0
     # via flask
 cffi==2.0.0
     # via
     #   cryptography
     #   pynacl
+cfgv==3.5.0
+    # via pre-commit
 click==8.3.1
     # via
+    #   black
     #   flask
     #   rq
 coverage==7.13.4
@@ -30,10 +35,14 @@ cryptography==46.0.5
     #   paramiko
 decorator==5.2.1
     # via ipython
+distlib==0.4.0
+    # via virtualenv
 executing==2.2.1
     # via stack-data
 fakeredis==2.34.0
     # via naas (pyproject.toml)
+filelock==3.24.3
+    # via virtualenv
 flask==3.1.3
     # via
     #   naas (pyproject.toml)
@@ -43,6 +52,8 @@ flask-restful==0.3.10
     # via naas (pyproject.toml)
 gunicorn==25.1.0
     # via naas (pyproject.toml)
+identify==2.6.16
+    # via pre-commit
 iniconfig==2.3.0
     # via pytest
 invoke==2.2.1
@@ -57,6 +68,8 @@ jedi==0.19.2
     # via ipython
 jinja2==3.1.6
     # via flask
+librt==0.8.1
+    # via mypy
 markdown-it-py==4.0.0
     # via rich
 markupsafe==3.0.3
@@ -68,12 +81,21 @@ matplotlib-inline==0.2.1
     # via ipython
 mdurl==0.1.2
     # via markdown-it-py
+mypy==1.19.1
+    # via naas (pyproject.toml)
+mypy-extensions==1.1.0
+    # via
+    #   black
+    #   mypy
 netmiko==4.6.0
     # via naas (pyproject.toml)
+nodeenv==1.10.0
+    # via pre-commit
 ntc-templates==9.0.0
     # via netmiko
 packaging==26.0
     # via
+    #   black
     #   gunicorn
     #   pytest
 paramiko==4.0.0
@@ -83,12 +105,22 @@ paramiko==4.0.0
     #   scp
 parso==0.8.6
     # via jedi
+pathspec==1.0.4
+    # via
+    #   black
+    #   mypy
 pexpect==4.9.0
     # via ipython
+platformdirs==4.9.2
+    # via
+    #   black
+    #   virtualenv
 pluggy==1.6.0
     # via
     #   pytest
     #   pytest-cov
+pre-commit==4.5.1
+    # via naas (pyproject.toml)
 prompt-toolkit==3.0.52
     # via ipython
 ptyprocess==0.7.0
@@ -123,6 +155,8 @@ pytest-mock==3.15.1
     # via naas (pyproject.toml)
 python-dateutil==2.9.0.post0
     # via croniter
+pytokens==0.4.1
+    # via black
 pytz==2025.2
     # via
     #   croniter
@@ -131,6 +165,7 @@ pyyaml==6.0.3
     # via
     #   naas (pyproject.toml)
     #   netmiko
+    #   pre-commit
 redis==7.2.0
     # via
     #   naas (pyproject.toml)
@@ -142,6 +177,8 @@ rq==2.7.0
     # via naas (pyproject.toml)
 ruamel-yaml==0.19.1
     # via netmiko
+ruff==0.15.2
+    # via naas (pyproject.toml)
 scp==0.15.0
     # via
     #   naas (pyproject.toml)
@@ -164,7 +201,11 @@ traitlets==5.14.3
     #   ipython
     #   matplotlib-inline
 typing-extensions==4.15.0
-    # via ipython
+    # via
+    #   ipython
+    #   mypy
+virtualenv==20.38.0
+    # via pre-commit
 wcwidth==0.6.0
     # via prompt-toolkit
 werkzeug==3.1.6
