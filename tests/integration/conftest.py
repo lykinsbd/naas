@@ -1,7 +1,6 @@
 """Pytest configuration for integration tests."""
 
 import subprocess
-import time
 
 import pytest
 
@@ -21,26 +20,6 @@ def docker_compose():
     )
     if result.stderr:
         print(f"Docker Compose output: {result.stderr}")
-
-    # Give services time to initialize
-    print("⏳ Waiting for services to initialize...")
-    time.sleep(15)
-
-    # Check container status
-    status = subprocess.run(
-        ["docker", "compose", "-f", compose_file, "ps"],
-        capture_output=True,
-        text=True,
-    )
-    print(f"Container status:\n{status.stdout}")
-
-    # Check API logs
-    logs = subprocess.run(
-        ["docker", "compose", "-f", compose_file, "logs", "api"],
-        capture_output=True,
-        text=True,
-    )
-    print(f"API logs:\n{logs.stdout[-500:]}")  # Last 500 chars
 
     yield
 
