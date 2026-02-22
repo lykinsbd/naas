@@ -109,3 +109,6 @@ pyvenv.cfg
 
 # Intellij/Pycharm
 .idea/
+
+# uv lock files
+*.lock
