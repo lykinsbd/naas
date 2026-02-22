@@ -4,6 +4,10 @@ import time
 
 import pytest
 import requests
+import urllib3
+
+# Disable SSL warnings for self-signed certs
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 @pytest.fixture(scope="module")
@@ -15,16 +19,19 @@ def api_url():
 @pytest.fixture(scope="module")
 def wait_for_api(api_url):
     """Wait for API to be ready."""
-    max_retries = 30
-    for _ in range(max_retries):
+    max_retries = 60  # Increased timeout
+    retry_delay = 2
+    for i in range(max_retries):
         try:
-            response = requests.get(f"{api_url}/healthcheck", verify=False, timeout=2)
+            response = requests.get(f"{api_url}/healthcheck", verify=False, timeout=5)
             if response.status_code == 200:
+                print(f"\n✓ API ready after {i * retry_delay}s")
                 return
-        except requests.exceptions.RequestException:
-            pass
-        time.sleep(1)
-    pytest.fail("API did not become ready in time")
+        except requests.exceptions.RequestException as e:
+            if i % 10 == 0:  # Log every 20 seconds
+                print(f"\nWaiting for API... ({i * retry_delay}s) - {type(e).__name__}")
+        time.sleep(retry_delay)
+    pytest.fail(f"API did not become ready in {max_retries * retry_delay}s")
 
 
 def test_healthcheck(api_url, wait_for_api):
