@@ -23,16 +23,18 @@ jobs:
       - name: Install dependencies
         run: uv sync --extra dev
 
-      - name: Run unit tests
+      - name: Run unit tests with coverage
         run: uv run pytest tests/unit -v --cov=naas --cov-report=term-missing --cov-report=xml
 
-      - name: Upload coverage
+      - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         if: always()
         with:
           files: ./coverage.xml
           flags: unit
+          name: unit-tests
           fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   integration-tests:
     runs-on: ubuntu-latest
@@ -51,7 +53,7 @@ jobs:
         run: uv sync --extra dev
 
       - name: Run integration tests
-        run: uv run pytest tests/integration -v --tb=short
+        run: uv run pytest tests/integration -v --tb=short --no-cov
 
       - name: Cleanup Docker
         if: always()
@@ -74,4 +76,4 @@ jobs:
         run: uv sync --extra dev
 
       - name: Run contract tests
-        run: uv run pytest tests/contract -v --tb=short
+        run: uv run pytest tests/contract -v --tb=short --no-cov
