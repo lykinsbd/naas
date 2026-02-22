@@ -1,6 +1,7 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
 from fakeredis import FakeStrictRedis
-from unittest.mock import patch, MagicMock
 
 
 @pytest.fixture
@@ -20,8 +21,9 @@ def app():
             mock_job.meta = {}
             mock_queue.return_value.enqueue.return_value = mock_job
             mock_queue.return_value.fetch_job.return_value = mock_job
-            
+
             from naas.app import app as flask_app
+
             flask_app.config["TESTING"] = True
             flask_app.config["q"] = mock_queue.return_value
             yield flask_app

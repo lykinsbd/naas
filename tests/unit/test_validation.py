@@ -4,8 +4,8 @@ import pytest
 from flask import Flask
 from werkzeug.exceptions import BadRequest, UnprocessableEntity
 
-from naas.library.validation import Validate
 from naas.library.errorhandlers import InvalidIP, NoAuth, NoJSON
+from naas.library.validation import Validate
 
 
 @pytest.fixture

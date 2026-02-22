@@ -1,6 +1,5 @@
 """Unit tests for API resource endpoints."""
 
-import pytest
 from naas import __version__
 
 
