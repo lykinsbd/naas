@@ -58,10 +58,11 @@ omit = [
     "*/test_*.py",
     "*/__pycache__/*",
     "*/.venv/*",
+    "naas/__main__.py",  # Dev CLI entry point, production uses gunicorn
 ]
 
 [tool.coverage.report]
-fail_under = 79
+fail_under = 100
 show_missing = true
 skip_covered = false
 precision = 2
