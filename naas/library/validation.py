@@ -62,10 +62,10 @@ class Validate:
         Validate if this user is locked out from accessing the API
         :return:
         """
-
-        if tacacs_auth_lockout(username=request.authorization.username):
-            current_app.logger.error(f"{request.authorization.username} is currently locked out.")
-            raise LockedOut
+        if request.authorization and request.authorization.username:
+            if tacacs_auth_lockout(username=request.authorization.username):
+                current_app.logger.error(f"{request.authorization.username} is currently locked out.")
+                raise LockedOut
 
     @staticmethod
     def has_port() -> None:
