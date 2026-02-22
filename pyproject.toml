@@ -51,6 +51,24 @@ python_files = "test_*.py"
 python_functions = "test_*"
 addopts = "-v --cov=naas --cov-report=term-missing --cov-report=html"
 
+[tool.coverage.run]
+source = ["naas"]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/__pycache__/*",
+    "*/.venv/*",
+]
+
+[tool.coverage.report]
+fail_under = 15
+show_missing = true
+skip_covered = false
+precision = 2
+
+[tool.coverage.html]
+directory = "htmlcov"
+
 [tool.ruff]
 line-length = 120
 target-version = "py311"
