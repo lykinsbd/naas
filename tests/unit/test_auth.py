@@ -1,7 +1,8 @@
 from datetime import datetime, timedelta
 from pickle import dumps
+from unittest.mock import MagicMock
 
-from naas.library.auth import Credentials, report_tacacs_failure, tacacs_auth_lockout
+from naas.library.auth import Credentials, job_unlocker, report_tacacs_failure, tacacs_auth_lockout
 
 
 class TestTacacsAuthLockout:
@@ -106,8 +107,40 @@ class TestReportTacacsFailure:
         assert int(failures[b"failure_count"]) == 2
 
 
+class TestJobUnlocker:
+    """Test job unlocking functionality."""
+
+    def test_job_unlock_success(self, app, client):
+        """Test successful job unlock with matching credentials."""
+        job = app.config["q"].fetch_job("test-job-id")
+        job.meta["hash"] = "test-hash"
+
+        with app.app_context():
+            assert job_unlocker("test-hash", "test-job-id") is True
+
+    def test_job_unlock_wrong_hash(self, app, client):
+        """Test job unlock fails with wrong credentials."""
+        job = app.config["q"].fetch_job("test-job-id")
+        job.meta["hash"] = "correct-hash"
+
+        with app.app_context():
+            assert job_unlocker("wrong-hash", "test-job-id") is False
+
+    def test_job_unlock_no_hash(self, app, client):
+        """Test job unlock fails when no hash stored."""
+        with app.app_context():
+            assert job_unlocker("test-hash", "test-job-id") is False
+
+    def test_job_unlock_exception(self, app, client):
+        """Test job unlock handles exceptions gracefully."""
+        app.config["q"].fetch_job = MagicMock(side_effect=Exception("Redis error"))
+
+        with app.app_context():
+            assert job_unlocker("test-hash", "test-job-id") is False
+
+
 class TestCredentials:
-    """Test Credentials class."""
+    """Test Credentials class functionality."""
 
     def test_credentials_init(self):
         """Test Credentials initialization."""
@@ -136,3 +169,22 @@ class TestCredentials:
         assert "admin" in str_repr
         assert "secret" not in str_repr
         assert "<redacted>" in str_repr
+
+    def test_credentials_salted_hash_with_salt(self, app, client):
+        """Test salted_hash with provided salt."""
+        creds = Credentials("testuser", "testpass")
+
+        with app.app_context():
+            result = creds.salted_hash(salt="test-salt")
+            assert isinstance(result, str)
+            assert len(result) == 128  # SHA512 hex digest length
+
+    def test_credentials_salted_hash_from_redis(self, app, client):
+        """Test salted_hash fetches salt from Redis when not provided."""
+        app.config["redis"].set("naas_cred_salt", b"redis-salt")
+        creds = Credentials("testuser", "testpass")
+
+        with app.app_context():
+            result = creds.salted_hash()
+            assert isinstance(result, str)
+            assert len(result) == 128
