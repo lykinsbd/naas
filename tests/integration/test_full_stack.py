@@ -10,26 +10,25 @@ import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def api_url():
     """Base URL for NAAS API."""
     return "https://localhost:18443"
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def wait_for_api(api_url):
-    """Wait for API to be ready."""
-    max_retries = 60  # Increased timeout
-    retry_delay = 2
+    """Wait for API to be ready (session-scoped, runs once)."""
+    max_retries = 15
+    retry_delay = 1
     for i in range(max_retries):
         try:
-            response = requests.get(f"{api_url}/healthcheck", verify=False, timeout=5)
+            response = requests.get(f"{api_url}/healthcheck", verify=False, timeout=3)
             if response.status_code == 200:
                 print(f"\n✓ API ready after {i * retry_delay}s")
                 return
-        except requests.exceptions.RequestException as e:
-            if i % 10 == 0:  # Log every 20 seconds
-                print(f"\nWaiting for API... ({i * retry_delay}s) - {type(e).__name__}")
+        except requests.exceptions.RequestException:
+            pass
         time.sleep(retry_delay)
     pytest.fail(f"API did not become ready in {max_retries * retry_delay}s")
 
