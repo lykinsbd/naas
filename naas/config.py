@@ -7,6 +7,7 @@
  Description: Configure NAAS API
 """
 
+import importlib.resources
 import os
 import random
 import string
@@ -77,3 +78,7 @@ def app_configure(app):
     # Initialize an rq Queue and store it for later
     q = Queue("naas", connection=redis)
     app.config["q"] = q
+
+    # Find NTC Templates and set the environment variable for it
+    with importlib.resources.path(package="ntc_templates", resource="templates") as template_path:
+        os.environ["NET_TEXTFSM"] = str(template_path)

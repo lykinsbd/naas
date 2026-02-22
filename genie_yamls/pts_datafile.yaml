@@ -1,0 +1,139 @@
+# Master PTS File for Genie
+# #########################
+
+ospf:
+    source:
+        pkg: genie.libs.ops
+        class: ospf.ospf.Ospf
+    devices: ['uut']
+    exclude: []
+
+hsrp:
+    source:
+        pkg: genie.libs.ops
+        class: hsrp.hsrp.Hsrp
+    devices: ['uut']
+
+vlan:
+    source:
+        pkg: genie.libs.ops
+        class: vlan.vlan.Vlan
+    devices: ['uut']
+
+platform:
+    source:
+        pkg: genie.libs.ops
+        class: platform.platform.Platform
+    devices: ['uut']
+    exclude: []
+
+bgp:
+    source:
+        pkg: genie.libs.ops
+        class: bgp.bgp.Bgp
+    devices: ['uut']
+    exclude: []
+
+interface:
+    source:
+        pkg: genie.libs.ops
+        class: interface.interface.Interface
+    devices: ['uut']
+    exclude: []
+
+mcast:
+    source:
+        pkg: genie.libs.ops
+        class: mcast.mcast.Mcast
+    devices: ['uut']
+    exclude: []
+
+pim:
+    source:
+        pkg: genie.libs.ops
+        class: pim.pim.Pim
+    devices: ['uut']
+    exclude: []
+
+prefix_list:
+    source:
+        pkg: genie.libs.ops
+        class: prefix_list.prefix_list.PrefixList
+    devices: ['uut']
+
+vrf:
+    source:
+        pkg: genie.libs.ops
+        class: vrf.vrf.Vrf
+    devices: ['uut']
+
+mld:
+    source:
+        pkg: genie.libs.ops
+        class: mld.mld.Mld
+    exclude: []
+    devices: ['uut']
+
+route_policy:
+    source:
+        pkg: genie.libs.ops
+        class: route_policy.route_policy.RoutePolicy
+    devices: ['uut']
+
+igmp:
+    source:
+        pkg: genie.libs.ops
+        class: igmp.igmp.Igmp
+    devices: ['uut']
+    exclude: []
+
+stp:
+    source:
+        pkg: genie.libs.ops
+        class: stp.stp.Stp
+    devices: ['uut']
+
+static_routing:
+    source:
+        pkg: genie.libs.ops
+        class: static_routing.static_routing.StaticRouting
+    devices: ['uut']
+
+routing:
+    source:
+        pkg: genie.libs.ops
+        class: routing.routing.Routing
+    devices: ['uut']
+lldp:
+    source:
+        pkg: genie.libs.ops
+        class: lldp.lldp.Lldp
+    devices: ['uut']
+
+vxlan:
+    source:
+        pkg: genie.libs.ops
+        class: vxlan.vxlan.Vxlan
+    devices: ['uut']
+    exclude: []
+
+msdp:
+    source:
+        pkg: genie.libs.ops
+        class: msdp.msdp.Msdp
+    devices: ['uut']
+    exclude: []
+
+ntp:
+    source:
+        pkg: genie.libs.ops
+        class: ntp.ntp.Ntp
+    devices: ['uut']
+    exclude: []
+
+arp:
+    source:
+        pkg: genie.libs.ops
+        class: arp.arp.Arp
+    devices: ['uut']
+    exclude: []

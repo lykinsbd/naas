@@ -1,0 +1,60 @@
+Verify_Bootvar:
+  devices:
+  - uut
+  groups: ['platform']
+Verify_Dir:
+  devices:
+  - uut
+  exclude: []
+  groups: ['platform']
+Verify_Interfaces:
+  devices:
+  - uut
+  exclude: []
+  iteration:
+    attempt: 5
+    interval: 10
+  groups: ['interface']
+Verify_InterfacesAccounting:
+  devices:
+  - uut
+  exclude: []
+  groups: ['interface']
+Verify_Inventory:
+  devices:
+  - uut
+  exclude: []
+  groups: ['platform']
+Verify_IpInterface:
+  devices:
+  - uut
+  exclude: []
+  iteration:
+    attempt: 5
+    interval: 10
+  groups: ['interface']
+Verify_IpInterfaceBrief:
+  devices:
+  - uut
+  exclude: []
+  iteration:
+    attempt: 5
+    interval: 10
+  groups: ['interface']
+Verify_Ipv6Interface:
+  devices:
+  - uut
+  exclude: []
+  iteration:
+    attempt: 5
+    interval: 10
+  groups: ['interface']
+Verify_Version:
+  devices:
+  - uut
+  exclude: []
+  groups: ['platform']
+Verify_VrfDetail:
+  devices:
+  - uut
+extends: '%ENV{VIRTUAL_ENV}/genie_yamls/verification_datafile.yaml'
