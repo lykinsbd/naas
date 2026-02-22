@@ -1,58 +1,69 @@
-version: "3.7"
-
 services:
+  redis:
+    image: redis:7-alpine
+    command: >-
+      --requirepass ${REDIS_PASSWORD:-mah_redis_pw}
+      --port ${REDIS_PORT:-6379}
+    networks:
+      - naas
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
 
   api:
-    image: "lykinsbd/naas:v0.6.2"
-    deploy:
-      mode: "replicated"
-      replicas: 1
-      restart_policy:
-        condition: any
+    image: naas:1.0.0a1
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
-      - target: 443
-        published: "${NAAS_GLOBAL_PORT:-8443}"
-        protocol: "tcp"
-        mode: "ingress"
+      - "${NAAS_GLOBAL_PORT:-8443}:443"
+    environment:
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-mah_redis_pw}
+      - APP_ENVIRONMENT=${APP_ENVIRONMENT:-dev}
+      - NAAS_CERT=${NAAS_CERT}
+      - NAAS_KEY=${NAAS_KEY}
+      - NAAS_CA_BUNDLE=${NAAS_CA_BUNDLE}
+    networks:
+      - naas
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
     logging:
+      driver: json-file
       options:
         max-size: "5m"
         max-file: "2"
-    # Set the environment variables from your launch environment that will be passed into the container
-    # `:-<value>` sets the default if environment variable is not set
-    environment:
-      - "REDIS_HOST=${REDIS_HOST:-redis}"
-      - "REDIS_PORT=${REDIS_PORT:-6379}"
-      - "REDIS_PASSWORD=${REDIS_PASSWORD:-mah_redis_pw}"
-      - "APP_ENVIRONMENT=dev"
-      - "NAAS_CERT=${NAAS_CERT}"
-      - "NAAS_KEY=${NAAS_KEY}"
-      - "NAAS_CA_BUNDLE=${NAAS_CA_BUNDLE}"
-    networks:
-      - "naas_overlay"
 
   worker:
-    image: "lykinsbd/naas:v0.6.2"
-    deploy:
-      mode: "replicated"
-      replicas: ${NAAS_WORKER_REPLICAS:-2}
-      restart_policy:
-        condition: any
+    image: naas:1.0.0a1
+    build:
+      context: .
+      dockerfile: Dockerfile
     command: >-
       python worker.py
       --redis ${REDIS_HOST:-redis}
       --port ${REDIS_PORT:-6379}
       --auth_password ${REDIS_PASSWORD:-mah_redis_pw}
       ${NAAS_WORKER_PROCESSES:-100}
-    healthcheck:
-      disable: true
+    environment:
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-mah_redis_pw}
     networks:
-      - "naas_overlay"
+      - naas
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      replicas: ${NAAS_WORKER_REPLICAS:-2}
 
 networks:
-
-  naas_overlay:
-    driver: overlay
-    driver_opts:
-      encrypted: 1
-    name: "naas_overlay"
+  naas:
+    driver: bridge

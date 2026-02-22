@@ -2,13 +2,12 @@
 Netmiko As A Service
 
 NAAS is a web-based REST API wrapper for the widely-used [Netmiko](https://github.com/ktbyers/netmiko)
- Python library.  Netmiko provides structured methods for interacting with Network Devices via SSH/Telnet.
+ Python library. Netmiko provides structured methods for interacting with Network Devices via SSH/Telnet.
 
-
-NAAS then wraps those Netmiko methods in a RESTful API interface to provide an interface
+NAAS wraps those Netmiko methods in a RESTful API interface to provide an interface
  for other automation tools (or users) to consume.
 
-NAAS is written in Python, and utilizes the following libraries/technologies:
+NAAS is written in Python 3.11+ and utilizes the following libraries/technologies:
     
 * [Netmiko](https://github.com/ktbyers/netmiko) for connectivity to network devices
 * [Flask](https://github.com/pallets/flask) for the service/API framework
@@ -16,8 +15,15 @@ NAAS is written in Python, and utilizes the following libraries/technologies:
 * [Gunicorn](https://github.com/benoitc/gunicorn) for the HTTP server
 * [RQ](https://github.com/rq/rq) for the background job queueing/execution framework
 * [Redis](https://github.com/antirez/redis) for job queueing and other backend K/V store functions
+* [uv](https://github.com/astral-sh/uv) for fast, reliable dependency management
 
 Online API documentation can be found here: [NAAS API Documentation](https://lykinsbd.github.io/naas)
+
+## Requirements
+
+- Python 3.11 or higher
+- Docker (for containerized deployment)
+- Redis server (can be deployed via docker-compose)
 
 ## Why Use NAAS?
 
@@ -46,74 +52,160 @@ it does not (outside of basic TextFSM or Genie support in Netmiko) marshall/stru
 from the network device in any way.  It is incumbent upon the consumer of the API to parse the
 raw text response into useful data for their purposes.
 
+## Development Setup
+
+### Prerequisites
+- Python 3.11 or higher
+- [uv](https://github.com/astral-sh/uv) for dependency management
+
+### Installation
+
+1. Install uv:
+```bash
+# macOS/Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Or via Homebrew
+brew install uv
+```
+
+2. Clone the repository:
+```bash
+git clone https://github.com/lykinsbd/naas.git
+cd naas
+```
+
+3. Create a virtual environment and install dependencies:
+```bash
+# Create virtual environment
+uv venv --python 3.11
+
+# Activate it
+source .venv/bin/activate  # Linux/Mac
+# OR
+.venv\Scripts\activate  # Windows
+
+# Install dependencies
+uv pip install -e ".[dev]"
+```
+
+4. Run tests:
+```bash
+pytest
+```
+
+### Adding Dependencies
+
+To add a new dependency:
+```bash
+# Edit pyproject.toml to add the package
+# Then regenerate lock files
+uv pip compile pyproject.toml -o requirements.lock
+uv pip compile pyproject.toml --extra dev -o requirements-dev.lock
+
+# Install the new dependency
+uv pip install -e .
+```
+
 
 ## Running NAAS
 
-There are several deployement scenarios for NAAS, depending on if you have an existing redis instance, etc.
+### Docker Compose Deployment (Recommended)
 
-### Standard Deployment
+The simplest way to run NAAS is using Docker Compose, which launches the API, worker containers, and Redis:
 
-The Standard Deployment of NAAS is the simplest, "batteries included", deployment.  It launches the API and Worker containers, as well as a Redis instance:
+1. [Install Docker](https://docs.docker.com/install/) and [Docker Compose](https://docs.docker.com/compose/install/) on a server or VM that has management/SSH access to your network devices
 
-1. [Install Docker](https://docs.docker.com/install/) on a server or VM that has management/SSH access to your network devices
-2. Join that host to (or initialize) a [Docker Swarm](https://docs.docker.com/engine/swarm/swarm-tutorial/)
-3. Clone the repo down from Github
-    * `git clone https://github.com/lykinsbd/naas.git`
-4. If you wish to use a custom Redis password (recommended) set it via an environment variable:
-    * `REDIS_PASSWORD`: A string of the password you wish to use for the redis server
-5. If you wish to use a specific TLS Certificate/Key/Bundle (recommended), place them into environment variables.
-If the certificate lives is "cert.crt" on your machine, put it into an environment variable via the following:
-`` export NAAS_CERT=`cat cert.crt` ``
-    * `NAAS_CERT`: A string with the PEM formatted certificate you wish to use for NAAS
-    * `NAAS_KEY`: A string with the PEM formatted private key you wish to use for NAAS
-    * `NAAS_CA_BUNDLE`: A string with the PEM formatted CA/Issuing bundle certificates that issued `NAAS_CERT`
-6. Execute the following:
-    * ```docker stack deploy --compose-file docker-compose.yml --compose-file docker-compose-redis.yml naas```
-7. Validate that your service has deployed:
-    * ```docker stack ps naas```
-    * You should see 4 containers in the `Running` state:
-        1. naas_api.1
-        2. naas_worker.1
-        3. naas_worker.2
-        4. naas_redis.1
-8. Perform an HTTP GET to `https://<your_server_ip>:8443/healthcheck` and look for a 200 response.
+2. Clone the repository:
+```bash
+git clone https://github.com/lykinsbd/naas.git
+cd naas
+```
 
-### Custom Deployment
+3. (Optional) Configure environment variables:
+```bash
+# Create .env file for custom configuration
+cat > .env << EOF
+REDIS_PASSWORD=your_secure_password
+NAAS_GLOBAL_PORT=8443
+NAAS_WORKER_REPLICAS=2
+NAAS_WORKER_PROCESSES=100
+APP_ENVIRONMENT=production
+EOF
+```
 
-NAAS can be customized to fit most environments through a combination of stacked Docker Compose files
- and environment variables.  You may wish to utilize the Custom Deployment model if for example:
+4. (Optional) Configure TLS certificates:
+```bash
+# If you have custom certificates
+export NAAS_CERT=$(cat /path/to/cert.crt)
+export NAAS_KEY=$(cat /path/to/key.pem)
+export NAAS_CA_BUNDLE=$(cat /path/to/bundle.crt)
+```
 
-* You have an existing Redis instance you wish to use instead of a generic one launched by NAAS
-* You wish to expose the API on a different TCP port than the default (8443)
+5. Start NAAS:
+```bash
+docker compose up -d
+```
 
-To launch a more customized deployment, please follow these steps:
+6. Verify deployment:
+```bash
+# Check container status
+docker compose ps
 
-1. [Install Docker](https://docs.docker.com/install/) on a server or VM that has management/SSH access to your network devices
-2. Join that host to (or initialize) a [Docker Swarm](https://docs.docker.com/engine/swarm/swarm-tutorial/)
-3. Clone the repo down from Github
-    * `git clone https://github.com/lykinsbd/naas.git`
-4. You have the following options available for customization:
-    1. To use a custom Redis instance, ensure that the following environment variables are set in your launch environment:
-        1. `REDIS_HOST`: A string of the IP/Hostname of the redis server you wish to use (Default: redis)
-        2. `REDIS_PORT`: An integer of the TCP Port number of the redis server you wish to use (Default: 6379)
-        3. `REDIS_PASSWORD`: A string of the password for the redis server you wish to use (if authentication is needed)
-    2. To use a custom global/published TCP port for the API front end, 
-        set the following environment variable in your launch environment:
-        1. `NAAS_GLOBAL_PORT`: An integer of the TCP port you want to expose NAAS on to the outside world (Default: 8443)
-    3. To customize the number of NAAS worker containers or worker processes in a container, 
-        set the following environment variables in your launch environment:
-        1. `NAAS_WORKER_REPLICAS`: An integer of the number of Worker container replicas you want (Default: 2)
-        2. `NAAS_WORKER_PROCESSES`: An integer of the number of Worker processes you want in each Worker container (Default: 100)
-5. Execute the following to launch NAAS:
-    1. With a custom Redis server as defined in step 4:
-        * ```docker stack deploy --compose-file docker-compose.yml naas```
-    2. With the default Redis container:
-        * ```docker stack deploy --compose-file docker-compose.yml --compose-file docker-compose-redis.yml naas```
-6. Validate that your service has deployed:
-    * ```docker stack ps naas```
-    * You should see 3 containers in the `Running` state if you used a custom Redis server
-        (otherwise you'll see 4 as shown in the Standard Deployment):
-        1. naas_api.1
-        2. naas_worker.1
-        3. naas_worker.2
-7. Perform an HTTP GET to `https://<your_server_ip>:<NAAS_GLOBAL_PORT>/healthcheck` and look for a 200 response.
+# Check logs
+docker compose logs -f
+
+# Test healthcheck
+curl -k https://localhost:8443/healthcheck
+```
+
+7. Scale workers if needed:
+```bash
+docker compose up -d --scale worker=5
+```
+
+### Configuration Options
+
+Environment variables can be set in a `.env` file or exported in your shell:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `REDIS_HOST` | `redis` | Redis server hostname |
+| `REDIS_PORT` | `6379` | Redis server port |
+| `REDIS_PASSWORD` | `mah_redis_pw` | Redis authentication password |
+| `NAAS_GLOBAL_PORT` | `8443` | External HTTPS port |
+| `NAAS_WORKER_REPLICAS` | `2` | Number of worker containers |
+| `NAAS_WORKER_PROCESSES` | `100` | Worker processes per container |
+| `APP_ENVIRONMENT` | `dev` | Environment: `dev`, `staging`, or `production` |
+
+### Using External Redis
+
+If you have an existing Redis instance, you can disable the built-in Redis container:
+
+1. Create a `docker-compose.override.yml`:
+```yaml
+services:
+  redis:
+    profiles:
+      - disabled
+  api:
+    depends_on: []
+  worker:
+    depends_on: []
+```
+
+2. Set Redis connection environment variables:
+```bash
+export REDIS_HOST=your-redis-host.example.com
+export REDIS_PORT=6379
+export REDIS_PASSWORD=your_password
+```
+
+3. Start NAAS:
+```bash
+docker compose up -d
+```
+
+### Kubernetes Deployment
+
+Kubernetes manifests are planned for a future release. Track progress in [#28](https://github.com/lykinsbd/naas/issues/28).
