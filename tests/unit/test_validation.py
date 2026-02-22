@@ -176,9 +176,7 @@ class TestValidateIsCommandSet:
 
     def test_valid_commands_list_passes(self, validation_app):
         """Valid commands list should pass."""
-        with validation_app.test_request_context(
-            "/test", method="POST", json={"commands": ["show version"]}
-        ):
+        with validation_app.test_request_context("/test", method="POST", json={"commands": ["show version"]}):
             Validate.is_command_set()  # Should not raise
 
     def test_missing_commands_raises_badrequest(self, validation_app):
