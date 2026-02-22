@@ -1,6 +1,7 @@
 # API Resources
 
 from flask_restful import Resource
+
 from naas import __version__
 
 

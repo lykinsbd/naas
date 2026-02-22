@@ -1,11 +1,12 @@
 # API Resources
 
-from flask_restful import Resource
 from flask import current_app, request
+from flask_restful import Resource
+from werkzeug.exceptions import Forbidden
+
 from naas import __base_response__
 from naas.library.auth import Credentials, job_unlocker
 from naas.library.validation import Validate
-from werkzeug.exceptions import Forbidden
 
 
 class GetResults(Resource):
