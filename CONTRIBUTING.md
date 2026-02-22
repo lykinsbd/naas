@@ -109,6 +109,12 @@ chore(deps): upgrade netmiko to 4.6.0
 5. Ensure all tests pass
 6. Create PR targeting `develop`
 7. Reference related issues (e.g., "Closes #30")
+8. PRs will be merged using **squash** or **rebase** (no merge commits)
+
+### Merge Strategy
+- **Squash merge**: Preferred for feature branches with multiple commits
+- **Rebase merge**: Preferred for single, clean commits
+- **Merge commits**: Avoided to keep history linear and clean
 
 ## Code Style
 
