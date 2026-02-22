@@ -8,7 +8,7 @@ import logging
 from typing import TYPE_CHECKING
 
 import netmiko
-from paramiko import ssh_exception
+from paramiko import ssh_exception  # type: ignore[import-untyped]
 
 from naas.library.auth import tacacs_auth_lockout
 
