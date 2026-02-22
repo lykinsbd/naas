@@ -11,7 +11,19 @@ def install(c):
 
 @task
 def test(c):
-    """Run tests with coverage."""
+    """Run unit tests with coverage."""
+    c.run("pytest tests/unit")
+
+
+@task
+def test_integration(c):
+    """Run integration tests with Docker Compose."""
+    c.run("pytest tests/integration -v")
+
+
+@task
+def test_all(c):
+    """Run all tests (unit + integration)."""
     c.run("pytest")
 
 
