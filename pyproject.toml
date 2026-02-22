@@ -44,7 +44,7 @@ build-backend = "hatchling.build"
 testpaths = ["tests"]
 python_files = "test_*.py"
 python_functions = "test_*"
-addopts = "-v --cov=naas --cov-report=term-missing"
+addopts = "-v --cov=naas --cov-report=term-missing --cov-report=html"
 
 [tool.ruff]
 line-length = 120
