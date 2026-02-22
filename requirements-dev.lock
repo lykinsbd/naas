@@ -14,12 +14,16 @@ black==26.1.0
     # via naas (pyproject.toml)
 blinker==1.9.0
     # via flask
+certifi==2026.1.4
+    # via requests
 cffi==2.0.0
     # via
     #   cryptography
     #   pynacl
 cfgv==3.5.0
     # via pre-commit
+charset-normalizer==3.4.4
+    # via requests
 click==8.3.1
     # via
     #   black
@@ -54,6 +58,8 @@ gunicorn==25.1.0
     # via naas (pyproject.toml)
 identify==2.6.16
     # via pre-commit
+idna==3.11
+    # via requests
 iniconfig==2.3.0
     # via pytest
 invoke==2.2.1
@@ -171,6 +177,8 @@ redis==7.2.0
     #   naas (pyproject.toml)
     #   fakeredis
     #   rq
+requests==2.32.5
+    # via naas (pyproject.toml)
 rich==14.3.3
     # via netmiko
 rq==2.7.0
@@ -204,6 +212,8 @@ typing-extensions==4.15.0
     # via
     #   ipython
     #   mypy
+urllib3==2.6.3
+    # via requests
 virtualenv==20.38.0
     # via pre-commit
 wcwidth==0.6.0

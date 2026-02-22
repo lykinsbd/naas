@@ -38,6 +38,7 @@ dev = [
     "black>=24.0.0",
     "mypy>=1.13.0",
     "pre-commit>=4.0.0",
+    "requests>=2.31.0",
 ]
 
 [build-system]
