@@ -5,5 +5,7 @@
 Initialization module for NAAS. Sets version
 """
 
-__version__ = "0.6.2"
+from importlib.metadata import version
+
+__version__ = version("naas")
 __base_response__ = {"app": "naas", "version": __version__}
