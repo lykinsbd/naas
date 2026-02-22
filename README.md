@@ -1,6 +1,10 @@
 # NAAS
 Netmiko As A Service
 
+[![Tests](https://github.com/lykinsbd/naas/actions/workflows/test.yml/badge.svg)](https://github.com/lykinsbd/naas/actions/workflows/test.yml)
+[![Code Quality](https://github.com/lykinsbd/naas/actions/workflows/lint.yml/badge.svg)](https://github.com/lykinsbd/naas/actions/workflows/lint.yml)
+[![Docker Build](https://github.com/lykinsbd/naas/actions/workflows/build.yml/badge.svg)](https://github.com/lykinsbd/naas/actions/workflows/build.yml)
+
 NAAS is a web-based REST API wrapper for the widely-used [Netmiko](https://github.com/ktbyers/netmiko)
  Python library. Netmiko provides structured methods for interacting with Network Devices via SSH/Telnet.
 
