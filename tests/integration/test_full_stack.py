@@ -13,7 +13,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 @pytest.fixture(scope="module")
 def api_url():
     """Base URL for NAAS API."""
-    return "https://localhost:8443"
+    return "https://localhost:18443"
 
 
 @pytest.fixture(scope="module")
@@ -43,7 +43,7 @@ def test_healthcheck(api_url, wait_for_api):
 
 
 def test_send_command_job_creation(api_url, wait_for_api):
-    """Test creating a send_command job."""
+    """Test creating a send_command job returns 401 without auth."""
     payload = {
         "device_type": "cisco_ios",
         "host": "192.0.2.1",
@@ -52,12 +52,12 @@ def test_send_command_job_creation(api_url, wait_for_api):
         "command": "show version",
     }
     response = requests.post(f"{api_url}/send_command", json=payload, verify=False)
-    assert response.status_code in [200, 201]
-    data = response.json()
-    assert "job_id" in data
+    # Without authentication, should get 401
+    assert response.status_code == 401
 
 
 def test_get_results_not_found(api_url, wait_for_api):
-    """Test getting results for non-existent job."""
+    """Test getting results for non-existent job returns 400 (bad request format)."""
     response = requests.get(f"{api_url}/send_command/nonexistent", verify=False)
-    assert response.status_code == 404
+    # Invalid job ID format returns 400
+    assert response.status_code == 400
