@@ -1,0 +1,5 @@
+# Markdown linting configuration
+default: true
+MD013: false  # Line length - too restrictive for code blocks
+MD033: false  # Allow inline HTML
+MD041: false  # First line doesn't need to be H1
