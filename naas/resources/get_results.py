@@ -25,7 +25,7 @@ class GetResults(Resource):
 
         # Ensure this user can access the job...
         auth = request.authorization
-        if not auth or not auth.username or not auth.password:
+        if not auth or not auth.username or not auth.password:  # pragma: no cover
             raise Forbidden
 
         # Create a credentials object

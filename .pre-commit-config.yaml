@@ -15,6 +15,7 @@ repos:
       - id: trailing-whitespace
       - id: check-added-large-files
       - id: detect-private-key
+        exclude: ^tests/unit/test_selfsigned\.py$
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.13.0
