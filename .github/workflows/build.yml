@@ -23,6 +23,7 @@ jobs:
           tags: naas:test
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          load: true
 
       - name: Test Docker image
         run: |
