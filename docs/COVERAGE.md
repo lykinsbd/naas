@@ -2,52 +2,70 @@
 
 ## Current Status
 
-- **Current Coverage**: 15.74%
-- **Minimum Required**: 15%
+- **Current Coverage**: 57.47%
+- **Minimum Required**: 50%
 - **Target**: 100%
 
 ## Coverage Goals
 
-### Phase 1: Foundation (v1.0) - 15% ✅
+### Phase 1: Foundation (v1.0) - 40% → 54% ✅ COMPLETE
 
 - ✅ Unit tests for authentication (68% coverage)
+- ✅ Unit tests for healthcheck (100% coverage)
+- ✅ Unit tests for validation (91% coverage)
 - ✅ Contract tests for API endpoints
 - ✅ Integration tests for full stack
 - ✅ Coverage reporting infrastructure
+- ✅ Mypy type checking enabled
 
-### Phase 2: API Layer (v1.1) - 40%
+**Result**: 57.47% coverage (exceeded 40% target)
 
-- [ ] Resource endpoint tests (healthcheck, send_command, send_config, get_results)
-- [ ] Validation logic tests
-- [ ] Error handler tests
-- [ ] Decorator tests
+### Phase 2: API Resources (v1.0) - 70% 🔄 IN PROGRESS
 
-### Phase 3: Core Logic (v1.2) - 70%
+**Current**: 57.47% (185 lines missing)
+**Target**: 70% (~127 lines missing)
+**Estimated**: ~58 lines of new coverage needed
 
-- [ ] Worker function tests (send_command, send_config)
-- [ ] Netmiko library wrapper tests
-- [ ] Configuration module tests
-- [ ] App initialization tests
+Priority modules:
+
+1. **naas/library/auth.py** (67.95% → 90%) - Rate limiting, failure tracking
+2. **naas/resources/send_command.py** (52.38% → 90%) - Job enqueueing
+3. **naas/resources/send_config.py** (52.38% → 90%) - Job enqueueing
+4. **naas/resources/get_results.py** (28.12% → 75%) - Job status retrieval
+5. **naas/library/decorators.py** (31.03% → 70%) - Authentication decorator
+
+### Phase 3: Core Logic (v1.1) - 85%
+
+- [ ] Complete netmiko_lib.py coverage (currently 13%)
+- [ ] Complete validation.py edge cases (currently 91%)
+- [ ] Add selfsigned.py tests (currently 0%)
+- [ ] Worker function tests
 
 ### Phase 4: Complete (v2.0) - 100%
 
 - [ ] All code paths covered
 - [ ] All error conditions tested
 - [ ] All edge cases handled
-- [ ] SSL/TLS certificate generation tests
 - [ ] Main entry point tests
 
-## Coverage Breakdown (Current)
+## Coverage Breakdown (Current: 57.47%)
 
-| Module | Coverage | Priority |
-|--------|----------|----------|
-| `naas/library/auth.py` | 67.95% | ✅ Done |
-| `naas/config.py` | 41.38% | 🟡 Medium |
-| `naas/library/validation.py` | 0% | 🔴 High |
-| `naas/resources/*.py` | 0% | 🔴 High |
-| `naas/library/decorators.py` | 0% | 🟡 Medium |
-| `naas/library/errorhandlers.py` | 0% | 🟡 Medium |
-| `naas/workers/*.py` | 0% | 🟢 Low (tested via integration) |
+| Module | Coverage | Lines Missing | Priority |
+|--------|----------|---------------|----------|
+| `naas/__init__.py` | 100% | 0 | ✅ Complete |
+| `naas/app.py` | 100% | 0 | ✅ Complete |
+| `naas/config.py` | 93.10% | 2 | 🟢 Low |
+| `naas/library/errorhandlers.py` | 100% | 0 | ✅ Complete |
+| `naas/library/validation.py` | 90.59% | 8 | 🟢 Low |
+| `naas/resources/healthcheck.py` | 100% | 0 | ✅ Complete |
+| `naas/library/auth.py` | 67.95% | 25 | 🔴 High |
+| `naas/resources/send_command.py` | 52.38% | 10 | 🔴 High |
+| `naas/resources/send_config.py` | 52.38% | 10 | 🔴 High |
+| `naas/library/decorators.py` | 31.03% | 20 | 🔴 High |
+| `naas/resources/get_results.py` | 28.12% | 23 | 🔴 High |
+| `naas/library/netmiko_lib.py` | 13.11% | 53 | 🟡 Medium (integration tested) |
+| `naas/library/selfsigned.py` | 0% | 25 | 🟢 Low (not critical) |
+| `naas/__main__.py` | 0% | 9 | 🟢 Low (CLI entry) |
 
 ## Running Coverage Locally
 
