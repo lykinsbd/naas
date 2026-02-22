@@ -53,7 +53,7 @@ jobs:
         run: uv sync --extra dev
 
       - name: Run integration tests
-        run: uv run pytest tests/integration -v --tb=short
+        run: uv run pytest tests/integration -v --tb=short --no-cov
 
       - name: Cleanup Docker
         if: always()
@@ -76,4 +76,4 @@ jobs:
         run: uv sync --extra dev
 
       - name: Run contract tests
-        run: uv run pytest tests/contract -v --tb=short
+        run: uv run pytest tests/contract -v --tb=short --no-cov
