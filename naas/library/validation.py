@@ -3,15 +3,16 @@
 
 
 import ipaddress
+from uuid import UUID
 
 from flask import current_app, request
-from naas.library.auth import tacacs_auth_lockout
-from naas.library.errorhandlers import DuplicateRequestID, InvalidIP, LockedOut, NoAuth, NoJSON
-from uuid import UUID
 from werkzeug.exceptions import BadRequest, UnprocessableEntity
 
+from naas.library.auth import tacacs_auth_lockout
+from naas.library.errorhandlers import DuplicateRequestID, InvalidIP, LockedOut, NoAuth, NoJSON
 
-class Validate(object):
+
+class Validate:
     """
     This class contains many validation methods for ensuring we get correct/well formed requests.
 
