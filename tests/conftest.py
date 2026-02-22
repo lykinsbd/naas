@@ -20,7 +20,14 @@ def app():
             mock_job.get_id.return_value = "test-job-id"
             mock_job.meta = {}
             mock_queue.return_value.enqueue.return_value = mock_job
-            mock_queue.return_value.fetch_job.return_value = mock_job
+
+            # Make fetch_job return None for new job IDs (not duplicates)
+            def fetch_job_side_effect(job_id):
+                if job_id == "test-job-id":
+                    return mock_job
+                return None
+
+            mock_queue.return_value.fetch_job.side_effect = fetch_job_side_effect
 
             from naas.app import app as flask_app
 
