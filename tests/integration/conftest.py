@@ -13,14 +13,34 @@ def docker_compose():
 
     print("\n🐳 Starting Docker Compose stack...")
     # Start services
-    subprocess.run(
+    result = subprocess.run(
         ["docker", "compose", "-f", compose_file, "up", "-d", "--build"],
         check=True,
+        capture_output=True,
+        text=True,
     )
+    if result.stderr:
+        print(f"Docker Compose output: {result.stderr}")
 
     # Give services time to initialize
     print("⏳ Waiting for services to initialize...")
-    time.sleep(10)
+    time.sleep(15)
+
+    # Check container status
+    status = subprocess.run(
+        ["docker", "compose", "-f", compose_file, "ps"],
+        capture_output=True,
+        text=True,
+    )
+    print(f"Container status:\n{status.stdout}")
+
+    # Check API logs
+    logs = subprocess.run(
+        ["docker", "compose", "-f", compose_file, "logs", "api"],
+        capture_output=True,
+        text=True,
+    )
+    print(f"API logs:\n{logs.stdout[-500:]}")  # Last 500 chars
 
     yield
 
