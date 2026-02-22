@@ -14,8 +14,8 @@ def fake_redis():
 def app():
     """Provide Flask app for testing."""
     # Mock Redis and RQ before importing app
-    with patch("redis.Redis", return_value=FakeStrictRedis()):
-        with patch("rq.Queue") as mock_queue:
+    with patch("naas.config.Redis", return_value=FakeStrictRedis()):
+        with patch("naas.config.Queue") as mock_queue:
             mock_job = MagicMock()
             mock_job.get_id.return_value = "test-job-id"
             mock_job.meta = {}
