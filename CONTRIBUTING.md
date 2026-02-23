@@ -304,59 +304,86 @@ NAAS uses automated releases triggered by version changes in `pyproject.toml`.
 
 ### Release Workflow
 
-#### For Beta/RC Releases
+#### Complete Release Flow
 
-1. **Sync release branch** (if needed):
-   - Create PR from `develop` → `release/X.Y`
-   - Merge to bring release branch up to date
+```text
+develop (1.0.0a1) → release/1.0 (1.0.0b1 → 1.0.0rc1 → 1.0.0) → main (1.0.0)
+```
 
-2. **Create version bump branch** from `release/X.Y`:
+#### Step 1: First Beta Release
+
+1. **Sync release branch** from develop:
+
+   ```bash
+   # Create PR: develop → release/1.0
+   # Merge to bring release branch up to date
+   ```
+
+2. **Bump to beta** on release branch:
 
    ```bash
    git checkout release/1.0
    git pull
    git checkout -b bump/1.0.0b1
+   # Edit pyproject.toml: version = "1.0.0b1"
+   # Create PR: bump/1.0.0b1 → release/1.0
    ```
 
-3. **Update version** in `pyproject.toml`:
+3. **After merge**, CI automatically:
+   - Builds changelog (keeps fragments)
+   - Creates git tag `v1.0.0b1`
+   - Creates GitHub pre-release with beta warning
 
-   ```toml
-   version = "1.0.0b1"
-   ```
+#### Step 2: Additional Beta/RC Releases
 
-4. **Create PR** to `release/X.Y` with version bump
+Repeat version bumps on release branch as needed:
 
-5. **After merge**, CI automatically:
-   - Detects version change on release branch
-   - Builds changelog with towncrier (keeps fragments)
-   - Commits CHANGELOG.md to release branch
-   - Creates git tag
-   - Creates GitHub pre-release with warning
+```bash
+# For beta 2
+version = "1.0.0b2"
 
-#### For Final Releases
+# For RC 1
+version = "1.0.0rc1"
 
-1. **Create version bump branch** from `main`:
+# For RC 2
+version = "1.0.0rc2"
+```
+
+Each merge to `release/1.0` triggers a new pre-release.
+
+#### Step 3: Final Release
+
+1. **Bump to final version** on release branch:
 
    ```bash
-   git checkout main
+   git checkout release/1.0
    git pull
    git checkout -b bump/1.0.0
+   # Edit pyproject.toml: version = "1.0.0"
+   # Create PR: bump/1.0.0 → release/1.0
+   # Merge
    ```
 
-2. **Update version** in `pyproject.toml`:
+2. **Merge release to main**:
 
-   ```toml
-   version = "1.0.0"
+   ```bash
+   # Create PR: release/1.0 → main
+   # Merge (brings version 1.0.0 to main)
    ```
 
-3. **Create PR** to `main` with version bump
+3. **After merge to main**, CI automatically:
+   - Builds changelog (deletes fragments)
+   - Creates git tag `v1.0.0`
+   - Creates GitHub release (no warning)
 
-4. **After merge**, CI automatically:
-   - Detects version change on main
-   - Builds changelog with towncrier (deletes fragments)
-   - Commits CHANGELOG.md to main
-   - Creates git tag
-   - Creates GitHub release
+#### Step 4: Sync Back to Develop
+
+After final release, sync main back to develop:
+
+```bash
+# Create PR: main → develop
+# Bump develop to next alpha: version = "1.1.0a1"
+```
 
 ### Pre-release Behavior
 
