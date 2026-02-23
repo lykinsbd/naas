@@ -337,9 +337,16 @@ version = "1.1.0"  # Triggers release
 
 ### Branch Strategy
 
-- **develop** → Alpha versions (`1.1.0a1`)
-- **release/X.Y** → RC versions (`1.1.0rc1`)
+- **develop** → Alpha versions (`1.1.0a1`, `1.1.0a2`)
+- **release/X.Y** → Beta/RC versions (`1.1.0b1`, `1.1.0rc1`)
 - **main** → Release versions (`1.1.0`)
+
+### Release Triggers
+
+- **Alpha** (`1.0.0a1`) → No release (develop only)
+- **Beta** (`1.0.0b1`) → Pre-release on release branch
+- **RC** (`1.0.0rc1`) → Pre-release on release branch
+- **Release** (`1.0.0`) → Full release on main
 
 ## Questions
 
