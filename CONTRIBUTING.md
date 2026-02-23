@@ -297,10 +297,10 @@ NAAS uses automated releases triggered by version changes in `pyproject.toml`.
 
 ### Version Format
 
-- **Release**: `1.0.0` (triggers release when merged to main)
 - **Alpha**: `1.0.0a1` (no release)
-- **Beta**: `1.0.0b1` (no release)
-- **RC**: `1.0.0rc1` (no release)
+- **Beta**: `1.0.0b1` (pre-release on release branch)
+- **RC**: `1.0.0rc1` (pre-release on release branch)
+- **Release**: `1.0.0` (full release on main)
 
 ### Release Workflow
 
@@ -310,30 +310,40 @@ NAAS uses automated releases triggered by version changes in `pyproject.toml`.
    version = "1.0.0"
    ```
 
-2. **Create PR** to main with version bump
+2. **Create PR** to appropriate branch (main for release, release/X.Y for beta/rc)
 
 3. **After merge**, CI automatically:
    - Detects version change
-   - Validates it's a release version (not alpha/beta/rc)
+   - Validates version type and branch
    - Builds changelog with towncrier
-   - Commits CHANGELOG.md to main
-   - Creates git tag `v1.0.0`
-   - Creates GitHub Release with changelog
+   - Commits CHANGELOG.md (keeps fragments for pre-releases)
+   - Creates git tag
+   - Creates GitHub Release
 
-### Pre-releases
+### Pre-release Behavior
 
-For alpha/beta/rc versions, update version but no release is triggered:
+**Alpha** (`1.0.0a1`) on develop:
 
-```toml
-# Development
-version = "1.1.0a1"  # Alpha - no release
+- No release triggered
+- For development only
 
-# Release candidate
-version = "1.1.0rc1"  # RC - no release
+**Beta** (`1.0.0b1`) on release/X.Y:
 
-# Final release
-version = "1.1.0"  # Triggers release
-```
+- Creates GitHub pre-release
+- Builds changelog (keeps fragments)
+- Warning: "Beta software - APIs may change"
+
+**RC** (`1.0.0rc1`) on release/X.Y:
+
+- Creates GitHub pre-release
+- Builds changelog (keeps fragments)
+- Warning: "Release candidate - only critical fixes"
+
+**Release** (`1.0.0`) on main:
+
+- Creates full GitHub release
+- Builds changelog (deletes fragments)
+- No warning
 
 ### Branch Strategy
 
