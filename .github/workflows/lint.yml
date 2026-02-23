@@ -29,6 +29,36 @@ jobs:
       - name: Check ruff formatting
         run: uv run ruff format --check naas/ tests/
 
+  check-changelog:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for news fragment
+        run: |
+          PR_NUM=${{ github.event.pull_request.number }}
+
+          if ! ls changes/${PR_NUM}.*.md 1> /dev/null 2>&1; then
+            echo "❌ Error: No changelog fragment found for PR #${PR_NUM}"
+            echo ""
+            echo "Create one with:"
+            echo "  towncrier create ${PR_NUM}.<type>.md --content 'Your description'"
+            echo ""
+            echo "Available types:"
+            echo "  feature      - New features"
+            echo "  bugfix       - Bug fixes"
+            echo "  security     - Security improvements"
+            echo "  breaking     - Breaking changes"
+            echo "  deprecation  - Deprecations"
+            echo "  doc          - Documentation"
+            echo "  testing      - Testing/CI improvements"
+            echo "  internal     - Internal changes (not shown to users)"
+            exit 1
+          fi
+
+          echo "✅ Found changelog fragment"
+
       - name: Run mypy
         run: uv run mypy naas/
         continue-on-error: true
@@ -36,12 +66,16 @@ jobs:
   lint-summary:
     name: Code Quality
     runs-on: ubuntu-latest
-    needs: [lint]
+    needs: [lint, check-changelog]
     if: always()
     steps:
       - name: Check lint results
         run: |
           if [[ "${{ needs.lint.result }}" == "failure" || "${{ needs.lint.result }}" == "cancelled" ]]; then
             echo "Lint failed or was cancelled"
+            exit 1
+          fi
+          if [[ "${{ needs.check-changelog.result }}" == "failure" || "${{ needs.check-changelog.result }}" == "cancelled" ]]; then
+            echo "Changelog check failed or was cancelled"
             exit 1
           fi

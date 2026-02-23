@@ -89,3 +89,24 @@ def docs_serve(c):
     """Serve documentation locally (requires mkdocs)."""
     print("📚 MkDocs not yet configured. Coming in future release!")
     print("   For now, view markdown files directly or use a markdown viewer.")
+
+
+@task
+def changelog_draft(c):
+    """Preview changelog for next release."""
+    c.run("towncrier build --draft --version NEXT")
+
+
+@task
+def changelog_create(c, pr, type, content=""):
+    """Create a changelog fragment.
+
+    Args:
+        pr: Pull request number
+        type: Fragment type (feature, bugfix, security, breaking, deprecation, doc, testing, internal)
+        content: Description of the change (optional, will prompt if not provided)
+    """
+    if content:
+        c.run(f"towncrier create {pr}.{type}.md --content '{content}'")
+    else:
+        c.run(f"towncrier create {pr}.{type}.md --edit")

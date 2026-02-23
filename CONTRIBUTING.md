@@ -227,6 +227,137 @@ invoke check   # Run all checks
 - Use `pytest` for test execution
 - Use `fakeredis` for Redis-dependent tests
 
+## Changelog Fragments
+
+Every pull request must include a changelog fragment describing the change.
+
+### Creating a Fragment
+
+When you create a PR, add a news fragment file:
+
+```bash
+# Using invoke task
+invoke changelog-create --pr=123 --type=feature --content="Add connection pooling"
+
+# Or manually create the file
+echo "Add connection pooling for improved performance" > changes/123.feature.md
+```
+
+### Fragment Types
+
+Choose the appropriate type for your change:
+
+- `feature` - New features
+- `bugfix` - Bug fixes
+- `security` - Security improvements
+- `breaking` - Breaking changes (API changes, removed features)
+- `deprecation` - Deprecations (features marked for removal)
+- `doc` - Documentation improvements
+- `testing` - Testing and CI/CD improvements
+- `internal` - Internal changes (refactoring, dependencies)
+
+### Fragment Content Guidelines
+
+Write for end users, not developers:
+
+**Good:**
+
+```markdown
+Add connection pooling to reduce latency for repeated requests
+```
+
+**Bad:**
+
+```markdown
+Refactor netmiko_lib.py to use ConnectionPool class
+```
+
+**Tips:**
+
+- Use present tense: "Add", "Fix", "Improve"
+- Be specific about the benefit or impact
+- Keep it concise (one line preferred)
+- Use technical terms when appropriate for the audience
+
+### Preview Changelog
+
+See how your fragment will appear:
+
+```bash
+invoke changelog-draft
+```
+
+### CI Validation
+
+CI will fail if your PR is missing a changelog fragment. The error message will show you how to create one.
+
+## Release Process
+
+NAAS uses automated releases triggered by version changes in `pyproject.toml`.
+
+### Version Format
+
+- **Alpha**: `1.0.0a1` (no release)
+- **Beta**: `1.0.0b1` (pre-release on release branch)
+- **RC**: `1.0.0rc1` (pre-release on release branch)
+- **Release**: `1.0.0` (full release on main)
+
+### Release Workflow
+
+1. **Update version** in `pyproject.toml`:
+
+   ```toml
+   version = "1.0.0"
+   ```
+
+2. **Create PR** to appropriate branch (main for release, release/X.Y for beta/rc)
+
+3. **After merge**, CI automatically:
+   - Detects version change
+   - Validates version type and branch
+   - Builds changelog with towncrier
+   - Commits CHANGELOG.md (keeps fragments for pre-releases)
+   - Creates git tag
+   - Creates GitHub Release
+
+### Pre-release Behavior
+
+**Alpha** (`1.0.0a1`) on develop:
+
+- No release triggered
+- For development only
+
+**Beta** (`1.0.0b1`) on release/X.Y:
+
+- Creates GitHub pre-release
+- Builds changelog (keeps fragments)
+- Warning: "Beta software - APIs may change"
+
+**RC** (`1.0.0rc1`) on release/X.Y:
+
+- Creates GitHub pre-release
+- Builds changelog (keeps fragments)
+- Warning: "Release candidate - only critical fixes"
+
+**Release** (`1.0.0`) on main:
+
+- Creates full GitHub release
+- Builds changelog (deletes fragments)
+- No warning
+
+### Branch Strategy
+
+- **develop** → Alpha versions (`1.1.0a1`, `1.1.0a2`)
+- **release/X.Y** → Beta/RC versions (`1.1.0b1`, `1.1.0rc1`)
+- **main** → Release versions (`1.1.0`)
+
+### Release Triggers
+
+- **Alpha** (`1.0.0a1`) → No release (develop only)
+- **Beta** (`1.0.0b1`) → Pre-release on release branch
+- **RC** (`1.0.0rc1`) → Pre-release on release branch
+- **Release** (`1.0.0`) → Full release on main
+
 ## Questions
 
 Open an issue for discussion or reach out to maintainers.

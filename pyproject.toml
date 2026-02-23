@@ -39,6 +39,7 @@ dev = [
     "mypy>=1.13.0",
     "pre-commit>=4.0.0",
     "requests>=2.31.0",
+    "towncrier>=23.11.0",
 ]
 
 [build-system]
@@ -91,3 +92,52 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false  # Gradual typing
 ignore_missing_imports = true
+
+[tool.towncrier]
+directory = "changes"
+filename = "CHANGELOG.md"
+start_string = "<!-- towncrier release notes start -->\n"
+template = "changes/template.md.j2"
+title_format = "# NAAS {version} ({project_date})"
+issue_format = "[#{issue}](https://github.com/lykinsbd/naas/issues/{issue})"
+underlines = ["", "", ""]
+
+[[tool.towncrier.type]]
+directory = "breaking"
+name = "Breaking Changes"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "security"
+name = "Security"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "deprecation"
+name = "Deprecations"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "feature"
+name = "Features"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "bugfix"
+name = "Bug Fixes"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "doc"
+name = "Documentation"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "testing"
+name = "Testing & CI/CD"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "internal"
+name = "Internal Changes"
+showcontent = false
