@@ -291,6 +291,56 @@ invoke changelog-draft
 
 CI will fail if your PR is missing a changelog fragment. The error message will show you how to create one.
 
+## Release Process
+
+NAAS uses automated releases triggered by version changes in `pyproject.toml`.
+
+### Version Format
+
+- **Release**: `1.0.0` (triggers release when merged to main)
+- **Alpha**: `1.0.0a1` (no release)
+- **Beta**: `1.0.0b1` (no release)
+- **RC**: `1.0.0rc1` (no release)
+
+### Release Workflow
+
+1. **Update version** in `pyproject.toml`:
+
+   ```toml
+   version = "1.0.0"
+   ```
+
+2. **Create PR** to main with version bump
+
+3. **After merge**, CI automatically:
+   - Detects version change
+   - Validates it's a release version (not alpha/beta/rc)
+   - Builds changelog with towncrier
+   - Commits CHANGELOG.md to main
+   - Creates git tag `v1.0.0`
+   - Creates GitHub Release with changelog
+
+### Pre-releases
+
+For alpha/beta/rc versions, update version but no release is triggered:
+
+```toml
+# Development
+version = "1.1.0a1"  # Alpha - no release
+
+# Release candidate
+version = "1.1.0rc1"  # RC - no release
+
+# Final release
+version = "1.1.0"  # Triggers release
+```
+
+### Branch Strategy
+
+- **develop** → Alpha versions (`1.1.0a1`)
+- **release/X.Y** → RC versions (`1.1.0rc1`)
+- **main** → Release versions (`1.1.0`)
+
 ## Questions
 
 Open an issue for discussion or reach out to maintainers.
