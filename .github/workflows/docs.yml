@@ -1,0 +1,53 @@
+name: Documentation
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'docs/**'
+      - 'README.md'
+      - 'CONTRIBUTING.md'
+      - '.markdownlint.json'
+      - '.vale.ini'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'docs/**'
+      - 'README.md'
+      - 'CONTRIBUTING.md'
+      - '.markdownlint.json'
+      - '.vale.ini'
+
+jobs:
+  markdown-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run markdownlint
+        uses: DavidAnson/markdownlint-cli2-action@v18
+        with:
+          globs: |
+            README.md
+            CONTRIBUTING.md
+            docs/**/*.md
+
+  prose-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: errata-ai/vale-action@v2
+        with:
+          files: '["README.md", "CONTRIBUTING.md", "docs/quickstart.md", "docs/api-usage.md", "docs/troubleshooting.md", "docs/security.md"]'
+
+  link-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check links in markdown files
+        uses: gaurav-nelson/github-action-markdown-link-check@v1
+        with:
+          use-quiet-mode: 'yes'
+          config-file: '.markdown-link-check.json'
