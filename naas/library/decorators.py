@@ -35,7 +35,7 @@ def valid_post(f):
         v.has_port()
         v.save_config()
         v.commit()
-        v.has_device_type()
+        v.has_platform()
         v.has_delay_factor()
 
         # Capture or create the x-request-id, and store it on the g object

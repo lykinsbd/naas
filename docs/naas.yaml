@@ -216,10 +216,16 @@ components:
           type: array
           items:
             type: string
-        device_type:
+        platform:
           type: string
           format: netmiko.platforms
           default: "cisco_ios"
+          description: "Netmiko platform type (e.g., cisco_ios, arista_eos, juniper_junos)"
+        device_type:
+          type: string
+          format: netmiko.platforms
+          deprecated: true
+          description: "DEPRECATED: Use 'platform' instead. Will be removed in v2.0"
         port:
           type: integer
           default: 22
@@ -240,10 +246,16 @@ components:
           type: array
           items:
             type: string
-        device_type:
+        platform:
           type: string
           format: netmiko.platforms
           default: "cisco_ios"
+          description: "Netmiko platform type (e.g., cisco_ios, arista_eos, juniper_junos)"
+        device_type:
+          type: string
+          format: netmiko.platforms
+          deprecated: true
+          description: "DEPRECATED: Use 'platform' instead. Will be removed in v2.0"
         port:
           type: integer
           default: 22

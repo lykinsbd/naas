@@ -24,7 +24,7 @@ class SendCommand(Resource):
             commands: Sequence[str]
         Optional:
             port: int - Default 22
-            device_type: str - Default cisco_ios
+            platform: str - Default cisco_ios
             enable: Optional[str] - Default the password provided for basic auth
 
         Secured by Basic Auth, which is then passed to the network device.
@@ -43,7 +43,7 @@ class SendCommand(Resource):
             netmiko_send_command,
             ip=request.json["ip"],
             port=request.json["port"],
-            device_type=request.json["device_type"],
+            device_type=request.json["platform"],
             credentials=g.credentials,
             commands=request.json["commands"],
             delay_factor=request.json["delay_factor"],

@@ -26,7 +26,7 @@ class TestSendCommand:
                 json={
                     "ip": "192.168.1.1",
                     "port": 22,
-                    "device_type": "cisco_ios",
+                    "platform": "cisco_ios",
                     "commands": ["show version"],
                     "delay_factor": 1,
                 },
@@ -61,7 +61,7 @@ class TestSendCommand:
                 json={
                     "ip": "192.168.1.1",
                     "port": 22,
-                    "device_type": "cisco_ios",
+                    "platform": "cisco_ios",
                     "commands": ["show version"],
                     "delay_factor": 1,
                 },
@@ -97,7 +97,7 @@ class TestSendConfig:
                 json={
                     "ip": "192.168.1.1",
                     "port": 22,
-                    "device_type": "cisco_ios",
+                    "platform": "cisco_ios",
                     "commands": ["interface gi0/1", "description test"],
                     "delay_factor": 1,
                     "save_config": False,
