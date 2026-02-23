@@ -58,3 +58,34 @@ def clean(c):
     c.run("rm -rf .pytest_cache htmlcov .coverage .mypy_cache .ruff_cache")
     c.run("find . -type d -name __pycache__ -exec rm -rf {} +", warn=True)
     c.run("find . -type f -name '*.pyc' -delete", warn=True)
+
+
+@task
+def docs_lint(c):
+    """Run markdownlint on documentation."""
+    c.run("markdownlint-cli2 'README.md' 'CONTRIBUTING.md' 'docs/**/*.md'")
+
+
+@task
+def docs_prose(c):
+    """Run Vale prose linter on documentation."""
+    c.run("vale --glob='!docs/COVERAGE.md' README.md CONTRIBUTING.md docs/*.md")
+
+
+@task
+def docs_links(c):
+    """Check for broken links in documentation."""
+    c.run("markdown-link-check README.md CONTRIBUTING.md docs/**/*.md --config .markdown-link-check.json")
+
+
+@task(pre=[docs_lint, docs_prose, docs_links])
+def docs_check(c):
+    """Run all documentation checks."""
+    print("✅ All documentation checks passed!")
+
+
+@task
+def docs_serve(c):
+    """Serve documentation locally (requires mkdocs)."""
+    print("📚 MkDocs not yet configured. Coming in future release!")
+    print("   For now, view markdown files directly or use a markdown viewer.")

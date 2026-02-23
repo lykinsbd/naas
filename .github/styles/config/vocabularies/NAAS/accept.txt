@@ -1,0 +1,64 @@
+# NAAS project vocabulary
+# Terms that are correct in this project context
+
+# Project names (proper case for prose)
+NAAS
+Netmiko
+Redis
+RQ
+Flask
+Gunicorn
+Docker
+Kubernetes
+K8s
+uv
+MkDocs
+codecov
+Mypy
+
+# People
+Byers
+Driessen
+Pallets
+
+# Technical terms
+API
+REST
+RESTful
+HTTPS
+TLS
+SSH
+Telnet
+JSON
+YAML
+CLI
+CI/CD
+OAuth2
+JWT
+VM
+K/V
+WSGI
+healthcheck
+enqueueing
+
+# Network terms
+IP
+IPv4
+IPv6
+VLAN
+BGP
+OSPF
+ACL
+
+# Platforms
+cisco_ios
+cisco_nxos
+arista_eos
+juniper_junos
+hp_procurve
+
+# Common abbreviations
+e.g.
+i.e.
+etc.
+vs.

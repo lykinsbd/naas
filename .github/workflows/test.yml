@@ -77,3 +77,24 @@ jobs:
 
       - name: Run contract tests
         run: uv run pytest tests/contract -v --tb=short --no-cov
+
+  tests-summary:
+    name: Tests
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests, contract-tests]
+    if: always()
+    steps:
+      - name: Check test results
+        run: |
+          if [[ "${{ needs.unit-tests.result }}" == "failure" || "${{ needs.unit-tests.result }}" == "cancelled" ]]; then
+            echo "Unit tests failed or were cancelled"
+            exit 1
+          fi
+          if [[ "${{ needs.integration-tests.result }}" == "failure" || "${{ needs.integration-tests.result }}" == "cancelled" ]]; then
+            echo "Integration tests failed or were cancelled"
+            exit 1
+          fi
+          if [[ "${{ needs.contract-tests.result }}" == "failure" || "${{ needs.contract-tests.result }}" == "cancelled" ]]; then
+            echo "Contract tests failed or were cancelled"
+            exit 1
+          fi
