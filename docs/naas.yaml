@@ -216,7 +216,7 @@ components:
           type: array
           items:
             type: string
-        device_type:
+        platform:
           type: string
           format: netmiko.platforms
           default: "cisco_ios"
@@ -240,7 +240,7 @@ components:
           type: array
           items:
             type: string
-        device_type:
+        platform:
           type: string
           format: netmiko.platforms
           default: "cisco_ios"

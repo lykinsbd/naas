@@ -155,16 +155,16 @@ class Validate:
             raise UnprocessableEntity
 
     @staticmethod
-    def has_device_type() -> None:
+    def has_platform() -> None:
         """
-        Validate that the field `device_type` exists in a request payload (set it to `cisco_ios` by default)
+        Validate that the field `platform` exists in a request payload (set it to `cisco_ios` by default)
         and that it is a string if it did already exist.
         :return:
         """
-        if not request.json.get("device_type"):
-            request.json["device_type"] = "cisco_ios"
-        if not isinstance(request.json["device_type"], str):
-            current_app.logger.error("'device_type' not provided as a string")
+        if not request.json.get("platform"):
+            request.json["platform"] = "cisco_ios"
+        if not isinstance(request.json["platform"], str):
+            current_app.logger.error("'platform' not provided as a string")
             raise UnprocessableEntity
 
     @staticmethod
