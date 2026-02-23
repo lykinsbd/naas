@@ -104,40 +104,40 @@ underlines = ["", "", ""]
 
 [[tool.towncrier.type]]
 directory = "breaking"
-name = "Breaking Changes"
+name = "💥 Breaking Changes"
 showcontent = true
 
 [[tool.towncrier.type]]
 directory = "security"
-name = "Security"
+name = "🔒 Security"
 showcontent = true
 
 [[tool.towncrier.type]]
 directory = "deprecation"
-name = "Deprecations"
+name = "⚠️ Deprecations"
 showcontent = true
 
 [[tool.towncrier.type]]
 directory = "feature"
-name = "Features"
+name = "✨ Features"
 showcontent = true
 
 [[tool.towncrier.type]]
 directory = "bugfix"
-name = "Bug Fixes"
+name = "🐛 Bug Fixes"
 showcontent = true
 
 [[tool.towncrier.type]]
 directory = "doc"
-name = "Documentation"
+name = "📚 Documentation"
 showcontent = true
 
 [[tool.towncrier.type]]
 directory = "testing"
-name = "Testing & CI/CD"
+name = "🧪 Testing & CI/CD"
 showcontent = true
 
 [[tool.towncrier.type]]
 directory = "internal"
-name = "Internal Changes"
+name = "🔧 Internal Changes"
 showcontent = false
