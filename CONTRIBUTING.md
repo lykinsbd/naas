@@ -304,21 +304,86 @@ NAAS uses automated releases triggered by version changes in `pyproject.toml`.
 
 ### Release Workflow
 
-1. **Update version** in `pyproject.toml`:
+#### Complete Release Flow
 
-   ```toml
-   version = "1.0.0"
+```text
+develop (1.0.0a1) → release/1.0 (1.0.0b1 → 1.0.0rc1 → 1.0.0) → main (1.0.0)
+```
+
+#### Step 1: First Beta Release
+
+1. **Sync release branch** from develop:
+
+   ```bash
+   # Create PR: develop → release/1.0
+   # Merge to bring release branch up to date
    ```
 
-2. **Create PR** to appropriate branch (main for release, release/X.Y for beta/rc)
+2. **Bump to beta** on release branch:
+
+   ```bash
+   git checkout release/1.0
+   git pull
+   git checkout -b bump/1.0.0b1
+   # Edit pyproject.toml: version = "1.0.0b1"
+   # Create PR: bump/1.0.0b1 → release/1.0
+   ```
 
 3. **After merge**, CI automatically:
-   - Detects version change
-   - Validates version type and branch
-   - Builds changelog with towncrier
-   - Commits CHANGELOG.md (keeps fragments for pre-releases)
-   - Creates git tag
-   - Creates GitHub Release
+   - Builds changelog (keeps fragments)
+   - Creates git tag `v1.0.0b1`
+   - Creates GitHub pre-release with beta warning
+
+#### Step 2: Additional Beta/RC Releases
+
+Repeat version bumps on release branch as needed:
+
+```bash
+# For beta 2
+version = "1.0.0b2"
+
+# For RC 1
+version = "1.0.0rc1"
+
+# For RC 2
+version = "1.0.0rc2"
+```
+
+Each merge to `release/1.0` triggers a new pre-release.
+
+#### Step 3: Final Release
+
+1. **Bump to final version** on release branch:
+
+   ```bash
+   git checkout release/1.0
+   git pull
+   git checkout -b bump/1.0.0
+   # Edit pyproject.toml: version = "1.0.0"
+   # Create PR: bump/1.0.0 → release/1.0
+   # Merge
+   ```
+
+2. **Merge release to main**:
+
+   ```bash
+   # Create PR: release/1.0 → main
+   # Merge (brings version 1.0.0 to main)
+   ```
+
+3. **After merge to main**, CI automatically:
+   - Builds changelog (deletes fragments)
+   - Creates git tag `v1.0.0`
+   - Creates GitHub release (no warning)
+
+#### Step 4: Sync Back to Develop
+
+After final release, sync main back to develop:
+
+```bash
+# Create PR: main → develop
+# Bump develop to next alpha: version = "1.1.0a1"
+```
 
 ### Pre-release Behavior
 

@@ -7,6 +7,8 @@ on:
       - 'docs/**'
       - 'README.md'
       - 'CONTRIBUTING.md'
+      - 'CHANGELOG.md'
+      - 'changes/**'
       - '.markdownlint.json'
       - '.vale.ini'
   pull_request:
@@ -15,6 +17,8 @@ on:
       - 'docs/**'
       - 'README.md'
       - 'CONTRIBUTING.md'
+      - 'CHANGELOG.md'
+      - 'changes/**'
       - '.markdownlint.json'
       - '.vale.ini'
 
@@ -40,6 +44,17 @@ jobs:
       - uses: errata-ai/vale-action@v2
         with:
           files: '["README.md", "CONTRIBUTING.md", "docs/quickstart.md", "docs/api-usage.md", "docs/troubleshooting.md", "docs/security.md"]'
+
+  prose-lint-changelog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: errata-ai/vale-action@v2
+        with:
+          files: '["changes", "CHANGELOG.md"]'
+          fail_on_error: false
+        continue-on-error: true
 
   link-check:
     runs-on: ubuntu-latest
