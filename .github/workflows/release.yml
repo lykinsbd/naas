@@ -102,10 +102,12 @@ jobs:
           if [[ "${{ needs.check-version.outputs.is_prerelease }}" == "true" ]]; then
             # Pre-release: build changelog but keep fragments
             uv run towncrier build --version ${{ needs.check-version.outputs.version }} --keep
+            # Clean up old pre-releases but keep current one
+            .github/scripts/cleanup-changelog.sh ${{ needs.check-version.outputs.version }} CHANGELOG.md
           else
             # Final release: build changelog and delete fragments
             uv run towncrier build --version ${{ needs.check-version.outputs.version }} --yes
-            # Clean up pre-release entries for this version
+            # Clean up all pre-release entries for this version
             .github/scripts/cleanup-changelog.sh ${{ needs.check-version.outputs.version }} CHANGELOG.md
           fi
 
