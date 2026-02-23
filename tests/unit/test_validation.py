@@ -192,30 +192,49 @@ class TestValidateIsCommandSet:
                 Validate.is_command_set()
 
 
-class TestValidateHasDeviceType:
-    """Tests for Validate.has_device_type()."""
+class TestValidateHasPlatform:
+    """Tests for Validate.has_platform()."""
 
     def test_sets_default_cisco_ios(self, validation_app):
-        """Should set device_type to cisco_ios if not provided."""
+        """Should set platform to cisco_ios if not provided."""
         with validation_app.test_request_context("/test", method="POST", json={}):
             from flask import request
 
-            Validate.has_device_type()
-            assert request.json["device_type"] == "cisco_ios"
+            Validate.has_platform()
+            assert request.json["platform"] == "cisco_ios"
 
-    def test_preserves_existing_device_type(self, validation_app):
-        """Should preserve device_type if already set."""
-        with validation_app.test_request_context("/test", method="POST", json={"device_type": "arista_eos"}):
+    def test_preserves_existing_platform(self, validation_app):
+        """Should preserve platform if already set."""
+        with validation_app.test_request_context("/test", method="POST", json={"platform": "arista_eos"}):
             from flask import request
 
-            Validate.has_device_type()
-            assert request.json["device_type"] == "arista_eos"
+            Validate.has_platform()
+            assert request.json["platform"] == "arista_eos"
 
     def test_non_string_raises_error(self, validation_app):
-        """Non-string device_type should raise UnprocessableEntity."""
-        with validation_app.test_request_context("/test", method="POST", json={"device_type": 123}):
+        """Non-string platform should raise UnprocessableEntity."""
+        with validation_app.test_request_context("/test", method="POST", json={"platform": 123}):
             with pytest.raises(UnprocessableEntity):
-                Validate.has_device_type()
+                Validate.has_platform()
+
+    def test_backward_compat_device_type(self, validation_app, caplog):
+        """Should accept deprecated device_type and map to platform."""
+        with validation_app.test_request_context("/test", method="POST", json={"device_type": "juniper_junos"}):
+            from flask import request
+
+            Validate.has_platform()
+            assert request.json["platform"] == "juniper_junos"
+            assert "deprecated" in caplog.text.lower()
+
+    def test_platform_takes_precedence(self, validation_app):
+        """If both provided, platform takes precedence."""
+        with validation_app.test_request_context(
+            "/test", method="POST", json={"device_type": "cisco_ios", "platform": "arista_eos"}
+        ):
+            from flask import request
+
+            Validate.has_platform()
+            assert request.json["platform"] == "arista_eos"
 
 
 class TestValidateHasDelayFactor:

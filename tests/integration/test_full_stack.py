@@ -44,7 +44,7 @@ def test_healthcheck(api_url, wait_for_api):
 def test_send_command_job_creation(api_url, wait_for_api):
     """Test creating a send_command job returns 401 without auth."""
     payload = {
-        "device_type": "cisco_ios",
+        "platform": "cisco_ios",
         "host": "192.0.2.1",
         "username": "test",
         "password": "test",
