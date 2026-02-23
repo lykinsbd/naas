@@ -243,6 +243,17 @@ invoke changelog-create --pr=123 --type=feature --content="Add connection poolin
 echo "Add connection pooling for improved performance" > changes/123.feature.md
 ```
 
+### Fragment Without Issue Number
+
+For minor fixes or internal changes without a GitHub issue, use the `+` prefix:
+
+```bash
+# Create fragment without issue number
+echo "Fix typo in error message" > changes/+typo-fix.bugfix.md
+```
+
+These fragments won't include an issue link in the changelog.
+
 ### Fragment Types
 
 Choose the appropriate type for your change:
@@ -255,6 +266,8 @@ Choose the appropriate type for your change:
 - `doc` - Documentation improvements
 - `testing` - Testing and CI/CD improvements
 - `internal` - Internal changes (refactoring, dependencies)
+
+**Note:** `internal` type changes are not shown in user-facing changelogs.
 
 ### Fragment Content Guidelines
 
