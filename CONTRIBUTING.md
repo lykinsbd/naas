@@ -227,6 +227,70 @@ invoke check   # Run all checks
 - Use `pytest` for test execution
 - Use `fakeredis` for Redis-dependent tests
 
+## Changelog Fragments
+
+Every pull request must include a changelog fragment describing the change.
+
+### Creating a Fragment
+
+When you create a PR, add a news fragment file:
+
+```bash
+# Using invoke task
+invoke changelog-create --pr=123 --type=feature --content="Add connection pooling"
+
+# Or manually create the file
+echo "Add connection pooling for improved performance" > changes/123.feature.md
+```
+
+### Fragment Types
+
+Choose the appropriate type for your change:
+
+- `feature` - New features
+- `bugfix` - Bug fixes
+- `security` - Security improvements
+- `breaking` - Breaking changes (API changes, removed features)
+- `deprecation` - Deprecations (features marked for removal)
+- `doc` - Documentation improvements
+- `testing` - Testing and CI/CD improvements
+- `internal` - Internal changes (refactoring, dependencies)
+
+### Fragment Content Guidelines
+
+Write for end users, not developers:
+
+**Good:**
+
+```markdown
+Add connection pooling to reduce latency for repeated requests
+```
+
+**Bad:**
+
+```markdown
+Refactor netmiko_lib.py to use ConnectionPool class
+```
+
+**Tips:**
+
+- Use present tense: "Add", "Fix", "Improve"
+- Be specific about the benefit or impact
+- Keep it concise (one line preferred)
+- Use technical terms when appropriate for the audience
+
+### Preview Changelog
+
+See how your fragment will appear:
+
+```bash
+invoke changelog-draft
+```
+
+### CI Validation
+
+CI will fail if your PR is missing a changelog fragment. The error message will show you how to create one.
+
 ## Questions
 
 Open an issue for discussion or reach out to maintainers.

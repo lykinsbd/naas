@@ -1,0 +1,58 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Build changelog
+        run: uv run towncrier build --version ${{ steps.version.outputs.VERSION }} --yes
+
+      - name: Commit changelog
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md changes/
+          git commit -m "docs: update changelog for v${{ steps.version.outputs.VERSION }}" || echo "No changes to commit"
+          git push origin HEAD:main
+
+      - name: Extract changelog excerpt
+        run: |
+          awk '/^# NAAS ${{ steps.version.outputs.VERSION }}/,/^# NAAS [0-9]/' CHANGELOG.md | head -n -1 > .changelog-excerpt.md
+          if [ ! -s .changelog-excerpt.md ]; then
+            awk '/^# NAAS ${{ steps.version.outputs.VERSION }}/,EOF' CHANGELOG.md > .changelog-excerpt.md
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: .changelog-excerpt.md
+          draft: false
+          prerelease: false
