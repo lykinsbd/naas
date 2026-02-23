@@ -98,13 +98,24 @@ jobs:
         run: uv sync --extra dev
 
       - name: Build changelog
-        run: uv run towncrier build --version ${{ needs.check-version.outputs.version }} --yes
+        run: |
+          if [[ "${{ needs.check-version.outputs.is_prerelease }}" == "true" ]]; then
+            # Pre-release: build changelog but keep fragments
+            uv run towncrier build --version ${{ needs.check-version.outputs.version }} --keep
+          else
+            # Final release: build changelog and delete fragments
+            uv run towncrier build --version ${{ needs.check-version.outputs.version }} --yes
+          fi
 
       - name: Commit changelog
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add CHANGELOG.md changes/
+          git add CHANGELOG.md
+          if [[ "${{ needs.check-version.outputs.is_prerelease }}" == "false" ]]; then
+            # Only commit fragment deletions on final release
+            git add changes/
+          fi
           git commit -m "docs: update changelog for v${{ needs.check-version.outputs.version }}" || echo "No changes to commit"
           git push
 
@@ -118,6 +129,40 @@ jobs:
           awk '/^# NAAS ${{ needs.check-version.outputs.version }}/,/^# NAAS [0-9]/' CHANGELOG.md | head -n -1 > .changelog-excerpt.md
           if [ ! -s .changelog-excerpt.md ]; then
             awk '/^# NAAS ${{ needs.check-version.outputs.version }}/,EOF' CHANGELOG.md > .changelog-excerpt.md
+          fi
+
+          # Add pre-release warning for beta/rc
+          if [[ "${{ needs.check-version.outputs.is_prerelease }}" == "true" ]]; then
+            VERSION="${{ needs.check-version.outputs.version }}"
+            if [[ "$VERSION" =~ rc[0-9]+$ ]]; then
+              # Release Candidate
+              cat > .changelog-final.md << 'EOF'
+          # 🚀 Release Candidate
+
+          **This is a release candidate for testing and validation.**
+
+          This release is feature-complete and should be stable. Only critical bug fixes will be accepted before the final release.
+
+          Please test thoroughly and report any issues.
+
+          ---
+
+          EOF
+            else
+              # Beta
+              cat > .changelog-final.md << 'EOF'
+          # ⚠️ BETA SOFTWARE ⚠️
+
+          **This is beta software and should not be used in production.**
+
+          This release is feature-complete but undergoing testing. APIs may still change, and bugs are expected.
+
+          ---
+
+          EOF
+            fi
+            cat .changelog-excerpt.md >> .changelog-final.md
+            mv .changelog-final.md .changelog-excerpt.md
           fi
 
       - name: Create GitHub Release
