@@ -2,14 +2,60 @@ name: Release
 
 on:
   push:
-    tags:
-      - 'v*.*.*'
+    branches: [main]
+    paths:
+      - 'pyproject.toml'
 
 permissions:
   contents: write
 
 jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    outputs:
+      is_release: ${{ steps.version.outputs.is_release }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version from pyproject.toml
+        id: version
+        run: |
+          VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          # Check if this is a release version (not alpha/beta/rc)
+          if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "is_release=true" >> $GITHUB_OUTPUT
+            echo "✅ Release version detected: $VERSION"
+          else
+            echo "is_release=false" >> $GITHUB_OUTPUT
+            echo "⏭️  Pre-release version: $VERSION (skipping release)"
+          fi
+
+      - name: Check if tag exists
+        id: tag_check
+        if: steps.version.outputs.is_release == 'true'
+        run: |
+          if git rev-parse "v${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "⏭️  Tag v${{ steps.version.outputs.version }} already exists"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "✅ Tag v${{ steps.version.outputs.version }} does not exist"
+          fi
+
+      - name: Stop if tag exists
+        if: steps.version.outputs.is_release == 'true' && steps.tag_check.outputs.exists == 'true'
+        run: |
+          echo "Tag already exists, skipping release"
+          exit 0
+
   release:
+    needs: check-version
+    if: needs.check-version.outputs.is_release == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,31 +74,33 @@ jobs:
       - name: Install dependencies
         run: uv sync --extra dev
 
-      - name: Extract version from tag
-        id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-
       - name: Build changelog
-        run: uv run towncrier build --version ${{ steps.version.outputs.VERSION }} --yes
+        run: uv run towncrier build --version ${{ needs.check-version.outputs.version }} --yes
 
       - name: Commit changelog
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add CHANGELOG.md changes/
-          git commit -m "docs: update changelog for v${{ steps.version.outputs.VERSION }}" || echo "No changes to commit"
+          git commit -m "docs: update changelog for v${{ needs.check-version.outputs.version }}" || echo "No changes to commit"
           git push origin HEAD:main
+
+      - name: Create and push tag
+        run: |
+          git tag -a "v${{ needs.check-version.outputs.version }}" -m "Release v${{ needs.check-version.outputs.version }}"
+          git push origin "v${{ needs.check-version.outputs.version }}"
 
       - name: Extract changelog excerpt
         run: |
-          awk '/^# NAAS ${{ steps.version.outputs.VERSION }}/,/^# NAAS [0-9]/' CHANGELOG.md | head -n -1 > .changelog-excerpt.md
+          awk '/^# NAAS ${{ needs.check-version.outputs.version }}/,/^# NAAS [0-9]/' CHANGELOG.md | head -n -1 > .changelog-excerpt.md
           if [ ! -s .changelog-excerpt.md ]; then
-            awk '/^# NAAS ${{ steps.version.outputs.VERSION }}/,EOF' CHANGELOG.md > .changelog-excerpt.md
+            awk '/^# NAAS ${{ needs.check-version.outputs.version }}/,EOF' CHANGELOG.md > .changelog-excerpt.md
           fi
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ needs.check-version.outputs.version }}
           body_path: .changelog-excerpt.md
           draft: false
           prerelease: false
