@@ -304,21 +304,59 @@ NAAS uses automated releases triggered by version changes in `pyproject.toml`.
 
 ### Release Workflow
 
-1. **Update version** in `pyproject.toml`:
+#### For Beta/RC Releases
+
+1. **Sync release branch** (if needed):
+   - Create PR from `develop` → `release/X.Y`
+   - Merge to bring release branch up to date
+
+2. **Create version bump branch** from `release/X.Y`:
+
+   ```bash
+   git checkout release/1.0
+   git pull
+   git checkout -b bump/1.0.0b1
+   ```
+
+3. **Update version** in `pyproject.toml`:
+
+   ```toml
+   version = "1.0.0b1"
+   ```
+
+4. **Create PR** to `release/X.Y` with version bump
+
+5. **After merge**, CI automatically:
+   - Detects version change on release branch
+   - Builds changelog with towncrier (keeps fragments)
+   - Commits CHANGELOG.md to release branch
+   - Creates git tag
+   - Creates GitHub pre-release with warning
+
+#### For Final Releases
+
+1. **Create version bump branch** from `main`:
+
+   ```bash
+   git checkout main
+   git pull
+   git checkout -b bump/1.0.0
+   ```
+
+2. **Update version** in `pyproject.toml`:
 
    ```toml
    version = "1.0.0"
    ```
 
-2. **Create PR** to appropriate branch (main for release, release/X.Y for beta/rc)
+3. **Create PR** to `main` with version bump
 
-3. **After merge**, CI automatically:
-   - Detects version change
-   - Validates version type and branch
-   - Builds changelog with towncrier
-   - Commits CHANGELOG.md (keeps fragments for pre-releases)
+4. **After merge**, CI automatically:
+   - Detects version change on main
+   - Builds changelog with towncrier (deletes fragments)
+   - Commits CHANGELOG.md to main
    - Creates git tag
-   - Creates GitHub Release
+   - Creates GitHub release
 
 ### Pre-release Behavior
 
