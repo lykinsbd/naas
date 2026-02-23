@@ -159,10 +159,24 @@ class Validate:
         """
         Validate that the field `platform` exists in a request payload (set it to `cisco_ios` by default)
         and that it is a string if it did already exist.
+
+        Supports backward compatibility with deprecated `device_type` parameter.
         :return:
         """
+        # Backward compatibility: accept device_type and map to platform
+        if "device_type" in request.json:
+            current_app.logger.warning(
+                "Parameter 'device_type' is deprecated, use 'platform' instead. "
+                "Support for 'device_type' will be removed in v2.0"
+            )
+            if "platform" not in request.json:
+                request.json["platform"] = request.json["device_type"]
+
+        # Set default if neither provided
         if not request.json.get("platform"):
             request.json["platform"] = "cisco_ios"
+
+        # Validate type
         if not isinstance(request.json["platform"], str):
             current_app.logger.error("'platform' not provided as a string")
             raise UnprocessableEntity

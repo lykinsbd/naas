@@ -217,6 +217,25 @@ class TestValidateHasPlatform:
             with pytest.raises(UnprocessableEntity):
                 Validate.has_platform()
 
+    def test_backward_compat_device_type(self, validation_app, caplog):
+        """Should accept deprecated device_type and map to platform."""
+        with validation_app.test_request_context("/test", method="POST", json={"device_type": "juniper_junos"}):
+            from flask import request
+
+            Validate.has_platform()
+            assert request.json["platform"] == "juniper_junos"
+            assert "deprecated" in caplog.text.lower()
+
+    def test_platform_takes_precedence(self, validation_app):
+        """If both provided, platform takes precedence."""
+        with validation_app.test_request_context(
+            "/test", method="POST", json={"device_type": "cisco_ios", "platform": "arista_eos"}
+        ):
+            from flask import request
+
+            Validate.has_platform()
+            assert request.json["platform"] == "arista_eos"
+
 
 class TestValidateHasDelayFactor:
     """Tests for Validate.has_delay_factor()."""
