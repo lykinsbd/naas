@@ -2,7 +2,9 @@ name: Release
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - 'release/**'
     paths:
       - 'pyproject.toml'
 
@@ -13,31 +15,52 @@ jobs:
   check-version:
     runs-on: ubuntu-latest
     outputs:
-      is_release: ${{ steps.version.outputs.is_release }}
+      should_release: ${{ steps.version.outputs.should_release }}
       version: ${{ steps.version.outputs.version }}
+      is_prerelease: ${{ steps.version.outputs.is_prerelease }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Extract version from pyproject.toml
+      - name: Extract version and determine release type
         id: version
         run: |
           VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-          # Check if this is a release version (not alpha/beta/rc)
+          BRANCH="${GITHUB_REF#refs/heads/}"
+
+          # Check version type
           if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "is_release=true" >> $GITHUB_OUTPUT
-            echo "✅ Release version detected: $VERSION"
+            # Full release version (1.0.0)
+            if [[ "$BRANCH" == "main" ]]; then
+              echo "should_release=true" >> $GITHUB_OUTPUT
+              echo "is_prerelease=false" >> $GITHUB_OUTPUT
+              echo "✅ Full release version on main: $VERSION"
+            else
+              echo "should_release=false" >> $GITHUB_OUTPUT
+              echo "⏭️  Full release version not on main branch, skipping"
+            fi
+          elif [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(b|rc)[0-9]+$ ]]; then
+            # Beta or RC version (1.0.0b1, 1.0.0rc1)
+            if [[ "$BRANCH" =~ ^release/ ]]; then
+              echo "should_release=true" >> $GITHUB_OUTPUT
+              echo "is_prerelease=true" >> $GITHUB_OUTPUT
+              echo "✅ Pre-release version on release branch: $VERSION"
+            else
+              echo "should_release=false" >> $GITHUB_OUTPUT
+              echo "⏭️  Beta/RC version not on release branch, skipping"
+            fi
           else
-            echo "is_release=false" >> $GITHUB_OUTPUT
-            echo "⏭️  Pre-release version: $VERSION (skipping release)"
+            # Alpha or other (1.0.0a1)
+            echo "should_release=false" >> $GITHUB_OUTPUT
+            echo "⏭️  Alpha version, skipping release: $VERSION"
           fi
 
       - name: Check if tag exists
         id: tag_check
-        if: steps.version.outputs.is_release == 'true'
+        if: steps.version.outputs.should_release == 'true'
         run: |
           if git rev-parse "v${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
             echo "exists=true" >> $GITHUB_OUTPUT
@@ -48,14 +71,14 @@ jobs:
           fi
 
       - name: Stop if tag exists
-        if: steps.version.outputs.is_release == 'true' && steps.tag_check.outputs.exists == 'true'
+        if: steps.version.outputs.should_release == 'true' && steps.tag_check.outputs.exists == 'true'
         run: |
           echo "Tag already exists, skipping release"
           exit 0
 
   release:
     needs: check-version
-    if: needs.check-version.outputs.is_release == 'true'
+    if: needs.check-version.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -83,7 +106,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add CHANGELOG.md changes/
           git commit -m "docs: update changelog for v${{ needs.check-version.outputs.version }}" || echo "No changes to commit"
-          git push origin HEAD:main
+          git push
 
       - name: Create and push tag
         run: |
@@ -103,4 +126,4 @@ jobs:
           tag_name: v${{ needs.check-version.outputs.version }}
           body_path: .changelog-excerpt.md
           draft: false
-          prerelease: false
+          prerelease: ${{ needs.check-version.outputs.is_prerelease }}
