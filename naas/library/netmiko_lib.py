@@ -5,16 +5,16 @@ Library to abstract Netmiko functions for use by the NAAS API.
 """
 
 import logging
-import netmiko
-
-from naas.library.auth import tacacs_auth_lockout
-from paramiko import ssh_exception
-from socket import timeout
 from typing import TYPE_CHECKING
 
+import netmiko
+from paramiko import ssh_exception  # type: ignore[import-untyped]
+
+from naas.library.auth import tacacs_auth_lockout
 
 if TYPE_CHECKING:
-    from typing import Optional, Sequence, Tuple
+    from collections.abc import Sequence
+
     from naas.library.auth import Credentials
 
 
@@ -29,8 +29,7 @@ def netmiko_send_command(
     port: int = 22,
     delay_factor: int = 1,
     verbose: bool = False,
-) -> "Tuple[Optional[dict], Optional[str]]":
-
+) -> "tuple[dict | None, str | None]":
     """
     Instantiate a netmiko wrapper instance, feed me an IP, Platform Type, Username, Password, any commands to run.
 
@@ -70,7 +69,7 @@ def netmiko_send_command(
         # Perform graceful disconnection of this SSH session
         net_connect.disconnect()
 
-    except (netmiko.NetMikoTimeoutException, timeout) as e:
+    except (TimeoutError, netmiko.NetMikoTimeoutException) as e:
         logger.debug("%s:Netmiko timed out connecting to device: %s", ip, e)
         return None, str(e)
     except netmiko.NetMikoAuthenticationException as e:
@@ -79,7 +78,7 @@ def netmiko_send_command(
         return None, str(e)
     except (ssh_exception.SSHException, ValueError) as e:
         logger.debug("%s:Netmiko cannot connect to device: %s", ip, e)
-        return None, ("Unknown SSH error connecting to device {0}: {1}".format(ip, str(e)))
+        return None, (f"Unknown SSH error connecting to device {ip}: {str(e)}")
 
     logger.debug("%s:Netmiko executed successfully.", ip)
     return net_output, None
@@ -95,8 +94,7 @@ def netmiko_send_config(
     commit: bool = False,
     delay_factor: int = 1,
     verbose: bool = False,
-) -> "Tuple[Optional[dict], Optional[str]]":
-
+) -> "tuple[dict | None, str | None]":
     """
     Instantiate a netmiko wrapper instance, feed me an IP, Platform Type, Username, Password, any commands to run.
 
@@ -151,7 +149,7 @@ def netmiko_send_config(
         # Perform graceful disconnection of this SSH session
         net_connect.disconnect()
 
-    except (netmiko.NetMikoTimeoutException, timeout) as e:
+    except (TimeoutError, netmiko.NetMikoTimeoutException) as e:
         logger.debug("%s:Netmiko timed out connecting to device: %s", ip, e)
         return None, str(e)
     except netmiko.NetMikoAuthenticationException as e:
@@ -160,7 +158,7 @@ def netmiko_send_config(
         return None, str(e)
     except (ssh_exception.SSHException, ValueError) as e:
         logger.debug("%s:Netmiko cannot connect to device: %s", ip, e)
-        return None, ("Unknown SSH error connecting to device {0}: {1}".format(ip, str(e)))
+        return None, (f"Unknown SSH error connecting to device {ip}: {str(e)}")
 
     logger.debug("%s:Netmiko executed successfully.", ip)
     return net_output, None

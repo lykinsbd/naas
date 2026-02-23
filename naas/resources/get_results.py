@@ -1,11 +1,12 @@
 # API Resources
 
-from flask_restful import Resource
 from flask import current_app, request
+from flask_restful import Resource
+from werkzeug.exceptions import Forbidden
+
 from naas import __base_response__
 from naas.library.auth import Credentials, job_unlocker
 from naas.library.validation import Validate
-from werkzeug.exceptions import Forbidden
 
 
 class GetResults(Resource):
@@ -24,6 +25,8 @@ class GetResults(Resource):
 
         # Ensure this user can access the job...
         auth = request.authorization
+        if not auth or not auth.username or not auth.password:  # pragma: no cover
+            raise Forbidden
 
         # Create a credentials object
         creds = Credentials(username=auth.username, password=auth.password)

@@ -11,7 +11,7 @@ from argparse import ArgumentParser, Namespace
 from logging import basicConfig, getLogger
 from naas.library.netmiko_lib import netmiko_send_command, netmiko_send_config  # noqa F401
 from redis import Redis
-from rq import Connection, Worker, Queue
+from rq import Worker, Queue
 from multiprocessing import Process
 from socket import gethostname
 from time import sleep
@@ -126,17 +126,17 @@ def worker_launch(
     redis_conn_dict = {"host": redis_host, "port": redis_port}
     if redis_pw:
         redis_conn_dict["password"] = redis_pw
-    with Connection(connection=Redis(**redis_conn_dict)) as redis_conn:
+    redis_conn = Redis(**redis_conn_dict)
 
-        logger.debug(
-            "Starting rq worker %s, with connection to redis://%s:%s, to watch the following queue(s): %s",
-            name,
-            redis_host,
-            redis_port,
-            queues,
-        )
-        w = Worker(queues=queues, name=name, connection=redis_conn)
-        w.work(logging_level=log_level)
+    logger.debug(
+        "Starting rq worker %s, with connection to redis://%s:%s, to watch the following queue(s): %s",
+        name,
+        redis_host,
+        redis_port,
+        queues,
+    )
+    w = Worker(queues=queues, name=name, connection=redis_conn)
+    w.work(logging_level=log_level)
 
 
 if __name__ == "__main__":

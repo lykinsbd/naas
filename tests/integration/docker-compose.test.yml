@@ -1,0 +1,44 @@
+services:
+  redis:
+    image: redis:7-alpine
+    command: redis-server --requirepass test_password
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 5
+
+  api:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    ports:
+      - "18443:443"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=test_password
+      - APP_ENVIRONMENT=test
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-k", "-f", "https://localhost:443/healthcheck"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+      start_period: 10s
+
+  worker:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    command: ["rq", "worker", "--url", "redis://:test_password@redis:6379"]
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=test_password
+      - APP_ENVIRONMENT=test
+    depends_on:
+      redis:
+        condition: service_healthy

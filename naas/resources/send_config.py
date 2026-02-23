@@ -1,10 +1,10 @@
 # API Resource for wrapping netmiko's send_config() function
 
-from flask_restful import Resource
 from flask import current_app, g, request
+from flask_restful import Resource
+
 from naas import __base_response__
 from naas.library.auth import job_locker
-
 from naas.library.decorators import valid_post
 from naas.library.netmiko_lib import netmiko_send_config
 
@@ -24,7 +24,7 @@ class SendConfig(Resource):
             commands: Sequence[str]
         Optional:
             port: int - Default 22
-            device_type: str - Default cisco_ios
+            platform: str - Default cisco_ios
             enable: Optional[str] - Default the password provided for basic auth
             save_config: bool
             commit: bool
@@ -45,7 +45,7 @@ class SendConfig(Resource):
             netmiko_send_config,
             ip=request.json["ip"],
             port=request.json["port"],
-            device_type=request.json["device_type"],
+            device_type=request.json["platform"],
             credentials=g.credentials,
             commands=request.json["commands"],
             save_config=request.json["save_config"],

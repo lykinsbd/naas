@@ -1,0 +1,174 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+      - 'release/**'
+    paths:
+      - 'pyproject.toml'
+
+permissions:
+  contents: write
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    outputs:
+      should_release: ${{ steps.version.outputs.should_release }}
+      version: ${{ steps.version.outputs.version }}
+      is_prerelease: ${{ steps.version.outputs.is_prerelease }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version and determine release type
+        id: version
+        run: |
+          VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          BRANCH="${GITHUB_REF#refs/heads/}"
+
+          # Check version type
+          if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            # Full release version (1.0.0)
+            if [[ "$BRANCH" == "main" ]]; then
+              echo "should_release=true" >> $GITHUB_OUTPUT
+              echo "is_prerelease=false" >> $GITHUB_OUTPUT
+              echo "✅ Full release version on main: $VERSION"
+            else
+              echo "should_release=false" >> $GITHUB_OUTPUT
+              echo "⏭️  Full release version not on main branch, skipping"
+            fi
+          elif [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(b|rc)[0-9]+$ ]]; then
+            # Beta or RC version (1.0.0b1, 1.0.0rc1)
+            if [[ "$BRANCH" =~ ^release/ ]]; then
+              echo "should_release=true" >> $GITHUB_OUTPUT
+              echo "is_prerelease=true" >> $GITHUB_OUTPUT
+              echo "✅ Pre-release version on release branch: $VERSION"
+            else
+              echo "should_release=false" >> $GITHUB_OUTPUT
+              echo "⏭️  Beta/RC version not on release branch, skipping"
+            fi
+          else
+            # Alpha or other (1.0.0a1)
+            echo "should_release=false" >> $GITHUB_OUTPUT
+            echo "⏭️  Alpha version, skipping release: $VERSION"
+          fi
+
+      - name: Check if tag exists
+        id: tag_check
+        if: steps.version.outputs.should_release == 'true'
+        run: |
+          if git rev-parse "v${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "⏭️  Tag v${{ steps.version.outputs.version }} already exists"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "✅ Tag v${{ steps.version.outputs.version }} does not exist"
+          fi
+
+      - name: Stop if tag exists
+        if: steps.version.outputs.should_release == 'true' && steps.tag_check.outputs.exists == 'true'
+        run: |
+          echo "Tag already exists, skipping release"
+          exit 0
+
+  release:
+    needs: check-version
+    if: needs.check-version.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Build changelog
+        run: |
+          if [[ "${{ needs.check-version.outputs.is_prerelease }}" == "true" ]]; then
+            # Pre-release: build changelog but keep fragments
+            uv run towncrier build --version ${{ needs.check-version.outputs.version }} --keep
+          else
+            # Final release: build changelog and delete fragments
+            uv run towncrier build --version ${{ needs.check-version.outputs.version }} --yes
+          fi
+
+      - name: Commit changelog
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          if [[ "${{ needs.check-version.outputs.is_prerelease }}" == "false" ]]; then
+            # Only commit fragment deletions on final release
+            git add changes/
+          fi
+          git commit -m "docs: update changelog for v${{ needs.check-version.outputs.version }}" || echo "No changes to commit"
+          git push
+
+      - name: Create and push tag
+        run: |
+          git tag -a "v${{ needs.check-version.outputs.version }}" -m "Release v${{ needs.check-version.outputs.version }}"
+          git push origin "v${{ needs.check-version.outputs.version }}"
+
+      - name: Extract changelog excerpt
+        run: |
+          awk '/^# NAAS ${{ needs.check-version.outputs.version }}/,/^# NAAS [0-9]/' CHANGELOG.md | head -n -1 > .changelog-excerpt.md
+          if [ ! -s .changelog-excerpt.md ]; then
+            awk '/^# NAAS ${{ needs.check-version.outputs.version }}/,EOF' CHANGELOG.md > .changelog-excerpt.md
+          fi
+
+          # Add pre-release warning for beta/rc
+          if [[ "${{ needs.check-version.outputs.is_prerelease }}" == "true" ]]; then
+            VERSION="${{ needs.check-version.outputs.version }}"
+            if [[ "$VERSION" =~ rc[0-9]+$ ]]; then
+              # Release Candidate
+              cat > .changelog-final.md << 'EOF'
+          # 🚀 Release Candidate
+
+          **This is a release candidate for testing and validation.**
+
+          This release is feature-complete and should be stable. Only critical bug fixes will be accepted before the final release.
+
+          Please test thoroughly and report any issues.
+
+          ---
+
+          EOF
+            else
+              # Beta
+              cat > .changelog-final.md << 'EOF'
+          # ⚠️ BETA SOFTWARE ⚠️
+
+          **This is beta software and should not be used in production.**
+
+          This release is feature-complete but undergoing testing. APIs may still change, and bugs are expected.
+
+          ---
+
+          EOF
+            fi
+            cat .changelog-excerpt.md >> .changelog-final.md
+            mv .changelog-final.md .changelog-excerpt.md
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.check-version.outputs.version }}
+          body_path: .changelog-excerpt.md
+          draft: false
+          prerelease: ${{ needs.check-version.outputs.is_prerelease }}

@@ -1,12 +1,13 @@
 # Auth related functions
 
 from datetime import datetime, timedelta
-from flask import current_app
 from hashlib import sha512
 from pickle import dumps, loads
-from naas.config import REDIS_HOST, REDIS_PORT, REDIS_PASSWORD
+
+from flask import current_app
 from redis import Redis
-from typing import Optional
+
+from naas.config import REDIS_HOST, REDIS_PASSWORD, REDIS_PORT
 
 
 def job_locker(salted_creds: str, job_id: str) -> None:
@@ -48,7 +49,7 @@ def job_unlocker(salted_creds: str, job_id: str) -> bool:
         return False
 
 
-def tacacs_auth_lockout(username: str, report_failure: bool = False) -> bool:
+def tacacs_auth_lockout(username: str, report_failure: bool = False) -> bool:  # type: ignore[return]
     """
     Upon a TACACS authentication failure, as seen by Netmiko, update a dict in Redis that holds failures for this user.
     And if we've exceeded 10 failures in 10 minutes, lock this user out of the API for 10 minutes
@@ -58,17 +59,17 @@ def tacacs_auth_lockout(username: str, report_failure: bool = False) -> bool:
     """
 
     # Can't use current_app.BLAH as we're not always in a Flask context for this, but sometimes in the RQ worker process
-    redis = Redis(host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD)
+    redis = Redis(host=REDIS_HOST, port=int(REDIS_PORT), password=REDIS_PASSWORD)
 
     # Get (or set) the current_failures entry for this hash
     failures = redis.hgetall("naas_failures_" + username)
 
     # Check if there are any existing login failures
     if failures:
-        failure_count = int(failures[b"failure_count"])  # Its in redis as a bytes object, need to cast that to int
-        failure_timestamps = loads(failures[b"failure_timestamps"])  # Need to un-pickle the list/bytes blob
+        failure_count = int(failures[b"failure_count"])  # type: ignore[index]
+        failure_timestamps = loads(failures[b"failure_timestamps"])  # type: ignore[index]
 
-        # If there are less than 9 failures, append the count, stash our timestamp, and return True
+        # If there are less than 9 failures, append the count, stash our timestamp, and return False
         if failure_count < 9:
             if report_failure:
                 report_tacacs_failure(
@@ -81,9 +82,8 @@ def tacacs_auth_lockout(username: str, report_failure: bool = False) -> bool:
 
         # If there are at least 9 failures (and potentially this is the tenth), lets dig in some.
         elif failure_count >= 9:
-
             # Evaluate the timestamps of previous failures, if they're more than ten minutes ago, delete and carry on
-            for timestamp in loads(failures[b"failure_timestamps"]):
+            for timestamp in loads(failures[b"failure_timestamps"]):  # type: ignore[index]
                 if timestamp < datetime.now() - timedelta(minutes=10):
                     failure_timestamps.remove(timestamp)
                     failure_count = failure_count - 1
@@ -140,7 +140,7 @@ def report_tacacs_failure(username: str, existing_fail_count: int, existing_fail
 
     # Setup our failed dict we're stashing in Redis:
     failed_dict = {"failure_count": existing_fail_count + 1, "failure_timestamps": failure_timestamps}
-    redis.hmset("naas_failures_" + username, failed_dict)
+    redis.hmset("naas_failures_" + username, failed_dict)  # type: ignore[arg-type]
 
 
 class Credentials:
@@ -149,7 +149,7 @@ class Credentials:
     We need this primarily to prevent printing of credentials in log messages.
     """
 
-    def __init__(self, username: str, password: str, enable: Optional[str] = None) -> None:
+    def __init__(self, username: str, password: str, enable: str | None = None) -> None:
         """
         Instantiate our Credentials object
         :param username:
@@ -170,7 +170,7 @@ class Credentials:
     def __str__(self):
         return self.username + ":<redacted>:<redacted>"
 
-    def salted_hash(self, salt: Optional[str] = None) -> str:
+    def salted_hash(self, salt: str | None = None) -> str:
         """
         SHA512 (salted) hash the username/password and return the hexdigest
         :param salt: If not provided, we'll fetch it from Redis

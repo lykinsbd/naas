@@ -2,8 +2,9 @@
 # -*- coding: UTF-8 -*-
 
 
-from naas import __base_response__
 from werkzeug.exceptions import BadRequest, Forbidden, Unauthorized, UnprocessableEntity
+
+from naas import __base_response__
 
 
 class DuplicateRequestID(BadRequest):

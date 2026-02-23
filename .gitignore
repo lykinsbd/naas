@@ -110,5 +110,7 @@ pyvenv.cfg
 # Intellij/Pycharm
 .idea/
 
-# uv lock files
-*.lock
+# Vale downloaded styles
+.github/styles/Microsoft/
+.github/styles/alex/
+.github/styles/write-good/

@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 
-from flask import current_app, g, request
 from functools import wraps
+from uuid import uuid4
+
+from flask import current_app, g, request
+
 from naas.library import validation
 from naas.library.auth import Credentials
-from uuid import uuid4
 
 
 def valid_post(f):
@@ -33,7 +35,7 @@ def valid_post(f):
         v.has_port()
         v.save_config()
         v.commit()
-        v.has_device_type()
+        v.has_platform()
         v.has_delay_factor()
 
         # Capture or create the x-request-id, and store it on the g object

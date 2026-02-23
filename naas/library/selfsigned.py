@@ -22,25 +22,24 @@
 # Edited Source: https://gist.github.com/lykinsbd/588462f8f37b846c605c8dee477245c5
 
 from datetime import datetime, timedelta
-from cryptography import x509
-from cryptography.x509.oid import NameOID
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
 from ipaddress import IPv4Address, IPv4Network, IPv6Address, IPv6Network
 from typing import TYPE_CHECKING
 
+from cryptography import x509
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.x509.oid import NameOID
 
 if TYPE_CHECKING:
-    from typing import Optional, Tuple, Union
+    pass
 
 
 def generate_selfsigned_cert(
     hostname: str,
-    public_ip: "Optional[Union[IPv4Address, IPv4Network, IPv6Address, IPv6Network]]" = None,
-    private_ip: "Optional[Union[IPv4Address, IPv4Network, IPv6Address, IPv6Network]]" = None,
-) -> "Tuple[bytes, bytes]":
+    public_ip: "IPv4Address | IPv4Network | IPv6Address | IPv6Network | None" = None,
+    private_ip: "IPv4Address | IPv4Network | IPv6Address | IPv6Network | None" = None,
+) -> "tuple[bytes, bytes]":
     """
     Generate a self-signed X509 certificate.
     :param hostname:  Must provide a hostname
@@ -63,14 +62,14 @@ def generate_selfsigned_cert(
     # Allow addressing by IP, for when you don't have real DNS (common in most testing scenarios)
     if public_ip is not None:
         # openssl wants DNSnames for ips...
-        alt_names_list.append(x509.DNSName(public_ip))
+        alt_names_list.append(x509.DNSName(str(public_ip)))  # type: ignore[arg-type]
         # ... whereas golang's crypto/tls is stricter, and needs IPAddresses
-        alt_names_list.append(x509.IPAddress(public_ip))
+        alt_names_list.append(x509.IPAddress(public_ip))  # type: ignore[arg-type]
     if private_ip is not None:
         # openssl wants DNSnames for ips...
-        alt_names_list.append(x509.DNSName(private_ip))
+        alt_names_list.append(x509.DNSName(str(private_ip)))  # type: ignore[arg-type]
         # ... whereas golang's crypto/tls is stricter, and needs IPAddresses
-        alt_names_list.append(x509.IPAddress(private_ip))
+        alt_names_list.append(x509.IPAddress(private_ip))  # type: ignore[arg-type]
 
     alt_names = x509.SubjectAlternativeName(alt_names_list)
 

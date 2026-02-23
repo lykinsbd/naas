@@ -3,15 +3,16 @@
 
 
 import ipaddress
+from uuid import UUID
 
 from flask import current_app, request
-from naas.library.auth import tacacs_auth_lockout
-from naas.library.errorhandlers import DuplicateRequestID, InvalidIP, LockedOut, NoAuth, NoJSON
-from uuid import UUID
 from werkzeug.exceptions import BadRequest, UnprocessableEntity
 
+from naas.library.auth import tacacs_auth_lockout
+from naas.library.errorhandlers import DuplicateRequestID, InvalidIP, LockedOut, NoAuth, NoJSON
 
-class Validate(object):
+
+class Validate:
     """
     This class contains many validation methods for ensuring we get correct/well formed requests.
 
@@ -61,10 +62,10 @@ class Validate(object):
         Validate if this user is locked out from accessing the API
         :return:
         """
-
-        if tacacs_auth_lockout(username=request.authorization.username):
-            current_app.logger.error(f"{request.authorization.username} is currently locked out.")
-            raise LockedOut
+        if request.authorization and request.authorization.username:
+            if tacacs_auth_lockout(username=request.authorization.username):
+                current_app.logger.error(f"{request.authorization.username} is currently locked out.")
+                raise LockedOut
 
     @staticmethod
     def has_port() -> None:
@@ -154,16 +155,30 @@ class Validate(object):
             raise UnprocessableEntity
 
     @staticmethod
-    def has_device_type() -> None:
+    def has_platform() -> None:
         """
-        Validate that the field `device_type` exists in a request payload (set it to `cisco_ios` by default)
+        Validate that the field `platform` exists in a request payload (set it to `cisco_ios` by default)
         and that it is a string if it did already exist.
+
+        Supports backward compatibility with deprecated `device_type` parameter.
         :return:
         """
-        if not request.json.get("device_type"):
-            request.json["device_type"] = "cisco_ios"
-        if not isinstance(request.json["device_type"], str):
-            current_app.logger.error("'device_type' not provided as a string")
+        # Backward compatibility: accept device_type and map to platform
+        if "device_type" in request.json:
+            current_app.logger.warning(
+                "Parameter 'device_type' is deprecated, use 'platform' instead. "
+                "Support for 'device_type' will be removed in v2.0"
+            )
+            if "platform" not in request.json:
+                request.json["platform"] = request.json["device_type"]
+
+        # Set default if neither provided
+        if not request.json.get("platform"):
+            request.json["platform"] = "cisco_ios"
+
+        # Validate type
+        if not isinstance(request.json["platform"], str):
+            current_app.logger.error("'platform' not provided as a string")
             raise UnprocessableEntity
 
     @staticmethod

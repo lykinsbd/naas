@@ -2,9 +2,9 @@
 # -*- coding: UTF-8 -*-
 
 """
- config.py
- Author: Brett Lykins (lykinsbd@gmail.com)
- Description: Configure NAAS API
+config.py
+Author: Brett Lykins (lykinsbd@gmail.com)
+Description: Configure NAAS API
 """
 
 import os
@@ -13,7 +13,6 @@ import string
 
 from redis import Redis
 from rq import Queue
-
 
 # Cert/Key File Locations
 CERT_KEY_FILE = "/app/key.pem"
@@ -27,7 +26,6 @@ REDIS_PASSWORD = os.environ.get("REDIS_PASSWORD", "mah_redis_pw")
 
 
 def app_configure(app):
-
     # Configure our environment
     app_environment = os.environ.get("APP_ENVIRONMENT", "dev")
 
@@ -49,18 +47,11 @@ def app_configure(app):
     os.environ["LOG_LEVEL"] = app.config["LOG_LEVEL"]
 
     # Configure environment specific variables
-    if app.config["APP_ENVIRONMENT"].lower() == "dev":
-
-        # Today we're not differentiating on environment...
-        pass
-
-    elif app.config["APP_ENVIRONMENT"].lower() == "staging":
-
-        # Today we're not differentiating on environment...
-        pass
-
-    elif app.config["APP_ENVIRONMENT"].lower() == "production":
-
+    if (
+        app.config["APP_ENVIRONMENT"].lower() == "dev"
+        or app.config["APP_ENVIRONMENT"].lower() == "staging"
+        or app.config["APP_ENVIRONMENT"].lower() == "production"
+    ):
         # Today we're not differentiating on environment...
         pass
 

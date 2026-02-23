@@ -2,22 +2,22 @@
 # -*- coding: UTF-8 -*-
 
 """
- app.py
- Author: Brett Lykins (lykinsbd@gmail.com)
- Description: Main app setup/config
+app.py
+Author: Brett Lykins (lykinsbd@gmail.com)
+Description: Main app setup/config
 """
 
 import logging
 
 from flask import Flask
 from flask_restful import Api
+
 from naas.config import app_configure
 from naas.library.errorhandlers import api_error_generator
 from naas.resources.get_results import GetResults
 from naas.resources.healthcheck import HealthCheck
 from naas.resources.send_command import SendCommand
 from naas.resources.send_config import SendConfig
-
 
 app = Flask(__name__)
 
