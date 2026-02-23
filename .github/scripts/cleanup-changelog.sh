@@ -7,19 +7,27 @@ CHANGELOG="$2"
 # Extract major.minor.patch from version (e.g., 1.0.0 from 1.0.0rc1)
 BASE_VERSION=$(echo "$VERSION" | grep -oE '^[0-9]+\.[0-9]+\.[0-9]+')
 
-echo "Cleaning up pre-release entries for version $BASE_VERSION"
+echo "Cleaning up old pre-release entries for version $BASE_VERSION (keeping $VERSION)"
 
 # Backup original
 cp "$CHANGELOG" "${CHANGELOG}.backup"
 
-# Create awk script to remove pre-release entries
-awk -v base="$BASE_VERSION" '
+# Remove all pre-release entries for this version EXCEPT the current one
+awk -v base="$BASE_VERSION" -v current="$VERSION" '
 BEGIN { skip = 0 }
 
 # Match pre-release headers for this version
 $0 ~ "^# NAAS " base "(a|b|rc)[0-9]+ " {
-    skip = 1
-    next
+    # Extract the version from the line
+    match($0, /NAAS ([0-9]+\.[0-9]+\.[0-9]+(a|b|rc)[0-9]+)/, ver)
+    if (ver[1] == current) {
+        # Keep the current version
+        skip = 0
+    } else {
+        # Skip older pre-releases
+        skip = 1
+        next
+    }
 }
 
 # Stop skipping when we hit any other release header
