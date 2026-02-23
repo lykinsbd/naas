@@ -35,9 +35,9 @@ curl -k -X POST https://localhost:8443/send_command \
 - **[API Reference](https://lykinsbd.github.io/naas)** - Complete API documentation
 - **[Contributing Guide](CONTRIBUTING.md)** - Development setup and guidelines
 
-## Why Use NAAS?
+## Benefits
 
-NAAS provides many benefits when compared to traditional uses of the `netmiko` library:
+NAAS provides several advantages over using the `netmiko` library directly:
 
 1. **Centralized Access** - Create a single point of access to network equipment for multiple users and automation tools, simplifying compliance and security
 2. **HTTPS Proxy** - Proxy SSH/Telnet traffic via HTTPS without complex SSH tunneling or configuration management
@@ -48,7 +48,7 @@ NAAS provides many benefits when compared to traditional uses of the `netmiko` l
 
 ## Features
 
-- ✅ **100% Test Coverage** - Comprehensive test suite with unit, integration, and contract tests
+- ✅ **100% Test Coverage** - Unit, integration, and contract tests
 - 🔒 **Secure by Default** - HTTPS with TLS, HTTP Basic Authentication
 - 🚀 **Scalable** - Horizontal scaling with multiple worker containers
 - 🐳 **Container-Ready** - Docker Compose deployment included
@@ -261,13 +261,11 @@ Kubernetes manifests are coming in a future release. Track progress in [#28](htt
 
 ### Future documentation
 
-We're planning to enhance documentation with:
+We're planning to add:
 
-- **MkDocs Site** - Comprehensive documentation site with search and navigation
-- **Read the Docs** - Hosted documentation with versioning
-- **Architecture Diagrams** - Visual guides to NAAS internals
-- **Video Tutorials** - Step-by-step video guides
-- **API Client Libraries** - Python, Go, and JavaScript clients
+- **Documentation site** - MkDocs hosted on Read the Docs
+- **Architecture diagrams** - Visual guides to NAAS internals
+- **API client libraries** - Python, Go, and JavaScript clients
 
 Track progress in [GitHub Issues](https://github.com/lykinsbd/naas/issues).
 

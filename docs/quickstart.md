@@ -31,7 +31,7 @@ Expected response:
 }
 ```
 
-## 2. Your First API Call
+## 2. Send a command
 
 Send a command to a network device:
 
@@ -55,7 +55,7 @@ Response:
 }
 ```
 
-## 3. Get Results
+## 3. Get results
 
 Check the job status and retrieve results:
 
@@ -78,7 +78,7 @@ Response when complete:
 }
 ```
 
-## 4. Send Configuration
+## 4. Send configuration
 
 Push configuration changes:
 

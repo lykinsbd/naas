@@ -2,7 +2,7 @@
 
 Guidelines for securing your NAAS deployment.
 
-## Table of contents
+## Contents
 
 - [Transport Security](#transport-security)
 - [Authentication](#authentication)
@@ -270,7 +270,7 @@ limiter = Limiter(
 
 ### Enable Logging
 
-Configure comprehensive logging:
+Configure logging:
 
 ```bash
 # Production logging

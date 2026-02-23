@@ -2,7 +2,7 @@
 
 Detailed examples for common NAAS API operations.
 
-## Table of contents
+## Contents
 
 - [Authentication](#authentication)
 - [Send Command](#send-command)

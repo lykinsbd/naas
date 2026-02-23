@@ -2,7 +2,7 @@
 
 Common issues and solutions for NAAS deployment and operation.
 
-## Table of contents
+## Contents
 
 - [Connection Issues](#connection-issues)
 - [Authentication Problems](#authentication-problems)
