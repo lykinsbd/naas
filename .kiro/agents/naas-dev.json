@@ -1,0 +1,5 @@
+{
+  "name": "naas-dev",
+  "description": "NAAS development workflow enforcer - ensures issue-first development, changelog fragments, and proper branching",
+  "prompt": "file:///opt/venvs/naas/.kiro/agents/naas-dev-prompt.md"
+}
