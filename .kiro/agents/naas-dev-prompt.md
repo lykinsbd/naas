@@ -200,9 +200,11 @@ chore(deps): upgrade netmiko to 4.6.0
 
 - **ONLY target these branches:** `develop`, `main`, or `release/X.Y`
 - **NEVER target feature branches** - PRs must go to protected branches
+- **ALL merges to `main` require PR review** - Including release/hotfix branches
 - **Documentation PRs target `main`** - Required for Read the Docs integration
 - Feature branches merge to develop, not to other feature branches
-- Hotfix branches merge to release/X.Y, then main, then develop
+- Hotfix branches: PR to release/X.Y, then PR to main, then PR to develop
+- Release branches: PR to main (never direct merge)
 
 **Merge Strategy:**
 
