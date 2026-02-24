@@ -118,32 +118,38 @@ Branch off the appropriate `release/X.Y` branch:
 
 - `hotfix/` - Critical fixes for released versions
 
+**IMPORTANT:** All merges to `main` must go through pull requests, including:
+
+- Release branches → main
+- Hotfix branches → main
+- Never merge directly to main without PR review
+
 ### Branch Lifecycle
 
 ```text
 develop (v1.1.0a1) ─────────────────────────────────────┐
   │                                                      │
-  ├─ feature/new-feature ─→ develop                     │
+  ├─ feature/new-feature ─→ develop (via PR)            │
   │                                                      │
   └─→ release/1.1 (created for v1.1 release) ───────────┤
         │                                                │
         ├─ v1.1.0b1 (beta testing)                      │
         ├─ v1.1.0rc1 (release candidate)                │
-        └─→ main (v1.1.0 released) ─────────────────────┤
+        └─→ main (v1.1.0 released via PR) ──────────────┤
               │                                          │
               └─→ develop (sync back) ───────────────────┘
 
 release/1.1 (KEPT for v1.1.x maintenance)
   │
-  ├─ hotfix/fix-bug ─→ release/1.1 (v1.1.1)
+  ├─ hotfix/fix-bug ─→ release/1.1 (v1.1.1 via PR)
   │                      │
-  │                      ├─→ main (v1.1.1 released)
-  │                      └─→ develop (merge back)
+  │                      ├─→ main (v1.1.1 released via PR)
+  │                      └─→ develop (merge back via PR)
   │
-  └─ hotfix/another-fix ─→ release/1.1 (v1.1.2)
+  └─ hotfix/another-fix ─→ release/1.1 (v1.1.2 via PR)
                            │
-                           ├─→ main (v1.1.2 released)
-                           └─→ develop (merge back)
+                           ├─→ main (v1.1.2 released via PR)
+                           └─→ develop (merge back via PR)
 ```
 
 ### Workflow Examples
