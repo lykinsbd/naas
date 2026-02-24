@@ -37,13 +37,15 @@ jobs:
 
       - name: Check for news fragment
         run: |
-          PR_NUM=${{ github.event.pull_request.number }}
-
-          if ! ls changes/${PR_NUM}.*.md 1> /dev/null 2>&1; then
-            echo "❌ Error: No changelog fragment found for PR #${PR_NUM}"
+          # Check if any changelog fragment exists (issue number or + prefix)
+          if ! ls changes/*.*.md 1> /dev/null 2>&1; then
+            echo "❌ Error: No changelog fragment found"
             echo ""
             echo "Create one with:"
-            echo "  towncrier create ${PR_NUM}.<type>.md --content 'Your description'"
+            echo "  towncrier create <issue#>.<type>.md --content 'Your description'"
+            echo ""
+            echo "Or for work without an issue:"
+            echo "  towncrier create +description.<type>.md --content 'Your description'"
             echo ""
             echo "Available types:"
             echo "  feature      - New features"
@@ -57,7 +59,7 @@ jobs:
             exit 1
           fi
 
-          echo "✅ Found changelog fragment"
+          echo "✅ Found changelog fragment(s)"
 
       - name: Run mypy
         run: uv run mypy naas/
