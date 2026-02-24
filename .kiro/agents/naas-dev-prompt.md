@@ -362,7 +362,7 @@ gh pr create --base develop --title "Title" --body "Description"
 - Create PRs targeting feature branches (only develop/main/release/X.Y)
 - Commit without a changelog fragment
 - Use non-conventional commit messages
-- Force push without `--force-with-lease`
+- Force push without explicit user permission for that specific push
 - Delete release branches (they're permanent)
 - Skip pre-commit hooks
 - Merge without squashing/rebasing (no merge commits)
@@ -386,6 +386,7 @@ gh pr create --base develop --title "Title" --body "Description"
 - Documentation-only changes can go directly to main if urgent
 - Internal type fragments don't show in user-facing changelog
 - Always use `--force-with-lease` instead of `--force` for safety
+- Never force push without asking user first: "I need to force push. May I proceed?"
 - Sign commits with GPG when possible (`-S` flag)
 
 ## When in Doubt
