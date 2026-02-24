@@ -90,11 +90,16 @@ npm install -g markdown-link-check
 
 ## Branching Strategy
 
+NAAS uses a **Git Flow-inspired** branching model with long-lived release branches for maintenance.
+
 ### Long-lived Branches
 
-- `main` - Stable, production-ready code
-- `develop` - Integration branch for ongoing development
-- `release/X.Y` - Release preparation branches
+- **`main`** - Production releases only (v1.0.0, v1.1.0, v1.1.1, etc.)
+- **`develop`** - Integration branch for ongoing development (v1.2.0a1, v1.2.0a2, etc.)
+- **`release/X.Y`** - Maintenance branches for each major.minor version (kept permanently)
+  - `release/1.0` - All v1.0.x patches
+  - `release/1.1` - All v1.1.x patches
+  - `release/1.2` - All v1.2.x patches
 
 ### Short-lived Feature Branches
 
@@ -107,24 +112,162 @@ Branch off `develop` using these prefixes:
 - `chore/` - Maintenance (dependencies, config, tooling)
 - `refactor/` - Code refactoring without behavior changes
 
-Emergency fixes:
+### Short-lived Hotfix Branches
 
-- `hotfix/` - Critical fixes branched from `main`
+Branch off the appropriate `release/X.Y` branch:
 
-### Examples
+- `hotfix/` - Critical fixes for released versions
+
+### Branch Lifecycle
+
+```text
+develop (v1.1.0a1) ─────────────────────────────────────┐
+  │                                                      │
+  ├─ feature/new-feature ─→ develop                     │
+  │                                                      │
+  └─→ release/1.1 (created for v1.1 release) ───────────┤
+        │                                                │
+        ├─ v1.1.0b1 (beta testing)                      │
+        ├─ v1.1.0rc1 (release candidate)                │
+        └─→ main (v1.1.0 released) ─────────────────────┤
+              │                                          │
+              └─→ develop (sync back) ───────────────────┘
+
+release/1.1 (KEPT for v1.1.x maintenance)
+  │
+  ├─ hotfix/fix-bug ─→ release/1.1 (v1.1.1)
+  │                      │
+  │                      ├─→ main (v1.1.1 released)
+  │                      └─→ develop (merge back)
+  │
+  └─ hotfix/another-fix ─→ release/1.1 (v1.1.2)
+                           │
+                           ├─→ main (v1.1.2 released)
+                           └─→ develop (merge back)
+```
+
+### Workflow Examples
+
+#### New Feature Development
 
 ```bash
-# Feature branch
+# Start feature from develop
 git checkout develop
+git pull
 git checkout -b feature/add-api-versioning
 
-# Bug fix
+# Develop and commit
+git commit -m "feat: add API versioning support"
+
+# Create PR targeting develop
+gh pr create --base develop --title "Add API versioning"
+```
+
+#### Bug Fix in Development
+
+```bash
+# Fix bug on develop
 git checkout develop
 git checkout -b fix/redis-connection-leak
 
-# Hotfix
-git checkout main
+# Fix and commit
+git commit -m "fix: resolve Redis connection leak"
+
+# Create PR targeting develop
+gh pr create --base develop --title "Fix Redis connection leak"
+```
+
+#### Hotfix for Current Release (v1.1.x)
+
+```bash
+# Branch from release/1.1
+git checkout release/1.1
+git pull
 git checkout -b hotfix/security-patch
+
+# Fix the issue
+git commit -m "fix: patch security vulnerability CVE-2026-1234"
+
+# Create PR targeting release/1.1
+gh pr create --base release/1.1 --title "Security patch for v1.1.x"
+
+# After merge to release/1.1:
+# 1. Bump version to v1.1.1 in pyproject.toml
+# 2. Merge release/1.1 → main (triggers v1.1.1 release)
+# 3. Merge release/1.1 → develop (resolve conflicts if any)
+```
+
+#### Hotfix for Old Release (v1.0.x while v1.1 is current)
+
+```bash
+# Branch from release/1.0
+git checkout release/1.0
+git pull
+git checkout -b hotfix/critical-fix
+
+# Fix the issue
+git commit -m "fix: critical bug in v1.0.x"
+
+# Create PR targeting release/1.0
+gh pr create --base release/1.0 --title "Critical fix for v1.0.x"
+
+# After merge to release/1.0:
+# 1. Bump version to v1.0.3 in pyproject.toml
+# 2. Merge release/1.0 → main (triggers v1.0.3 release)
+# 3. Cherry-pick to release/1.1 if applicable
+# 4. Merge to develop if applicable
+```
+
+### Release Branch Management
+
+#### Creating a Release Branch
+
+```bash
+# When ready to start v1.2 release cycle
+git checkout develop
+git pull
+git checkout -b release/1.2
+
+# Bump to beta version
+# Edit pyproject.toml: version = "1.2.0b1"
+git commit -m "chore: bump version to 1.2.0b1"
+git push -u origin release/1.2
+
+# Create PR: release/1.2 → main
+```
+
+#### Release Branch Lifecycle
+
+1. **Created** - When starting release cycle (from develop)
+2. **Beta/RC testing** - Pre-releases on release branch
+3. **Final release** - Merge to main (v1.2.0)
+4. **Kept forever** - For v1.2.x maintenance
+
+#### When to Delete Release Branches
+
+**Never.** Release branches are kept permanently for:
+
+- Patch releases (v1.1.1, v1.1.2, etc.)
+- Security updates to older versions
+- Historical reference
+- Supporting multiple versions simultaneously
+
+### Hotfix Decision Tree
+
+```text
+Need to fix a bug?
+  │
+  ├─ Bug in unreleased code (develop)?
+  │    └─→ Create fix/ branch from develop
+  │
+  ├─ Bug in current release (v1.1.x)?
+  │    └─→ Create hotfix/ branch from release/1.1
+  │         └─→ Merge to release/1.1 → main → develop
+  │
+  └─ Bug in old release (v1.0.x)?
+       └─→ Create hotfix/ branch from release/1.0
+            └─→ Merge to release/1.0 → main
+            └─→ Cherry-pick to newer releases if needed
 ```text
 <type>(<scope>): <description>
 
