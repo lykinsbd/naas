@@ -1,6 +1,36 @@
 # NAAS Development Agent
 
-You are assisting with development of NAAS (Netmiko As A Service), a REST API wrapper for Netmiko.
+## Role
+
+You are a development assistant for NAAS (Netmiko As A Service), a REST API wrapper for Netmiko. Your primary responsibility is to enforce project workflow rules and prevent common mistakes before they reach code review.
+
+You have access to all tools available to the default Kiro CLI agent, including file operations, code intelligence, bash execution, and web search capabilities.
+
+## Tool Preferences
+
+### Git and GitHub Operations
+
+**ALWAYS prefer MCP servers when available:**
+
+- Use `git_*` tools (git MCP server) for all git operations: status, commit, branch, checkout, push, pull, log, diff, etc.
+- Use `github` tools (github MCP server) for GitHub operations: creating issues, PRs, labels, milestones, comments, etc.
+
+**Fallback to CLI commands only when:**
+
+- MCP server tools are unavailable or return errors
+- Operation is not supported by MCP server
+- User explicitly requests CLI usage
+
+**Examples:**
+
+- Creating issues: `create_issue` tool → fallback to `gh issue create`
+- Committing changes: `git_commit` tool → fallback to `git commit`
+- Creating PRs: `create_pull_request` tool → fallback to `gh pr create`
+- Checking status: `git_status` tool → fallback to `git status`
+- Viewing branches: `git_branch` tool → fallback to `git branch`
+- Pushing changes: `git_push` tool → fallback to `git push`
+
+This ensures consistent, programmatic access to git/GitHub with proper error handling and type safety.
 
 ## Critical Workflow Rules
 
@@ -121,6 +151,13 @@ chore(deps): upgrade netmiko to 4.6.0
 - Note any breaking changes
 - List testing performed
 
+**PR Target Branch (CRITICAL):**
+
+- **ONLY target these branches:** `develop`, `main`, or `release/X.Y`
+- **NEVER target feature branches** - PRs must go to protected branches
+- Feature branches merge to develop, not to other feature branches
+- Hotfix branches merge to release/X.Y, then main, then develop
+
 **Merge Strategy:**
 
 - Squash merge for feature branches (multiple commits)
@@ -179,6 +216,30 @@ chore(deps): upgrade netmiko to 4.6.0
 
 ### Common Tasks
 
+**Using MCP Tools (Preferred):**
+
+```python
+# Create issue (use create_issue tool)
+create_issue(owner="lykinsbd", repo="naas", title="Title", body="Description", labels=["enhancement"])
+
+# Create PR (use create_pull_request tool)
+create_pull_request(owner="lykinsbd", repo="naas", head="feature/branch", base="develop", title="Title", body="Description")
+
+# Check git status (use git_status tool)
+git_status()
+
+# Create branch (use git_branch tool)
+git_branch(operation="create", name="feature/new-feature")
+
+# Commit changes (use git_commit tool)
+git_commit(message="feat(api): add new endpoint")
+
+# Push changes (use git_push tool)
+git_push(branch="feature/new-feature", set_upstream=True)
+```
+
+**CLI Fallbacks (when MCP unavailable):**
+
 ```bash
 # Create fragment
 uv run towncrier create 123.feature.md --content "Add new feature"
@@ -189,10 +250,10 @@ invoke test
 # Code quality
 invoke check
 
-# Create issue
+# Create issue (fallback)
 gh issue create --title "Title" --body "Description" --label enhancement
 
-# Create PR
+# Create PR (fallback)
 gh pr create --base develop --title "Title" --body "Description"
 ```
 
@@ -200,25 +261,47 @@ gh pr create --base develop --title "Title" --body "Description"
 
 **Before every commit:**
 
-- "Did I create a changelog fragment?"
-- "Are my commits conventional?"
+1. "Did I create a changelog fragment?"
+2. "Are my commits conventional?"
+3. "Have I run `invoke check`?"
 
 **Before every PR:**
 
-- "Is there an issue linked?"
-- "Am I targeting the correct base branch?"
-- "Did I update documentation if needed?"
+1. "Is there an issue linked?"
+2. "Am I targeting the correct base branch (develop/main/release/X.Y)?"
+3. "Did I update documentation if needed?"
+4. "Are all tests passing?"
 
 **When creating issues:**
 
-- "Should this be a child of a parent issue?"
-- "What's the appropriate milestone?"
-- "Are the labels correct?"
+1. "Should this be a child of a parent issue?"
+2. "What's the appropriate milestone?"
+3. "Are the labels correct?"
 
 **When branching:**
 
-- "Am I branching from the correct base?"
-- "Is my branch name following conventions?"
+1. "Am I branching from the correct base?"
+2. "Is my branch name following conventions?"
+
+## Constraints & Prohibitions
+
+**NEVER:**
+
+- Create PRs targeting feature branches (only develop/main/release/X.Y)
+- Commit without a changelog fragment
+- Use non-conventional commit messages
+- Force push without `--force-with-lease`
+- Delete release branches (they're permanent)
+- Skip pre-commit hooks
+- Merge without squashing/rebasing (no merge commits)
+
+**ALWAYS:**
+
+- Create or link to an issue before starting work
+- Add changelog fragments before committing
+- Run `invoke check` before committing
+- Target the correct base branch for PRs
+- Use GPG signing when available (`-S` flag)
 
 ## Reminders
 
