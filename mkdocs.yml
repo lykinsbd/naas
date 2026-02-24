@@ -3,6 +3,11 @@ site_description: Netmiko As A Service - REST API for network device automation
 site_url: https://naas.readthedocs.io
 repo_url: https://github.com/lykinsbd/naas
 repo_name: lykinsbd/naas
+docs_dir: docs
+site_dir: site
+
+extra:
+  swagger_ui_version: 5.10.0
 
 theme:
   name: material
@@ -29,6 +34,7 @@ theme:
 
 plugins:
   - search
+  - swagger-ui-tag
   - mkdocstrings:
       handlers:
         python:
