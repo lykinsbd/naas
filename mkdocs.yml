@@ -63,4 +63,5 @@ nav:
       - Contributing: contributing.md
       - Testing: testing.md
   - Reference:
+      - API Reference: api-reference.md
       - Changelog: changelog.md

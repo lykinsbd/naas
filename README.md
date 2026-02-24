@@ -34,7 +34,8 @@ curl -k -X POST https://localhost:8443/send_command \
 Quick links:
 
 - **[Installation Guide](https://naas.readthedocs.io/en/latest/installation/)** - Docker Compose and Kubernetes deployment
-- **[API Reference](https://naas.readthedocs.io/en/latest/api/)** - Complete endpoint documentation
+- **[API Usage](https://naas.readthedocs.io/en/latest/api-usage/)** - Usage examples and guides
+- **[API Reference](https://naas.readthedocs.io/en/latest/api-reference/)** - Interactive Swagger documentation
 - **[Contributing Guide](https://naas.readthedocs.io/en/latest/contributing/)** - Development setup and guidelines
 - **[Changelog](https://naas.readthedocs.io/en/latest/changelog/)** - Release notes and version history
 
