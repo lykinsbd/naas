@@ -57,94 +57,24 @@ NAAS provides several advantages over using the `netmiko` library directly:
 
 ## Technology Stack
 
-- [Netmiko](https://github.com/ktbyers/netmiko) - Network device connectivity
-- [Flask](https://github.com/pallets/flask) - Web framework
-- [Gunicorn](https://github.com/benoitc/gunicorn) - WSGI HTTP server
-- [RQ](https://github.com/rq/rq) - Job queue
-- [Redis](https://github.com/antirez/redis) - Queue backend and K/V store
-- [uv](https://github.com/astral-sh/uv) - Fast dependency management
+- [Netmiko](https://github.com/ktbyers/netmiko)
+- [Flask](https://github.com/pallets/flask)
+- [Gunicorn](https://github.com/benoitc/gunicorn)
+- [RQ](https://github.com/rq/rq)
+- [Redis](https://github.com/antirez/redis)
+- [uv](https://github.com/astral-sh/uv)
 
 ## Requirements
 
-- Python 3.11 or higher
-- Docker and Docker Compose (for containerized deployment)
-- Redis server (included in docker-compose.yml)
+**For deployment:**
 
-## Development Setup
+- Docker and Docker Compose
+- Server/VM with network access to devices
 
-### Prerequisites
+**For development:**
 
 - Python 3.11+
-- [uv](https://github.com/astral-sh/uv) for dependency management
-
-```bash
-# Install uv
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Clone and setup
-git clone https://github.com/lykinsbd/naas.git
-cd naas
-
-# Create virtual environment
-uv venv --python 3.11
-
-# Activate it
-source .venv/bin/activate  # Linux/Mac
-# OR
-.venv\Scripts\activate  # Windows
-
-# Install dependencies
-uv pip install -e ".[dev]"
-
-# Run tests
-pytest
-```
-
-### Development Commands
-
-We use [invoke](https://www.pyinvoke.org/) for common tasks:
-
-```bash
-# Code quality
-invoke lint          # Run ruff linter
-invoke format        # Format code with ruff
-invoke typecheck     # Run mypy type checker
-invoke check         # Run all code checks
-
-# Testing
-invoke test          # Run unit tests
-invoke test-all      # Run all tests
-
-# Documentation
-invoke docs-lint     # Check markdown style
-invoke docs-prose    # Check writing quality (Vale)
-invoke docs-links    # Check for broken links
-invoke docs-check    # Run all docs checks
-
-# Utilities
-invoke clean         # Remove generated files
-invoke install       # Install dependencies
-```
-
-List all available tasks:
-
-```bash
-invoke --list
-```
-
-### Adding Dependencies
-
-To add a new dependency:
-
-```bash
-# Edit pyproject.toml to add the package
-# Then regenerate lock files
-uv pip compile pyproject.toml -o requirements.lock
-uv pip compile pyproject.toml --extra dev -o requirements-dev.lock
-
-# Install the new dependency
-uv pip install -e .
-```
+- See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup
 
 ## Running NAAS
 
@@ -257,37 +187,31 @@ docker compose up -d
 
 Kubernetes manifests are coming in a future release. Track progress in [#28](https://github.com/lykinsbd/naas/issues/28).
 
-## Roadmap
-
-### Future documentation
-
-We're planning to add:
-
-- **Documentation site** - MkDocs hosted on Read the Docs
-- **Architecture diagrams** - Visual guides to NAAS internals
-- **API client libraries** - Python, Go, and JavaScript clients
-
-Track progress in [GitHub Issues](https://github.com/lykinsbd/naas/issues).
-
 ## Contributing
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for:
+We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for:
 
-- Development setup
-- Branching strategy
+- Development setup and prerequisites
+- Branching strategy and workflow
 - Commit message conventions
 - Pull request process
 - Code style guidelines
+- Testing requirements
+
+## Roadmap
+
+Track planned features and improvements in [GitHub Issues](https://github.com/lykinsbd/naas/issues) and the [v1.1 milestone](https://github.com/lykinsbd/naas/milestone/2).
 
 ## License
 
 [License information coming soon]
 
-## Support
+## Getting Help
 
-- **Issues**: [GitHub Issues](https://github.com/lykinsbd/naas/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/lykinsbd/naas/discussions)
-- **Documentation**: [docs/](docs/)
+- **Documentation**: [docs/](docs/) - Guides and API reference
+- **Issues**: [GitHub Issues](https://github.com/lykinsbd/naas/issues) - Bug reports and feature requests
+- **Discussions**: [GitHub Discussions](https://github.com/lykinsbd/naas/discussions) - Questions and community support
+- **Changelog**: [CHANGELOG.md](CHANGELOG.md) - Release notes and version history
 
 ## Acknowledgments
 
