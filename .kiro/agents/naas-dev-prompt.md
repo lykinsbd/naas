@@ -146,7 +146,7 @@ Need to make a change?
   │    └─→ Branch from release/1.0, target release/1.0
   │
   └─ Documentation-only change?
-       └─→ Can branch from develop OR main (if urgent)
+       └─→ Branch from main, target main (required for Read the Docs)
 ```
 
 **ALWAYS ASK:** "What's the correct base branch for this work?"
@@ -200,6 +200,7 @@ chore(deps): upgrade netmiko to 4.6.0
 
 - **ONLY target these branches:** `develop`, `main`, or `release/X.Y`
 - **NEVER target feature branches** - PRs must go to protected branches
+- **Documentation PRs target `main`** - Required for Read the Docs integration
 - Feature branches merge to develop, not to other feature branches
 - Hotfix branches merge to release/X.Y, then main, then develop
 
