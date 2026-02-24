@@ -16,6 +16,7 @@ from naas.config import app_configure
 from naas.library.errorhandlers import api_error_generator
 from naas.resources.get_results import GetResults
 from naas.resources.healthcheck import HealthCheck
+from naas.resources.list_jobs import ListJobs
 from naas.resources.send_command import SendCommand
 from naas.resources.send_config import SendConfig
 
@@ -39,3 +40,4 @@ api.add_resource(HealthCheck, "/", "/healthcheck")
 api.add_resource(SendCommand, "/send_command")
 api.add_resource(SendConfig, "/send_config")
 api.add_resource(GetResults, "/send_command/<string:job_id>", "/send_config/<string:job_id>")
+api.add_resource(ListJobs, "/v1/jobs")
