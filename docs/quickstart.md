@@ -102,4 +102,4 @@ curl -k -X POST https://localhost:8443/send_config \
 - [API Usage Examples](api-usage.md) - More detailed examples
 - [Security Best Practices](security.md) - Secure your deployment
 - [Troubleshooting](troubleshooting.md) - Common issues and solutions
-- [API Documentation](https://lykinsbd.github.io/naas) - Full API reference
+- [API Documentation](https://naas.readthedocs.io/en/latest/api-reference/) - Full API reference

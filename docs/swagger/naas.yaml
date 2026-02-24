@@ -1,0 +1,278 @@
+openapi: 3.0.0
+info:
+  version: 0.6.2
+  title: NAAS - Netmiko As A Service
+  contact:
+    email: lykinsbd@gmail.com
+    name: Brett Lykins
+
+servers:
+  - url: https://naas.your_own_site.com
+    description: NAAS
+
+paths:
+  /healthcheck:
+    get:
+      tags:
+      - /healthcheck
+      summary: Returns OK if the API is up
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/healthcheck_response_payload"
+
+  /send_command:
+    post:
+      security:
+        - BasicAuth: []
+      tags:
+        - /send_command
+      summary: Enqueue a job to execute the provided list of commands on a device
+      parameters:
+        - $ref: "#/components/parameters/x_request_id"
+      requestBody:
+        description: JSON Payload to execute commands on a given device
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/send_command_request_payload"
+      responses:
+        202:
+          description: Job Accepted/Enqueued for backend processing
+          content:
+            application/json:
+              schema:
+                $ref: ""
+        400 BadRequest:
+          $ref: "#/components/responses/400BadRequest"
+        400 DuplicateRequestID:
+          $ref: "#/components/responses/400DuplicateRequestID"
+        401 Unauthorized:
+          $ref: "#/components/responses/401Unauthorized"
+        403 Forbidden:
+          $ref: "#/components/responses/403Forbidden"
+        422 UnprocessableEntity:
+          $ref: "#/components/responses/422UnprocessableEntity"
+        500 InternalServerError:
+          $ref: "#/components/responses/500InternalServerError"
+
+  /send_command/{job_id}:
+    get:
+      security:
+        - BasicAuth: []
+      tags:
+        - /send_command
+      summary: Retrive the status and/or results for an initiated job
+      parameters:
+        - $ref: "#/components/parameters/job_id"
+      response:
+        200:
+          description: Job Status and any Output or Error
+          content:
+            application/json:
+              schema:
+                $ref: ""
+        400 BadRequest:
+          $ref: "#/components/responses/400BadRequest"
+        401 Unauthorized:
+          $ref: "#/components/responses/401Unauthorized"
+        403 Forbidden:
+          $ref: "#/components/responses/403Forbidden"
+        422 UnprocessableEntity:
+          $ref: "#/components/responses/422UnprocessableEntity"
+        500 InternalServerError:
+          $ref: "#/components/responses/500InternalServerError"
+
+  /send_config:
+    post:
+      security:
+        - BasicAuth: []
+      tags:
+        - /send_config
+      summary: Enqueue a job to execute the provided list of configuration commands on a device
+      parameters:
+        - $ref: "#/components/parameters/x_request_id"
+      requestBody:
+        description: JSON Payload to execute configuration commands on a given device
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/send_config_request_payload"
+      responses:
+        202:
+          description: Job Accepted/Enqueued for backend processing
+          content:
+            application/json:
+              schema:
+                $ref: ""
+        400 BadRequest:
+          $ref: "#/components/responses/400BadRequest"
+        400 DuplicateRequestID:
+          $ref: "#/components/responses/400DuplicateRequestID"
+        401 Unauthorized:
+          $ref: "#/components/responses/401Unauthorized"
+        403 Forbidden:
+          $ref: "#/components/responses/403Forbidden"
+        422 UnprocessableEntity:
+          $ref: "#/components/responses/422UnprocessableEntity"
+        500 InternalServerError:
+          $ref: "#/components/responses/500InternalServerError"
+
+  /send_config/{job_id}:
+    get:
+      security:
+        - BasicAuth: []
+      tags:
+        - /send_config
+      summary: Retrive the status and/or results for an initiated job
+      parameters:
+        - $ref: "#/components/parameters/job_id"
+      response:
+        200:
+          description: Job Status and any Output or Error
+          content:
+            application/json:
+              schema:
+                $ref: ""
+        400 BadRequest:
+          $ref: "#/components/responses/400BadRequest"
+        401 Unauthorized:
+          $ref: "#/components/responses/401Unauthorized"
+        403 Forbidden:
+          $ref: "#/components/responses/403Forbidden"
+        422 UnprocessableEntity:
+          $ref: "#/components/responses/422UnprocessableEntity"
+        500 InternalServerError:
+          $ref: "#/components/responses/500InternalServerError"
+
+components:
+
+  parameters:
+
+    job_id:
+      in: path
+      name: job_id
+      schema:
+        type: string
+        format: uuid
+      required: true
+      description: Used to track this job on the backend, and request your results
+
+    x_request_id:
+      in: header
+      name: X-Request-ID
+      schema:
+        type: string
+        format: uuid
+      required: false
+      description: Optional header, used to associate this request in logs/other systems.  Becomes the job_id if provided.
+
+  responses:
+
+    400BadRequest:
+      description: Invalid syntax in request
+    400DuplicateRequestID:
+      description: Please provide a unique X-Request-ID
+    401Unauthorized:
+      description: Please provide a valid Username/Password
+    403Forbidden:
+      description: You are not currently allowed to access this resource
+    422UnprocessableEntity:
+      description: Invalid type of data in request payload, please see documentation
+    500InternalServerError:
+      description: The server encountered an internal error and was unable to complete your request.  Either the server is overloaded or there is an error in the application.
+
+  schemas:
+
+    AnyValue:
+      anyOf:
+        - type: string
+        - type: array
+          nullable: true
+        - type: object
+
+    healthcheck_response_payload:
+      type: object
+      properties:
+        status:
+          type: string
+        app:
+          type: string
+        version:
+          type: string
+
+    send_command_request_payload:
+      type: object
+      properties:
+        ip:
+          type: string
+          format: ipv4
+        commands:
+          type: array
+          items:
+            type: string
+        platform:
+          type: string
+          format: netmiko.platforms
+          default: "cisco_ios"
+          description: "Netmiko platform type (e.g., cisco_ios, arista_eos, juniper_junos)"
+        device_type:
+          type: string
+          format: netmiko.platforms
+          deprecated: true
+          description: "DEPRECATED: Use 'platform' instead. Will be removed in v2.0"
+        port:
+          type: integer
+          default: 22
+        enable:
+          type: string
+          default: "Password provided by basic Auth"
+      required:
+        - ip
+        - commands
+
+    send_config_request_payload:
+      type: object
+      properties:
+        ip:
+          type: string
+          format: ipv4
+        commands:
+          type: array
+          items:
+            type: string
+        platform:
+          type: string
+          format: netmiko.platforms
+          default: "cisco_ios"
+          description: "Netmiko platform type (e.g., cisco_ios, arista_eos, juniper_junos)"
+        device_type:
+          type: string
+          format: netmiko.platforms
+          deprecated: true
+          description: "DEPRECATED: Use 'platform' instead. Will be removed in v2.0"
+        port:
+          type: integer
+          default: 22
+        enable:
+          type: string
+          default: "Password provided by basic Auth"
+        save_config:
+          type: bool
+          default: false
+        commit:
+          type: bool
+          default: false
+      required:
+        - ip
+        - commands
+
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: basic

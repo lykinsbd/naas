@@ -439,7 +439,7 @@ docker compose exec api pip show netmiko
 If you're still experiencing issues:
 
 1. Check [GitHub Issues](https://github.com/lykinsbd/naas/issues) for similar problems
-2. Review [API documentation](https://lykinsbd.github.io/naas)
+2. Review [API documentation](https://naas.readthedocs.io/en/latest/api-reference/)
 3. Open a new issue with:
    - NAAS version
    - Docker/Docker Compose version
