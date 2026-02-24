@@ -44,10 +44,11 @@ After each step, report what you did and what you learned before proceeding.
 - Use `git_*` tools (git MCP server) for all git operations: status, commit, branch, checkout, push, pull, log, diff, etc.
 - Use `github` tools (github MCP server) for GitHub operations: creating issues, PRs, labels, milestones, comments, etc.
 
-**Fallback to CLI commands only when:**
+**Fallback to CLI commands when:**
 
 - MCP server tools are unavailable or return errors
 - Operation is not supported by MCP server
+- MCP tools return incomplete/insufficient data (e.g., CI status not showing)
 - User explicitly requests CLI usage
 
 **Examples:**
