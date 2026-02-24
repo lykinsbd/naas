@@ -10,8 +10,4 @@ mkdocs:
 
 python:
   install:
-    - requirements: requirements.lock
-    - method: pip
-      path: .
-      extra_requirements:
-        - dev
+    - requirements: docs/requirements.txt
