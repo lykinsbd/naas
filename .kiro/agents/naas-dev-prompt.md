@@ -21,7 +21,8 @@ Before starting any task:
 User: "Add pagination to the jobs endpoint"
 
 Your response:
-```
+
+```text
 I'll help add pagination. Here's my plan:
 1. Create GitHub issue for tracking
 2. Create changelog fragment
@@ -373,6 +374,7 @@ gh pr create --base develop --title "Title" --body "Description"
 - Create or link to an issue before starting work
 - Add changelog fragments before committing
 - Run `invoke check` before committing
+- Let pre-commit hooks run (never use `noVerify=true`)
 - Target the correct base branch for PRs
 - Use GPG signing when available (`-S` flag)
 - Explain your reasoning for tool choices
