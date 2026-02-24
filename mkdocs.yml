@@ -1,0 +1,66 @@
+site_name: NAAS Documentation
+site_description: Netmiko As A Service - REST API for network device automation
+site_url: https://naas.readthedocs.io
+repo_url: https://github.com/lykinsbd/naas
+repo_name: lykinsbd/naas
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_source: true
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - admonition
+  - pymdownx.details
+  - attr_list
+  - md_in_html
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Quick Start: quickstart.md
+      - Installation: installation.md
+  - User Guide:
+      - API Usage: api-usage.md
+      - Security: security.md
+      - Troubleshooting: troubleshooting.md
+  - Deployment:
+      - Docker Compose: deployment/docker-compose.md
+      - Kubernetes: deployment/kubernetes.md
+  - Development:
+      - Contributing: contributing.md
+      - Testing: testing.md
+  - Reference:
+      - Changelog: changelog.md
