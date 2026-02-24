@@ -6,6 +6,7 @@ Netmiko As A Service
 [![Code Quality](https://github.com/lykinsbd/naas/actions/workflows/lint.yml/badge.svg)](https://github.com/lykinsbd/naas/actions/workflows/lint.yml)
 [![Docker Build](https://github.com/lykinsbd/naas/actions/workflows/build.yml/badge.svg)](https://github.com/lykinsbd/naas/actions/workflows/build.yml)
 [![codecov](https://codecov.io/gh/lykinsbd/naas/branch/develop/graph/badge.svg)](https://codecov.io/gh/lykinsbd/naas)
+[![Documentation Status](https://readthedocs.org/projects/naas/badge/?version=latest)](https://naas.readthedocs.io/en/latest/?badge=latest)
 
 NAAS is a web-based REST API wrapper for the widely used [Netmiko](https://github.com/ktbyers/netmiko) Python library, providing a RESTful interface for network device automation.
 
@@ -24,16 +25,18 @@ curl -k -X POST https://localhost:8443/send_command \
   -d '{"ip": "192.168.1.1", "platform": "cisco_ios", "commands": ["show version"]}'
 ```
 
-**[📖 Full Quick Start Guide](docs/quickstart.md)**
+**[📖 Full documentation at naas.readthedocs.io](https://naas.readthedocs.io/)**
 
 ## Documentation
 
-- **[Quick Start Guide](docs/quickstart.md)** - Get up and running in 5 minutes
-- **[API Usage Examples](docs/api-usage.md)** - Detailed examples with curl and Python
-- **[Troubleshooting](docs/troubleshooting.md)** - Common issues and solutions
-- **[Security Best Practices](docs/security.md)** - Secure your deployment
-- **[API Reference](https://lykinsbd.github.io/naas)** - Complete API documentation
-- **[Contributing Guide](CONTRIBUTING.md)** - Development setup and guidelines
+📚 **[Read the full documentation on Read the Docs](https://naas.readthedocs.io/)**
+
+Quick links:
+
+- **[Installation Guide](https://naas.readthedocs.io/en/latest/installation/)** - Docker Compose and Kubernetes deployment
+- **[API Reference](https://naas.readthedocs.io/en/latest/api/)** - Complete endpoint documentation
+- **[Contributing Guide](https://naas.readthedocs.io/en/latest/contributing/)** - Development setup and guidelines
+- **[Changelog](https://naas.readthedocs.io/en/latest/changelog/)** - Release notes and version history
 
 ## Benefits
 
@@ -74,7 +77,7 @@ NAAS provides several advantages over using the `netmiko` library directly:
 **For development:**
 
 - Python 3.11+
-- See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup
+- See the [Contributing Guide](https://naas.readthedocs.io/en/latest/contributing/) for development setup
 
 ## Running NAAS
 
@@ -189,7 +192,7 @@ Kubernetes manifests are coming in a future release. Track progress in [#28](htt
 
 ## Contributing
 
-We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for:
+We welcome contributions! See the [Contributing Guide](https://naas.readthedocs.io/en/latest/contributing/) for:
 
 - Development setup and prerequisites
 - Branching strategy and workflow
@@ -208,10 +211,9 @@ Track planned features and improvements in [GitHub Issues](https://github.com/ly
 
 ## Getting Help
 
-- **Documentation**: [docs/](docs/) - Guides and API reference
+- **Documentation**: [naas.readthedocs.io](https://naas.readthedocs.io/) - Complete guides and API reference
 - **Issues**: [GitHub Issues](https://github.com/lykinsbd/naas/issues) - Bug reports and feature requests
 - **Discussions**: [GitHub Discussions](https://github.com/lykinsbd/naas/discussions) - Questions and community support
-- **Changelog**: [CHANGELOG.md](CHANGELOG.md) - Release notes and version history
 
 ## Acknowledgments
 
