@@ -103,14 +103,14 @@ NAAS uses a **Git Flow-inspired** branching model with long-lived release branch
 
 ### Short-lived Feature Branches
 
-Branch off `develop` using these prefixes:
+Branch off `develop` using these prefixes (except `docs/` which branches from `main`):
 
-- `feature/` - New features
-- `fix/` - Bug fixes
-- `docs/` - Documentation changes
-- `test/` - Test additions or modifications
-- `chore/` - Maintenance (dependencies, config, tooling)
-- `refactor/` - Code refactoring without behavior changes
+- `feature/` - New features (from develop)
+- `fix/` - Bug fixes (from develop)
+- `docs/` - Documentation changes (from **main** - required for Read the Docs)
+- `test/` - Test additions or modifications (from develop)
+- `chore/` - Maintenance (dependencies, config, tooling) (from develop)
+- `refactor/` - Code refactoring without behavior changes (from develop)
 
 ### Short-lived Hotfix Branches
 
@@ -161,6 +161,21 @@ git commit -m "feat: add API versioning support"
 
 # Create PR targeting develop
 gh pr create --base develop --title "Add API versioning"
+```
+
+#### Documentation Changes
+
+```bash
+# Documentation changes target main (for Read the Docs)
+git checkout main
+git pull
+git checkout -b docs/update-api-guide
+
+# Update docs and commit
+git commit -m "docs: update API usage guide"
+
+# Create PR targeting main
+gh pr create --base main --title "Update API usage guide"
 ```
 
 #### Bug Fix in Development
