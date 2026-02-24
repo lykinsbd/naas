@@ -141,3 +141,9 @@ showcontent = true
 directory = "internal"
 name = "🔧 Internal Changes"
 showcontent = false
+
+[dependency-groups]
+dev = [
+    "mkdocs-material>=9.7.2",
+    "mkdocstrings[python]>=1.0.3",
+]
