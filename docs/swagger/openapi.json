@@ -238,6 +238,12 @@
         "title": "ValidationErrorElement",
         "type": "object"
       }
+    },
+    "securitySchemes": {
+      "basicAuth": {
+        "scheme": "basic",
+        "type": "http"
+      }
     }
   },
   "info": {
@@ -465,6 +471,10 @@
       }
     }
   },
-  "security": [],
+  "security": [
+    {
+      "basicAuth": []
+    }
+  ],
   "tags": []
 }
