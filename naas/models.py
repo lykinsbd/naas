@@ -1,7 +1,7 @@
 """Pydantic models for request/response validation."""
 
 import logging
-from typing import Any
+from typing import Any, Literal
 
 from flask import current_app
 from netmiko import platforms as netmiko_platforms
@@ -141,3 +141,11 @@ class JobResultResponse(BaseModel):
     status: str
     results: Any | None = None
     error: str | None = None
+
+
+class ListJobsQuery(BaseModel):
+    """Query parameters for the list jobs endpoint."""
+
+    page: int = Field(default=1, ge=1)
+    per_page: int = Field(default=20, ge=1, le=100)
+    status: Literal["finished", "failed", "started", "queued"] | None = None

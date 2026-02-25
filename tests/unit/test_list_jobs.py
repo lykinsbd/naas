@@ -123,39 +123,22 @@ class TestListJobs:
         assert data["pagination"]["per_page"] == 10
 
     def test_list_jobs_invalid_pagination(self, app, client):
-        """Test GET with invalid pagination parameters defaults correctly."""
+        """Test GET with invalid pagination parameters returns 422."""
         auth = b64encode(b"testuser:testpass").decode()
 
-        with (
-            patch("naas.resources.list_jobs.FinishedJobRegistry") as mock_finished,
-            patch("naas.resources.list_jobs.FailedJobRegistry") as mock_failed,
-            patch("naas.resources.list_jobs.StartedJobRegistry") as mock_started,
-            patch("naas.resources.list_jobs.Job.fetch") as mock_job_fetch,
-        ):
-            # Setup mock registries
-            mock_finished_inst = MagicMock()
-            mock_finished_inst.get_job_ids.return_value = []
-            mock_finished.return_value = mock_finished_inst
+        response = client.get("/v1/jobs?page=0&per_page=200", headers={"Authorization": f"Basic {auth}"})
 
-            mock_failed_inst = MagicMock()
-            mock_failed_inst.get_job_ids.return_value = []
-            mock_failed.return_value = mock_failed_inst
+        assert response.status_code == 422
+        assert "errors" in response.json
 
-            mock_started_inst = MagicMock()
-            mock_started_inst.get_job_ids.return_value = []
-            mock_started.return_value = mock_started_inst
+    def test_list_jobs_invalid_status(self, app, client):
+        """Test GET with invalid status value returns 422."""
+        auth = b64encode(b"testuser:testpass").decode()
 
-            # Mock queue
-            app.config["q"].get_job_ids = MagicMock(return_value=[])
+        response = client.get("/v1/jobs?status=invalid", headers={"Authorization": f"Basic {auth}"})
 
-            mock_job_fetch.return_value = None
-
-            response = client.get("/v1/jobs?page=0&per_page=200", headers={"Authorization": f"Basic {auth}"})
-
-        assert response.status_code == 200
-        data = response.json
-        assert data["pagination"]["page"] == 1  # Invalid page 0 defaults to 1
-        assert data["pagination"]["per_page"] == 20  # Invalid per_page 200 defaults to 20
+        assert response.status_code == 422
+        assert "errors" in response.json
 
     def test_list_jobs_failed_status(self, app, client):
         """Test GET with failed status filter."""
