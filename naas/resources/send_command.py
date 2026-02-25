@@ -71,6 +71,7 @@ class SendCommand(Resource):
             credentials=g.credentials,
             commands=validated.commands,
             delay_factor=validated.delay_factor,
+            request_id=g.request_id,
             job_id=g.request_id,
             result_ttl=86460,
             failure_ttl=86460,

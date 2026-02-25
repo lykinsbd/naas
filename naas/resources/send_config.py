@@ -75,6 +75,7 @@ class SendConfig(Resource):
             save_config=validated.save_config,
             commit=validated.commit,
             delay_factor=validated.delay_factor,
+            request_id=g.request_id,
             job_id=g.request_id,
             result_ttl=86460,
             failure_ttl=86460,
