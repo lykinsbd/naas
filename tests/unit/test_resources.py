@@ -1,5 +1,7 @@
 """Unit tests for API resource endpoints."""
 
+from unittest.mock import patch
+
 from naas import __version__
 
 
@@ -17,17 +19,29 @@ class TestHealthCheck:
         assert response.content_type == "application/json"
 
     def test_get_response_structure(self, client):
-        """Healthcheck should return status, app, and version."""
+        """Healthcheck should return status, version, uptime, and components."""
         response = client.get("/healthcheck")
         data = response.get_json()
         assert "status" in data
-        assert "app" in data
         assert "version" in data
+        assert "uptime_seconds" in data
+        assert "components" in data
+        assert "redis" in data["components"]
+        assert "queue" in data["components"]
 
     def test_get_response_values(self, client):
-        """Healthcheck should return correct values."""
+        """Healthcheck should return correct values when healthy."""
         response = client.get("/healthcheck")
         data = response.get_json()
-        assert data["status"] == "OK"
-        assert data["app"] == "naas"
+        assert data["status"] == "healthy"
         assert data["version"] == __version__
+        assert data["components"]["redis"]["status"] == "healthy"
+        assert "depth" in data["components"]["queue"]
+
+    def test_get_redis_unhealthy(self, app, client):
+        """Healthcheck should return degraded when Redis is unreachable."""
+        with patch.object(app.config["redis"], "ping", side_effect=Exception("connection refused")):
+            response = client.get("/healthcheck")
+        data = response.get_json()
+        assert data["status"] == "degraded"
+        assert data["components"]["redis"]["status"] == "unhealthy"
