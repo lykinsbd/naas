@@ -37,7 +37,7 @@ Send a command to a network device:
 
 ```bash
 # Send command (replace with your device credentials)
-curl -k -X POST https://localhost:8443/send_command \
+curl -k -X POST https://localhost:8443/v1/send_command \
   -u "device_username:device_password" \
   -H "Content-Type: application/json" \
   -d '{
@@ -62,7 +62,7 @@ Check the job status and retrieve results:
 
 ```bash
 # Get results (use the job_id from previous response)
-curl -k https://localhost:8443/send_command/550e8400-e29b-41d4-a716-446655440000 \
+curl -k https://localhost:8443/v1/send_command/550e8400-e29b-41d4-a716-446655440000 \
   -u "device_username:device_password"
 ```
 
@@ -84,7 +84,7 @@ Response when complete:
 Push configuration changes:
 
 ```bash
-curl -k -X POST https://localhost:8443/send_config \
+curl -k -X POST https://localhost:8443/v1/send_config \
   -u "device_username:device_password" \
   -H "Content-Type: application/json" \
   -d '{

@@ -33,7 +33,7 @@ Execute show commands on network devices.
 ### Basic Example
 
 ```bash
-curl -k -X POST https://localhost:8443/send_command \
+curl -k -X POST https://localhost:8443/v1/send_command \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -d '{
@@ -46,7 +46,7 @@ curl -k -X POST https://localhost:8443/send_command \
 ### With Custom Port
 
 ```bash
-curl -k -X POST https://localhost:8443/send_command \
+curl -k -X POST https://localhost:8443/v1/send_command \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -d '{
@@ -60,7 +60,7 @@ curl -k -X POST https://localhost:8443/send_command \
 ### With Enable Password
 
 ```bash
-curl -k -X POST https://localhost:8443/send_command \
+curl -k -X POST https://localhost:8443/v1/send_command \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -d '{
@@ -76,7 +76,7 @@ curl -k -X POST https://localhost:8443/send_command \
 Track your requests with custom IDs:
 
 ```bash
-curl -k -X POST https://localhost:8443/send_command \
+curl -k -X POST https://localhost:8443/v1/send_command \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -H "X-Request-ID: my-custom-id-12345" \
@@ -105,7 +105,7 @@ Push configuration changes to devices.
 ### Basic Configuration
 
 ```bash
-curl -k -X POST https://localhost:8443/send_config \
+curl -k -X POST https://localhost:8443/v1/send_config \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -d '{
@@ -124,7 +124,7 @@ curl -k -X POST https://localhost:8443/send_config \
 Automatically save configuration after changes:
 
 ```bash
-curl -k -X POST https://localhost:8443/send_config \
+curl -k -X POST https://localhost:8443/v1/send_config \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -d '{
@@ -143,7 +143,7 @@ curl -k -X POST https://localhost:8443/send_config \
 For platforms that require commit:
 
 ```bash
-curl -k -X POST https://localhost:8443/send_config \
+curl -k -X POST https://localhost:8443/v1/send_config \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -d '{
@@ -161,7 +161,7 @@ curl -k -X POST https://localhost:8443/send_config \
 ### Check Job Status
 
 ```bash
-curl -k https://localhost:8443/send_command/550e8400-e29b-41d4-a716-446655440000 \
+curl -k https://localhost:8443/v1/send_command/550e8400-e29b-41d4-a716-446655440000 \
   -u "admin:password"
 ```
 
@@ -276,7 +276,7 @@ from aiohttp import BasicAuth
 async def send_command(session, device_ip, commands):
     """Send command to device via NAAS."""
     async with session.post(
-        "https://localhost:8443/send_command",
+        "https://localhost:8443/v1/send_command",
         json={
             "ip": device_ip,
             "platform": "cisco_ios",
@@ -291,7 +291,7 @@ async def get_results(session, job_id):
     """Poll for job results."""
     while True:
         async with session.get(
-            f"https://localhost:8443/send_command/{job_id}",
+            f"https://localhost:8443/v1/send_command/{job_id}",
             ssl=False
         ) as response:
             data = await response.json()
@@ -377,7 +377,7 @@ def send_command_safe(ip, commands):
     """Send command with error handling."""
     try:
         response = requests.post(
-            "https://localhost:8443/send_command",
+            "https://localhost:8443/v1/send_command",
             auth=HTTPBasicAuth("admin", "password"),
             verify=False,
             json={

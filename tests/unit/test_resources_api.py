@@ -9,10 +9,18 @@ class TestSendCommand:
 
     def test_send_command_get(self, client):
         """Test GET returns base response."""
-        response = client.get("/send_command")
+        response = client.get("/v1/send_command")
         assert response.status_code == 200
         assert "app" in response.json
         assert response.json["app"] == "naas"
+        assert response.headers["X-API-Version"] == "v1"
+
+    def test_send_command_legacy_route_deprecated(self, client):
+        """Test legacy /send_command route returns deprecation headers."""
+        response = client.get("/send_command")
+        assert response.status_code == 200
+        assert response.headers["X-API-Deprecated"] == "true"
+        assert "X-API-Sunset" in response.headers
 
     def test_send_command_post_success(self, app, client):
         """Test POST enqueues job successfully."""
@@ -22,7 +30,7 @@ class TestSendCommand:
         # Mock tacacs_auth_lockout to avoid Redis connection in validation
         with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
             response = client.post(
-                "/send_command",
+                "/v1/send_command",
                 json={
                     "ip": "192.168.1.1",
                     "port": 22,
@@ -41,7 +49,7 @@ class TestSendCommand:
     def test_send_command_post_no_auth(self, client):
         """Test POST without auth returns 401."""
         response = client.post(
-            "/send_command",
+            "/v1/send_command",
             json={
                 "ip": "192.168.1.1",
                 "commands": ["show version"],
@@ -57,7 +65,7 @@ class TestSendCommand:
 
         with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
             response = client.post(
-                "/send_command",
+                "/v1/send_command",
                 json={
                     "ip": "not-an-ip",
                     "commands": ["show version"],
@@ -75,7 +83,7 @@ class TestSendCommand:
 
         with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
             response = client.post(
-                "/send_command",
+                "/v1/send_command",
                 json={
                     "ip": "192.168.1.1",
                     "commands": [],
@@ -93,7 +101,7 @@ class TestSendCommand:
 
         with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
             response = client.post(
-                "/send_command",
+                "/v1/send_command",
                 json={
                     "ip": "192.0.2.1",
                     "commands": ["show version", "  ", "show run"],
@@ -111,7 +119,7 @@ class TestSendCommand:
 
         with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
             response = client.post(
-                "/send_command",
+                "/v1/send_command",
                 json={
                     "ip": "192.168.1.1",
                     "port": 99999,
@@ -130,7 +138,7 @@ class TestSendCommand:
 
         with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
             response = client.post(
-                "/send_command",
+                "/v1/send_command",
                 json={
                     "ip": "192.0.2.1",
                     "commands": ["show version"],
@@ -149,7 +157,7 @@ class TestSendCommand:
 
         with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
             response = client.post(
-                "/send_command",
+                "/v1/send_command",
                 json={
                     "ip": "192.0.2.1",
                     "commands": ["show version"],
@@ -167,7 +175,7 @@ class TestSendCommand:
 
         with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
             response = client.post(
-                "/send_command",
+                "/v1/send_command",
                 json={
                     "ip": "192.0.2.1",
                     "commands": ["show version"],
@@ -187,7 +195,7 @@ class TestSendCommand:
 
         with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
             response = client.post(
-                "/send_command",
+                "/v1/send_command",
                 json={
                     "ip": "192.168.1.1",
                     "port": 22,
@@ -210,10 +218,18 @@ class TestSendConfig:
 
     def test_send_config_get(self, client):
         """Test GET returns base response."""
-        response = client.get("/send_config")
+        response = client.get("/v1/send_config")
         assert response.status_code == 200
         assert "app" in response.json
         assert response.json["app"] == "naas"
+        assert response.headers["X-API-Version"] == "v1"
+
+    def test_send_config_legacy_route_deprecated(self, client):
+        """Test legacy /send_config route returns deprecation headers."""
+        response = client.get("/send_config")
+        assert response.status_code == 200
+        assert response.headers["X-API-Deprecated"] == "true"
+        assert "X-API-Sunset" in response.headers
 
     def test_send_config_post_success(self, app, client):
         """Test POST enqueues job successfully."""
@@ -223,7 +239,7 @@ class TestSendConfig:
         # Mock tacacs_auth_lockout to avoid Redis connection in validation
         with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
             response = client.post(
-                "/send_config",
+                "/v1/send_config",
                 json={
                     "ip": "192.168.1.1",
                     "port": 22,
@@ -248,7 +264,7 @@ class TestSendConfig:
 
         with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
             response = client.post(
-                "/send_config",
+                "/v1/send_config",
                 json={
                     "ip": "192.0.2.1",
                     "commands": ["interface gi0/1", "  ", "description test"],
@@ -266,7 +282,7 @@ class TestSendConfig:
 
         with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
             response = client.post(
-                "/send_config",
+                "/v1/send_config",
                 json={
                     "ip": "192.0.2.1",
                 },
@@ -283,7 +299,7 @@ class TestSendConfig:
 
         with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
             response = client.post(
-                "/send_config",
+                "/v1/send_config",
                 json={
                     "ip": "192.0.2.1",
                     "commands": ["interface gi0/1"],
@@ -298,7 +314,7 @@ class TestSendConfig:
     def test_send_config_post_no_auth(self, client):
         """Test POST without auth returns 401."""
         response = client.post(
-            "/send_config",
+            "/v1/send_config",
             json={
                 "ip": "192.168.1.1",
                 "commands": ["interface gi0/1"],
@@ -319,7 +335,7 @@ class TestGetResults:
         # Mock job_unlocker to always return True (auth passes)
         with patch("naas.resources.get_results.job_unlocker", return_value=True):
             response = client.get(
-                "/send_command/00000000-0000-0000-0000-000000000000",
+                "/v1/send_command/00000000-0000-0000-0000-000000000000",
                 headers={"Authorization": f"Basic {auth}"},
             )
 
@@ -346,7 +362,7 @@ class TestGetResults:
 
         with patch("naas.resources.get_results.job_unlocker", return_value=True):
             response = client.get(
-                f"/send_command/{job_id}",
+                f"/v1/send_command/{job_id}",
                 headers={"Authorization": f"Basic {auth}"},
             )
 
@@ -374,7 +390,7 @@ class TestGetResults:
 
         with patch("naas.resources.get_results.job_unlocker", return_value=True):
             response = client.get(
-                f"/send_command/{job_id}",
+                f"/v1/send_command/{job_id}",
                 headers={"Authorization": f"Basic {auth}"},
             )
 
@@ -385,7 +401,7 @@ class TestGetResults:
 
     def test_get_results_no_auth(self, client):
         """Test GET without auth returns 401."""
-        response = client.get("/send_command/00000000-0000-0000-0000-000000000000")
+        response = client.get("/v1/send_command/00000000-0000-0000-0000-000000000000")
         assert response.status_code == 401
 
     def test_get_results_wrong_user(self, app, client):
@@ -407,7 +423,7 @@ class TestGetResults:
         # Mock job_unlocker to return False (wrong user)
         with patch("naas.resources.get_results.job_unlocker", return_value=False):
             response = client.get(
-                f"/send_command/{job_id}",
+                f"/v1/send_command/{job_id}",
                 headers={"Authorization": f"Basic {auth}"},
             )
 

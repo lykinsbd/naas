@@ -410,6 +410,16 @@
         "tags": []
       }
     },
+    "/v1/healthcheck": {
+      "get": {
+        "description": "",
+        "operationId": "get__v1_healthcheck",
+        "parameters": [],
+        "responses": {},
+        "summary": "get <GET>",
+        "tags": []
+      }
+    },
     "/v1/jobs": {
       "get": {
         "description": "",
@@ -467,6 +477,144 @@
         ],
         "responses": {},
         "summary": "List jobs with pagination and filtering. Query parameters: - page: Page number (default: 1) - per_page: Results per page (default: 20, max: 100) - status: Filter by status (finished, failed, started, queued) :return: Dict with jobs list and pagination info",
+        "tags": []
+      }
+    },
+    "/v1/send_command": {
+      "get": {
+        "description": "",
+        "operationId": "get__v1_send_command",
+        "parameters": [],
+        "responses": {},
+        "summary": "get <GET>",
+        "tags": []
+      },
+      "post": {
+        "description": "Requires you submit the following in the payload:     ip: str     commands: Sequence[str] Optional:     port: int - Default 22     platform: str - Default cisco_ios     enable: Optional[str] - Default the password provided for basic auth\n\nSecured by Basic Auth, which is then passed to the network device. :return: A dict of the job ID, a 202 response code, and the job_id as the X-Request-ID header",
+        "operationId": "post__v1_send_command",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendCommandRequest.c5eb086"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobResponse.c5eb086"
+                }
+              }
+            },
+            "description": "Accepted"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError.6a07bef"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "Will enqueue an attempt to run commands on a device.",
+        "tags": []
+      }
+    },
+    "/v1/send_command/{job_id}": {
+      "get": {
+        "description": "",
+        "operationId": "get__v1_send_command_{job_id}",
+        "parameters": [
+          {
+            "description": "",
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {},
+        "summary": "Given the requested job_id, return status and/or any results if finished. :param job_id: :return: A dict of job status and/or results if finished.",
+        "tags": []
+      }
+    },
+    "/v1/send_config": {
+      "get": {
+        "description": "",
+        "operationId": "get__v1_send_config",
+        "parameters": [],
+        "responses": {},
+        "summary": "get <GET>",
+        "tags": []
+      },
+      "post": {
+        "description": "Requires you submit the following in the payload:     ip: str     commands: Sequence[str] Optional:     port: int - Default 22     platform: str - Default cisco_ios     enable: Optional[str] - Default the password provided for basic auth     save_config: bool     commit: bool\n\nSecured by Basic Auth, which is then passed to the network device. :return: A dict of the job ID, a 202 response code, and the job_id as the X-Request-ID header",
+        "operationId": "post__v1_send_config",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendConfigRequest.c5eb086"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobResponse.c5eb086"
+                }
+              }
+            },
+            "description": "Accepted"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError.6a07bef"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "Will enqueue an attempt to use netmiko's send_config_set() method to run commands/put configuration on a device.",
+        "tags": []
+      }
+    },
+    "/v1/send_config/{job_id}": {
+      "get": {
+        "description": "",
+        "operationId": "get__v1_send_config_{job_id}",
+        "parameters": [
+          {
+            "description": "",
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {},
+        "summary": "Given the requested job_id, return status and/or any results if finished. :param job_id: :return: A dict of job status and/or results if finished.",
         "tags": []
       }
     }
