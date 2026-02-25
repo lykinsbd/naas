@@ -2,11 +2,13 @@
 
 from flask import current_app, request
 from flask_restful import Resource
+from pydantic import ValidationError
 from rq.job import Job
 from rq.registry import FailedJobRegistry, FinishedJobRegistry, StartedJobRegistry
 
 from naas import __base_response__
 from naas.library.validation import Validate
+from naas.models import ListJobsQuery
 
 
 class ListJobs(Resource):
@@ -24,16 +26,15 @@ class ListJobs(Resource):
         v = Validate()
         v.has_auth()
 
-        # Parse query parameters
-        page = request.args.get("page", 1, type=int)
-        per_page = request.args.get("per_page", 20, type=int)
-        status_filter = request.args.get("status", type=str)
-
-        # Validate parameters
-        if page < 1:
-            page = 1
-        if per_page < 1 or per_page > 100:
-            per_page = 20
+        # Validate query parameters
+        try:
+            query = ListJobsQuery(
+                page=request.args.get("page", 1),
+                per_page=request.args.get("per_page", 20),
+                status=request.args.get("status"),
+            )
+        except ValidationError as e:
+            return {"errors": e.errors()}, 422
 
         # Get queue and registries
         q = current_app.config["q"]
@@ -43,29 +44,28 @@ class ListJobs(Resource):
         job_ids = []
         total_count = 0
 
-        if status_filter == "finished":
+        if query.status == "finished":
             registry = FinishedJobRegistry(queue=q)
             total_count = registry.count
-            start = (page - 1) * per_page
-            end = start + per_page - 1
+            start = (query.page - 1) * query.per_page
+            end = start + query.per_page - 1
             job_ids = registry.get_job_ids(start=start, end=end)
-        elif status_filter == "failed":
+        elif query.status == "failed":
             registry = FailedJobRegistry(queue=q)
             total_count = registry.count
-            start = (page - 1) * per_page
-            end = start + per_page - 1
+            start = (query.page - 1) * query.per_page
+            end = start + query.per_page - 1
             job_ids = registry.get_job_ids(start=start, end=end)
-        elif status_filter == "started":
+        elif query.status == "started":
             registry = StartedJobRegistry(queue=q)
             total_count = registry.count
-            start = (page - 1) * per_page
-            end = start + per_page - 1
+            start = (query.page - 1) * query.per_page
+            end = start + query.per_page - 1
             job_ids = registry.get_job_ids(start=start, end=end)
-        elif status_filter == "queued":
+        elif query.status == "queued":
             total_count = len(q)
-            start = (page - 1) * per_page
-            end = start + per_page
-            job_ids = q.get_job_ids(offset=start, length=per_page)
+            start = (query.page - 1) * query.per_page
+            job_ids = q.get_job_ids(offset=start, length=query.per_page)
         else:
             # No filter - get all jobs from all registries
             finished_reg = FinishedJobRegistry(queue=q)
@@ -76,8 +76,8 @@ class ListJobs(Resource):
                 finished_reg.get_job_ids() + failed_reg.get_job_ids() + started_reg.get_job_ids() + q.get_job_ids()
             )
             total_count = len(all_job_ids)
-            start = (page - 1) * per_page
-            end = start + per_page
+            start = (query.page - 1) * query.per_page
+            end = start + query.per_page
             job_ids = all_job_ids[start:end]
 
         # Fetch job details
@@ -95,14 +95,14 @@ class ListJobs(Resource):
                 )
 
         # Calculate pagination
-        total_pages = (total_count + per_page - 1) // per_page if total_count > 0 else 0
+        total_pages = (total_count + query.per_page - 1) // query.per_page if total_count > 0 else 0
 
         # Build response
         r_dict = {
             "jobs": jobs,
             "pagination": {
-                "page": page,
-                "per_page": per_page,
+                "page": query.page,
+                "per_page": query.per_page,
                 "total": total_count,
                 "pages": total_pages,
             },
