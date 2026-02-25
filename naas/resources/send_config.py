@@ -35,6 +35,7 @@ class SendConfig(Resource):
         :return: A dict of the job ID, a 202 response code, and the job_id as the X-Request-ID header
         """
         # Validate request with Pydantic
+        current_app.logger.debug("Request JSON: %s", request.json)
         try:
             validated = SendConfigRequest(**request.json)
         except ValidationError as e:
@@ -51,17 +52,19 @@ class SendConfig(Resource):
             ]
             return {"message": "Validation failed", "errors": errors}, 422
 
+        ip_str = str(validated.ip)
+
         # Enqueue your job, and return the job ID
         current_app.logger.debug(
             "%s: Enqueueing job for %s@%s:%s",
             g.request_id,
             g.credentials.username,
-            str(validated.ip),
+            ip_str,
             validated.port,
         )
         job = current_app.config["q"].enqueue(
             netmiko_send_config,
-            ip=str(validated.ip),
+            ip=ip_str,
             port=validated.port,
             device_type=validated.platform,
             credentials=g.credentials,
@@ -74,9 +77,7 @@ class SendConfig(Resource):
             failure_ttl=86460,
         )
         job_id = job.get_id()
-        current_app.logger.info(
-            "%s: Enqueued job for %s@%s:%s", job_id, g.credentials.username, str(validated.ip), validated.port
-        )
+        current_app.logger.info("%s: Enqueued job for %s@%s:%s", job_id, g.credentials.username, ip_str, validated.port)
 
         # Generate the un/pw hash:
         user_hash = g.credentials.salted_hash()

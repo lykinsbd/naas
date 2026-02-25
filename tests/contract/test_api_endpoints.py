@@ -91,8 +91,6 @@ class TestSendCommand:
         """POST /send_command without ip should return 422."""
         payload = {"commands": ["show version"]}
         response = client.post("/send_command", json=payload, headers=auth_headers)
-        if response.status_code != 422:
-            print(f"Response: {response.status_code} - {response.get_json()}")
         assert response.status_code == 422
 
     def test_post_requires_valid_ip(self, client, auth_headers):

@@ -53,17 +53,19 @@ class SendCommand(Resource):
             current_app.logger.error("Unexpected error: %s", e)
             raise
 
+        ip_str = str(validated.ip)
+
         # Enqueue your job, and return the job ID
         current_app.logger.debug(
             "%s: Enqueueing job for %s@%s:%s",
             g.request_id,
             g.credentials.username,
-            str(validated.ip),
+            ip_str,
             validated.port,
         )
         job = current_app.config["q"].enqueue(
             netmiko_send_command,
-            ip=str(validated.ip),
+            ip=ip_str,
             port=validated.port,
             device_type=validated.platform,
             credentials=g.credentials,
@@ -74,9 +76,7 @@ class SendCommand(Resource):
             failure_ttl=86460,
         )
         job_id = job.get_id()
-        current_app.logger.info(
-            "%s: Enqueued job for %s@%s:%s", job_id, g.credentials.username, str(validated.ip), validated.port
-        )
+        current_app.logger.info("%s: Enqueued job for %s@%s:%s", job_id, g.credentials.username, ip_str, validated.port)
 
         # Generate the un/pw hash:
         user_hash = g.credentials.salted_hash()

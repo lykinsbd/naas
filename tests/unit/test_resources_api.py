@@ -203,6 +203,8 @@ class TestSendConfig:
             )
 
         assert response.status_code == 202
+        assert "job_id" in response.json
+        assert response.headers["X-Request-ID"] == response.json["job_id"]
 
     def test_send_config_empty_string_in_commands(self, app, client):
         """Test POST with empty string in commands list returns 422."""
