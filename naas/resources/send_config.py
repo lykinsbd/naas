@@ -5,6 +5,7 @@ from flask_restful import Resource
 from spectree import Response
 
 from naas import __base_response__
+from naas.config import JOB_TTL_FAILED, JOB_TTL_SUCCESS
 from naas.library.auth import job_locker
 from naas.library.decorators import valid_post
 from naas.library.netmiko_lib import netmiko_send_config
@@ -77,8 +78,8 @@ class SendConfig(Resource):
             delay_factor=validated.delay_factor,
             request_id=g.request_id,
             job_id=g.request_id,
-            result_ttl=86460,
-            failure_ttl=86460,
+            result_ttl=JOB_TTL_SUCCESS,
+            failure_ttl=JOB_TTL_FAILED,
         )
         job_id = job.get_id()
         current_app.logger.info("%s: Enqueued job for %s@%s:%s", job_id, g.credentials.username, ip_str, validated.port)
