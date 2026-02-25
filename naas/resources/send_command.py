@@ -49,9 +49,6 @@ class SendCommand(Resource):
                 for err in e.errors()
             ]
             return {"message": "Validation failed", "errors": errors}, 422
-        except Exception as e:
-            current_app.logger.error("Unexpected error: %s", e)
-            raise
 
         ip_str = str(validated.ip)
 

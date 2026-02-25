@@ -1,8 +1,25 @@
 """Pydantic models for request/response validation."""
 
+import logging
 from typing import Any
 
-from pydantic import BaseModel, Field, IPvAnyAddress, field_validator
+from pydantic import BaseModel, Field, IPvAnyAddress, field_validator, model_validator
+
+logger = logging.getLogger(__name__)
+
+
+def _handle_device_type(data: dict[str, Any]) -> dict[str, Any]:
+    """Map deprecated device_type to platform with warning."""
+    if "device_type" in data:
+        logger.warning(
+            "Parameter 'device_type' is deprecated, use 'platform' instead. "
+            "Support for 'device_type' will be removed in v2.0"
+        )
+        if "platform" not in data:
+            data["platform"] = data.pop("device_type")
+        else:
+            data.pop("device_type")
+    return data
 
 
 class SendCommandRequest(BaseModel):
@@ -16,6 +33,12 @@ class SendCommandRequest(BaseModel):
     platform: str = Field(default="cisco_ios", description="Netmiko device type")
     delay_factor: int = Field(default=1, ge=1, description="Netmiko delay factor")
     enable: str | None = Field(default=None, description="Enable password")
+
+    @model_validator(mode="before")
+    @classmethod
+    def handle_device_type(cls, data: dict[str, Any]) -> dict[str, Any]:
+        """Support deprecated device_type parameter."""
+        return _handle_device_type(data)
 
     @field_validator("commands")
     @classmethod
@@ -40,6 +63,12 @@ class SendConfigRequest(BaseModel):
     enable: str | None = Field(default=None, description="Enable password")
     save_config: bool = Field(default=False, description="Save configuration after applying")
     commit: bool = Field(default=False, description="Commit configuration (Juniper)")
+
+    @model_validator(mode="before")
+    @classmethod
+    def handle_device_type(cls, data: dict[str, Any]) -> dict[str, Any]:
+        """Support deprecated device_type parameter."""
+        return _handle_device_type(data)
 
     @field_validator("config", "commands")
     @classmethod
