@@ -5,6 +5,7 @@ on:
     branches: [main, develop]
     paths:
       - 'docs/**'
+      - 'naas/**'
       - 'README.md'
       - 'CONTRIBUTING.md'
       - 'CHANGELOG.md'
@@ -15,6 +16,7 @@ on:
     branches: [main, develop]
     paths:
       - 'docs/**'
+      - 'naas/**'
       - 'README.md'
       - 'CONTRIBUTING.md'
       - 'CHANGELOG.md'
@@ -67,3 +69,20 @@ jobs:
         with:
           use-quiet-mode: 'yes'
           config-file: '.markdown-link-check.json'
+
+  check-openapi-spec:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Export OpenAPI spec
+        run: uv run invoke export-spec
+
+      - name: Fail if spec is out of date
+        run: git diff --exit-code docs/swagger/openapi.json
