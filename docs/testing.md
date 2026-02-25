@@ -28,13 +28,13 @@ uv run pytest -v
 
 ```bash
 # Run all checks (linting, formatting, type checking, tests)
-invoke check
+uv run invoke check
 
 # Individual checks
-invoke lint      # Ruff linting
-invoke format    # Ruff formatting
-invoke typecheck # mypy type checking
-invoke test      # pytest
+uv run invoke lint      # Ruff linting
+uv run invoke format    # Ruff formatting
+uv run invoke typecheck # mypy type checking
+uv run invoke test      # pytest
 ```
 
 ## Coverage
