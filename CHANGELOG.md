@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## 📚 Documentation
 
 - Restructure README for user-first information architecture with deployment instructions prioritized over development content ([#104](https://github.com/lykinsbd/naas/issues/104))
-- Restructure README for user-first information architecture ([#106](https://github.com/lykinsbd/naas/issues/106))
+- Restructure README for user-first information architecture ([#106](https://github.com/lykinsbd/naas/pull/106))
 
 ## 🔧 Internal Changes
 
