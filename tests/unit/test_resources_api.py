@@ -49,6 +49,61 @@ class TestSendCommand:
 
         assert response.status_code == 401
 
+    def test_send_command_invalid_ip(self, app, client):
+        """Test POST with invalid IP returns 422."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
+            response = client.post(
+                "/send_command",
+                json={
+                    "ip": "not-an-ip",
+                    "commands": ["show version"],
+                },
+                headers={"Authorization": f"Basic {auth}"},
+            )
+
+        assert response.status_code == 422
+        assert "errors" in response.json
+
+    def test_send_command_empty_commands(self, app, client):
+        """Test POST with empty commands list returns 422."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
+            response = client.post(
+                "/send_command",
+                json={
+                    "ip": "192.168.1.1",
+                    "commands": [],
+                },
+                headers={"Authorization": f"Basic {auth}"},
+            )
+
+        assert response.status_code == 422
+        assert "errors" in response.json
+
+    def test_send_command_invalid_port(self, app, client):
+        """Test POST with invalid port returns 422."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
+            response = client.post(
+                "/send_command",
+                json={
+                    "ip": "192.168.1.1",
+                    "port": 99999,
+                    "commands": ["show version"],
+                },
+                headers={"Authorization": f"Basic {auth}"},
+            )
+
+        assert response.status_code == 422
+        assert "errors" in response.json
+
     def test_send_command_with_request_id(self, app, client):
         """Test POST with custom X-Request-ID uses that ID."""
         auth = b64encode(b"testuser:testpass").decode()
