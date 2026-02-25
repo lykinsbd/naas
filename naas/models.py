@@ -56,7 +56,6 @@ class SendCommandRequest(BaseModel):
     port: int = Field(default=22, ge=1, le=65535, description="SSH port")
     platform: str = Field(default="cisco_ios", description="Netmiko device type")
     delay_factor: int = Field(default=1, ge=1, description="Netmiko delay factor")
-    enable: str | None = Field(default=None, description="Enable password")
 
     @model_validator(mode="before")
     @classmethod
@@ -84,7 +83,6 @@ class SendConfigRequest(BaseModel):
     port: int = Field(default=22, ge=1, le=65535, description="SSH port")
     platform: str = Field(default="cisco_ios", description="Netmiko device type")
     delay_factor: int = Field(default=1, ge=1, description="Netmiko delay factor")
-    enable: str | None = Field(default=None, description="Enable password")
     save_config: bool = Field(default=False, description="Save configuration after applying")
     commit: bool = Field(default=False, description="Commit configuration (Juniper)")
 
@@ -102,12 +100,14 @@ class SendConfigRequest(BaseModel):
             raise ValueError("config/commands must contain non-empty strings")
         return v
 
-    def model_post_init(self, __context) -> None:
+    @model_validator(mode="after")
+    def resolve_config(self) -> "SendConfigRequest":
         """Use commands as config if config not provided."""
         if self.config is None and self.commands is not None:
-            object.__setattr__(self, "config", self.commands)
+            self.config = self.commands
         elif self.config is None:
             raise ValueError("Either 'config' or 'commands' field is required")
+        return self
 
 
 class JobResponse(BaseModel):
@@ -122,5 +122,5 @@ class JobResultResponse(BaseModel):
 
     job_id: str
     status: str
-    result: Any | None = None
+    results: Any | None = None
     error: str | None = None

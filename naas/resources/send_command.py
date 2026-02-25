@@ -7,7 +7,7 @@ from naas import __base_response__
 from naas.library.auth import job_locker
 from naas.library.decorators import valid_post
 from naas.library.netmiko_lib import netmiko_send_command
-from naas.models import SendCommandRequest, validate_request
+from naas.models import JobResponse, SendCommandRequest, validate_request
 
 
 class SendCommand(Resource):
@@ -39,6 +39,24 @@ class SendCommand(Resource):
 
         ip_str = str(validated.ip)
 
+        # Log this request's details
+        current_app.logger.info(
+            "%s: %s is issuing %s command(s) to %s:%s",
+            g.request_id,
+            g.credentials.username,
+            len(validated.commands),
+            ip_str,
+            validated.port,
+        )
+        current_app.logger.debug(
+            "%s: %s is issuing the following commands to %s:%s: %s",
+            g.request_id,
+            g.credentials.username,
+            ip_str,
+            validated.port,
+            validated.commands,
+        )
+
         # Enqueue your job, and return the job ID
         current_app.logger.debug(
             "%s: Enqueueing job for %s@%s:%s",
@@ -69,6 +87,6 @@ class SendCommand(Resource):
         job_locker(salted_creds=user_hash, job_id=job_id)
 
         # Return our payload containing job_id, a 202 Accepted, and the X-Request-ID header
-        response = {"job_id": job_id}
+        response = JobResponse(job_id=job_id, message="Job enqueued").model_dump()
         response.update(__base_response__)
         return response, 202, {"X-Request-ID": job_id}
