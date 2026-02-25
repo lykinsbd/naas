@@ -35,9 +35,10 @@ class TestSendCommand:
                 headers={"Authorization": f"Basic {auth}"},
             )
 
-        if response.status_code != 202:
-            print(f"Response: {response.get_json()}")
         assert response.status_code == 202
+        assert response.json["job_id"] is not None
+        assert response.json["message"] == "Job enqueued"
+        assert response.headers["X-Request-ID"] == response.json["job_id"]
 
     def test_send_command_post_no_auth(self, client):
         """Test POST without auth returns 401."""
@@ -241,6 +242,7 @@ class TestSendConfig:
 
         assert response.status_code == 202
         assert "job_id" in response.json
+        assert response.json["message"] == "Job enqueued"
         assert response.headers["X-Request-ID"] == response.json["job_id"]
 
     def test_send_config_empty_string_in_commands(self, app, client):

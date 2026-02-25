@@ -28,8 +28,7 @@ curl -X POST https://naas.example.com/v1/send_command \
 # Response
 {
   "job_id": "abc123",
-  "status": "queued",
-  "created_at": "2026-02-23T22:00:00Z"
+  "message": "Job enqueued"
 }
 
 # Get results
