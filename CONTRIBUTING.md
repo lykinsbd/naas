@@ -34,7 +34,7 @@ pre-commit install
 4. Run tests:
 
 ```bash
-pytest
+uv run pytest
 ```
 
 ## Development Commands
@@ -43,32 +43,32 @@ We use [invoke](https://www.pyinvoke.org/) for common development tasks:
 
 ```bash
 # Install dependencies
-invoke install
+uv run invoke install
 
 # Code quality
-invoke lint          # Run ruff linter
-invoke format        # Format code with ruff
-invoke typecheck     # Run mypy type checker
-invoke check         # Run all code checks
+uv run invoke lint          # Run ruff linter
+uv run invoke format        # Format code with ruff
+uv run invoke typecheck     # Run mypy type checker
+uv run invoke check         # Run all code checks
 
 # Testing
-invoke test          # Run unit tests with coverage
-invoke test-all      # Run all tests (unit + integration)
+uv run invoke test          # Run unit tests with coverage
+uv run invoke test-all      # Run all tests (unit + integration)
 
 # Documentation
-invoke docs-lint     # Check markdown style
-invoke docs-prose    # Check writing quality (Vale)
-invoke docs-links    # Check for broken links
-invoke docs-check    # Run all docs checks
+uv run invoke docs-lint     # Check markdown style
+uv run invoke docs-prose    # Check writing quality (Vale)
+uv run invoke docs-links    # Check for broken links
+uv run invoke docs-check    # Run all docs checks
 
 # Utilities
-invoke clean         # Remove generated files
+uv run invoke clean         # Remove generated files
 ```
 
 List all available tasks:
 
 ```bash
-invoke --list
+uv run invoke --list
 ```
 
 ### Installing Documentation Tools
@@ -351,8 +351,8 @@ Code quality checks run automatically on commit:
 To run manually:
 
 ```bash
-invoke format  # Format and fix issues
-invoke check   # Run all checks
+uv run invoke format  # Format and fix issues
+uv run invoke check   # Run all checks
 ```
 
 ### Guidelines
@@ -380,7 +380,7 @@ When you create a PR, add a news fragment file:
 
 ```bash
 # Using invoke task
-invoke changelog-create --pr=123 --type=feature --content="Add connection pooling"
+uv run invoke changelog-create --pr=123 --type=feature --content="Add connection pooling"
 
 # Or manually create the file
 echo "Add connection pooling for improved performance" > changes/123.feature.md
@@ -440,7 +440,7 @@ Refactor netmiko_lib.py to use ConnectionPool class
 See how your fragment will appear:
 
 ```bash
-invoke changelog-draft
+uv run invoke changelog-draft
 ```
 
 ### CI Validation

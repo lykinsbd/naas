@@ -71,13 +71,13 @@ Priority modules:
 
 ```bash
 # Run all tests with coverage
-pytest --cov=naas --cov-report=html --cov-report=term-missing
+uv run pytest --cov=naas --cov-report=html --cov-report=term-missing
 
 # View HTML report
 open htmlcov/index.html
 
 # Check if coverage meets minimum
-pytest tests/unit --cov=naas --cov-report=term --cov-fail-under=15
+uv run pytest tests/unit --cov=naas --cov-report=term --cov-fail-under=15
 ```
 
 ## CI Coverage
