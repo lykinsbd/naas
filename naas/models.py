@@ -4,6 +4,7 @@ import logging
 from typing import Any
 
 from flask import current_app
+from netmiko import platforms as netmiko_platforms
 from pydantic import BaseModel, Field, IPvAnyAddress, ValidationError, field_validator, model_validator
 
 logger = logging.getLogger(__name__)
@@ -71,6 +72,14 @@ class SendCommandRequest(BaseModel):
             raise ValueError("commands must contain non-empty strings")
         return v
 
+    @field_validator("platform")
+    @classmethod
+    def platform_is_valid(cls, v: str) -> str:
+        """Ensure platform is a valid Netmiko device type."""
+        if v not in netmiko_platforms:
+            raise ValueError(f"Invalid platform '{v}'. Must be a valid Netmiko device type.")
+        return v
+
 
 class SendConfigRequest(BaseModel):
     """Request model for send_config endpoint."""
@@ -98,6 +107,14 @@ class SendConfigRequest(BaseModel):
         """Ensure config list contains non-empty strings."""
         if v is not None and not all(cmd.strip() for cmd in v):
             raise ValueError("config/commands must contain non-empty strings")
+        return v
+
+    @field_validator("platform")
+    @classmethod
+    def platform_is_valid(cls, v: str) -> str:
+        """Ensure platform is a valid Netmiko device type."""
+        if v not in netmiko_platforms:
+            raise ValueError(f"Invalid platform '{v}'. Must be a valid Netmiko device type.")
         return v
 
     @model_validator(mode="after")

@@ -146,6 +146,25 @@ class TestSendCommand:
         assert response.status_code == 422
         assert "errors" in response.json
 
+    def test_send_command_invalid_platform(self, app, client):
+        """Test POST with invalid platform returns 422."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
+            response = client.post(
+                "/send_command",
+                json={
+                    "ip": "192.0.2.1",
+                    "commands": ["show version"],
+                    "platform": "not_a_real_platform",
+                },
+                headers={"Authorization": f"Basic {auth}"},
+            )
+
+        assert response.status_code == 422
+        assert "errors" in response.json
+
     def test_send_command_device_type_backward_compat(self, app, client):
         """Test POST with deprecated device_type maps to platform."""
         auth = b64encode(b"testuser:testpass").decode()
@@ -273,6 +292,25 @@ class TestSendConfig:
                 "/send_config",
                 json={
                     "ip": "192.0.2.1",
+                },
+                headers={"Authorization": f"Basic {auth}"},
+            )
+
+        assert response.status_code == 422
+        assert "errors" in response.json
+
+    def test_send_config_invalid_platform(self, app, client):
+        """Test POST with invalid platform returns 422."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
+            response = client.post(
+                "/send_config",
+                json={
+                    "ip": "192.0.2.1",
+                    "commands": ["interface gi0/1"],
+                    "platform": "not_a_real_platform",
                 },
                 headers={"Authorization": f"Basic {auth}"},
             )
