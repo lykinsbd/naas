@@ -44,6 +44,7 @@ jobs:
       - uses: errata-ai/vale-action@v2
         with:
           files: '["README.md", "CONTRIBUTING.md", "docs/quickstart.md", "docs/api-usage.md", "docs/troubleshooting.md", "docs/security.md"]'
+          version: latest
 
   prose-lint-changelog:
     runs-on: ubuntu-latest
