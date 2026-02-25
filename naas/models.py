@@ -3,34 +3,10 @@
 import logging
 from typing import Any, Literal
 
-from flask import current_app
 from netmiko import platforms as netmiko_platforms
-from pydantic import BaseModel, Field, IPvAnyAddress, ValidationError, field_validator, model_validator
+from pydantic import BaseModel, Field, IPvAnyAddress, field_validator, model_validator
 
 logger = logging.getLogger(__name__)
-
-
-def validate_request(model_class: type[BaseModel], data: dict[str, Any]) -> BaseModel | tuple[dict, int]:
-    """Validate request data against a Pydantic model.
-
-    Returns:
-        The validated model instance, or a (error_dict, 422) tuple on failure.
-    """
-    current_app.logger.debug("Request JSON: %s", data)
-    try:
-        return model_class(**data)
-    except ValidationError as e:
-        current_app.logger.error("Validation error: %s", e.errors())
-        errors = [
-            {
-                "type": err["type"],
-                "loc": err["loc"],
-                "msg": err["msg"],
-                "input": str(err.get("input", ""))[:100],
-            }
-            for err in e.errors()
-        ]
-        return {"message": "Validation failed", "errors": errors}, 422
 
 
 def _handle_device_type(data: dict[str, Any]) -> dict[str, Any]:
@@ -48,7 +24,16 @@ def _handle_device_type(data: dict[str, Any]) -> dict[str, Any]:
 
 
 class SendCommandRequest(BaseModel):
-    """Request model for send_command endpoint."""
+    """Request model for send_command endpoint.
+
+    Uses strict=True because spectree passes Flask's parsed JSON body (native Python
+    types) to model_validate(). Strict mode rejects type mismatches (e.g. port sent
+    as a JSON string instead of a number) rather than silently coercing them.
+
+    NOTE: Do NOT use strict=True on query parameter models (e.g. ListJobsQuery).
+    Query params always arrive as strings from werkzeug; strict mode would reject
+    valid integer params like ?page=2 because '2' is a str, not an int.
+    """
 
     model_config = {"strict": True}
 
@@ -82,7 +67,11 @@ class SendCommandRequest(BaseModel):
 
 
 class SendConfigRequest(BaseModel):
-    """Request model for send_config endpoint."""
+    """Request model for send_config endpoint.
+
+    Uses strict=True for the same reason as SendCommandRequest — see that class
+    for the strict vs. non-strict rationale.
+    """
 
     model_config = {"strict": True}
 
@@ -144,7 +133,12 @@ class JobResultResponse(BaseModel):
 
 
 class ListJobsQuery(BaseModel):
-    """Query parameters for the list jobs endpoint."""
+    """Query parameters for the list jobs endpoint.
+
+    NOTE: No strict=True here — query params arrive as strings from werkzeug.
+    Pydantic's default lax mode coerces '2' -> 2 for int fields, which is required
+    for query parameter models. See SendCommandRequest for the full rationale.
+    """
 
     page: int = Field(default=1, ge=1)
     per_page: int = Field(default=20, ge=1, le=100)

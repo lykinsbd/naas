@@ -19,6 +19,7 @@ from naas.resources.healthcheck import HealthCheck
 from naas.resources.list_jobs import ListJobs
 from naas.resources.send_command import SendCommand
 from naas.resources.send_config import SendConfig
+from naas.spec import spec
 
 app = Flask(__name__)
 
@@ -41,3 +42,5 @@ api.add_resource(SendCommand, "/send_command")
 api.add_resource(SendConfig, "/send_config")
 api.add_resource(GetResults, "/send_command/<string:job_id>", "/send_config/<string:job_id>")
 api.add_resource(ListJobs, "/v1/jobs")
+
+spec.register(app)
