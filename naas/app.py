@@ -8,9 +8,11 @@ Description: Main app setup/config
 """
 
 import logging
+import os
 
 from flask import Flask, request
 from flask_restful import Api
+from pythonjsonlogger.json import JsonFormatter
 
 from naas.config import app_configure
 from naas.library.errorhandlers import api_error_generator
@@ -25,7 +27,17 @@ app = Flask(__name__)
 
 app_configure(app)
 
-# Setup logging:
+# Structured JSON logging
+_handler = logging.StreamHandler()
+_handler.setFormatter(
+    JsonFormatter(
+        fmt="%(asctime)s %(levelname)s %(name)s %(message)s",
+        rename_fields={"asctime": "timestamp", "levelname": "level", "name": "logger"},
+    )
+)
+logging.root.handlers = [_handler]
+logging.root.setLevel(os.environ.get("LOG_LEVEL", "INFO"))
+
 logger = logging.getLogger(name="NAAS")
 app.logger.handlers = logger.handlers
 app.logger.setLevel(logger.level)
