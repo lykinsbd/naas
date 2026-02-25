@@ -92,6 +92,32 @@ def docs_serve(c):
 
 
 @task
+def export_spec(c):
+    """Export OpenAPI spec from the running app to docs/swagger/openapi.json."""
+    import json
+    from unittest.mock import patch
+
+    import fakeredis
+
+    # Patch Redis before importing app (app_configure hits Redis at import time)
+    with patch("naas.config.Redis", return_value=fakeredis.FakeStrictRedis()):
+        with patch("naas.config.Queue"):
+            from naas.app import app
+
+            with app.test_client() as client:
+                response = client.get("/apidoc/openapi.json")
+                assert response.status_code == 200, f"Failed to fetch spec: {response.status_code}"
+                spec = response.get_json()
+
+    output_path = "docs/swagger/openapi.json"
+    with open(output_path, "w") as f:
+        json.dump(spec, f, indent=2)
+        f.write("\n")
+
+    print(f"✅ OpenAPI spec written to {output_path}")
+
+
+@task
 def changelog_draft(c):
     """Preview changelog for next release."""
     c.run("towncrier build --draft --version NEXT")
