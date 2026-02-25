@@ -24,6 +24,7 @@ dependencies = [
     "redis>=3.4.1",
     "rq>=1.2.2",
     "scp>=0.13.2",
+    "spectree>=2.0.1",
     "textfsm>=1.1.0",
 ]
 

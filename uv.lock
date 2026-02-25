@@ -1135,6 +1135,7 @@ dependencies = [
     { name = "redis" },
     { name = "rq" },
     { name = "scp" },
+    { name = "spectree" },
     { name = "textfsm" },
 ]
 
@@ -1187,6 +1188,7 @@ requires-dist = [
     { name = "rq", specifier = ">=1.2.2" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.8.0" },
     { name = "scp", specifier = ">=0.13.2" },
+    { name = "spectree", specifier = ">=2.0.1" },
     { name = "textfsm", specifier = ">=1.1.0" },
     { name = "towncrier", marker = "extra == 'dev'", specifier = ">=23.11.0" },
 ]
@@ -1846,6 +1848,18 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/e8/c4/ba2f8066cceb6f23394729afe52f3bf7adec04bf9ed2c820b39e19299111/sortedcontainers-2.4.0.tar.gz", hash = "sha256:25caa5a06cc30b6b83d11423433f65d1f9d76c4c6a0c90e3379eaa43b9bfdb88", size = 30594, upload-time = "2021-05-16T22:03:42.897Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/32/46/9cb0e58b2deb7f82b84065f37f3bffeb12413f947f9388e4cac22c4621ce/sortedcontainers-2.4.0-py2.py3-none-any.whl", hash = "sha256:a163dcaede0f1c021485e957a39245190e74249897e2ae4b2aa38595db237ee0", size = 29575, upload-time = "2021-05-16T22:03:41.177Z" },
+]
+
+[[package]]
+name = "spectree"
+version = "2.0.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/72/3d/1380581a90b714a56cb1669982e5889557b6edcda85e9ee3d538804f4726/spectree-2.0.1.tar.gz", hash = "sha256:280dd6beb10a9c5f023254650d3d8f4494077d556f7de92c1fbebd1203efe39c", size = 58970, upload-time = "2025-12-16T01:38:52.428Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ca/9c/889999a8e8c1c9c56b55f20038e807e234199887b3ba706bd708b57ce9d8/spectree-2.0.1-py3-none-any.whl", hash = "sha256:fd30dadca93afdd82573d886365ae27f0b3eea4ed43a9daf6f6616483520b673", size = 44438, upload-time = "2025-12-16T01:38:51.011Z" },
 ]
 
 [[package]]

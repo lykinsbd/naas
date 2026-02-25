@@ -2,17 +2,18 @@
 
 from flask import current_app, request
 from flask_restful import Resource
-from pydantic import ValidationError
 from rq.job import Job
 from rq.registry import FailedJobRegistry, FinishedJobRegistry, StartedJobRegistry
 
 from naas import __base_response__
 from naas.library.validation import Validate
 from naas.models import ListJobsQuery
+from naas.spec import spec
 
 
 class ListJobs(Resource):
     @staticmethod
+    @spec.validate(query=ListJobsQuery)
     def get():
         """
         List jobs with pagination and filtering.
@@ -26,15 +27,7 @@ class ListJobs(Resource):
         v = Validate()
         v.has_auth()
 
-        # Validate query parameters
-        try:
-            query = ListJobsQuery(
-                page=request.args.get("page", 1),
-                per_page=request.args.get("per_page", 20),
-                status=request.args.get("status"),
-            )
-        except ValidationError as e:
-            return {"errors": e.errors()}, 422
+        query: ListJobsQuery = request.context.query
 
         # Get queue and registries
         q = current_app.config["q"]

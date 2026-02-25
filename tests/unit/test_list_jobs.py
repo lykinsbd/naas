@@ -129,7 +129,7 @@ class TestListJobs:
         response = client.get("/v1/jobs?page=0&per_page=200", headers={"Authorization": f"Basic {auth}"})
 
         assert response.status_code == 422
-        assert "errors" in response.json
+        assert isinstance(response.json, list)
 
     def test_list_jobs_invalid_status(self, app, client):
         """Test GET with invalid status value returns 422."""
@@ -138,7 +138,7 @@ class TestListJobs:
         response = client.get("/v1/jobs?status=invalid", headers={"Authorization": f"Basic {auth}"})
 
         assert response.status_code == 422
-        assert "errors" in response.json
+        assert isinstance(response.json, list)
 
     def test_list_jobs_failed_status(self, app, client):
         """Test GET with failed status filter."""

@@ -2,12 +2,14 @@
 
 from flask import current_app, g, request
 from flask_restful import Resource
+from spectree import Response
 
 from naas import __base_response__
 from naas.library.auth import job_locker
 from naas.library.decorators import valid_post
 from naas.library.netmiko_lib import netmiko_send_command
-from naas.models import JobResponse, SendCommandRequest, validate_request
+from naas.models import JobResponse, SendCommandRequest
+from naas.spec import spec
 
 
 class SendCommand(Resource):
@@ -16,6 +18,7 @@ class SendCommand(Resource):
         return __base_response__
 
     @valid_post
+    @spec.validate(json=SendCommandRequest, resp=Response(HTTP_202=JobResponse))
     def post(self):
         """
         Will enqueue an attempt to run commands on a device.
@@ -31,12 +34,7 @@ class SendCommand(Resource):
         Secured by Basic Auth, which is then passed to the network device.
         :return: A dict of the job ID, a 202 response code, and the job_id as the X-Request-ID header
         """
-        # Validate request with Pydantic
-        result = validate_request(SendCommandRequest, request.json)
-        if not isinstance(result, SendCommandRequest):
-            return result
-        validated = result
-
+        validated: SendCommandRequest = request.context.json
         ip_str = str(validated.ip)
 
         # Log this request's details
