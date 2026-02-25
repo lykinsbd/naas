@@ -258,7 +258,7 @@
         "operationId": "get__",
         "parameters": [],
         "responses": {},
-        "summary": "get <GET>",
+        "summary": "Return detailed health status including component checks.",
         "tags": []
       }
     },
@@ -268,7 +268,7 @@
         "operationId": "get__healthcheck",
         "parameters": [],
         "responses": {},
-        "summary": "get <GET>",
+        "summary": "Return detailed health status including component checks.",
         "tags": []
       }
     },
@@ -416,7 +416,7 @@
         "operationId": "get__v1_healthcheck",
         "parameters": [],
         "responses": {},
-        "summary": "get <GET>",
+        "summary": "Return detailed health status including component checks.",
         "tags": []
       }
     },
