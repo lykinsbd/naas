@@ -2,13 +2,12 @@
 
 from flask import current_app, g, request
 from flask_restful import Resource
-from pydantic import ValidationError
 
 from naas import __base_response__
 from naas.library.auth import job_locker
 from naas.library.decorators import valid_post
 from naas.library.netmiko_lib import netmiko_send_command
-from naas.models import SendCommandRequest
+from naas.models import SendCommandRequest, validate_request
 
 
 class SendCommand(Resource):
@@ -33,22 +32,10 @@ class SendCommand(Resource):
         :return: A dict of the job ID, a 202 response code, and the job_id as the X-Request-ID header
         """
         # Validate request with Pydantic
-        current_app.logger.debug("Request JSON: %s", request.json)
-        try:
-            validated = SendCommandRequest(**request.json)
-        except ValidationError as e:
-            current_app.logger.error("Validation error: %s", e.errors())
-            # Convert errors to JSON-serializable format
-            errors = [
-                {
-                    "type": err["type"],
-                    "loc": err["loc"],
-                    "msg": err["msg"],
-                    "input": str(err.get("input", ""))[:100],  # Truncate input
-                }
-                for err in e.errors()
-            ]
-            return {"message": "Validation failed", "errors": errors}, 422
+        result = validate_request(SendCommandRequest, request.json)
+        if not isinstance(result, SendCommandRequest):
+            return result
+        validated = result
 
         ip_str = str(validated.ip)
 

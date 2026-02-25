@@ -3,9 +3,33 @@
 import logging
 from typing import Any
 
-from pydantic import BaseModel, Field, IPvAnyAddress, field_validator, model_validator
+from flask import current_app
+from pydantic import BaseModel, Field, IPvAnyAddress, ValidationError, field_validator, model_validator
 
 logger = logging.getLogger(__name__)
+
+
+def validate_request(model_class: type[BaseModel], data: dict[str, Any]) -> BaseModel | tuple[dict, int]:
+    """Validate request data against a Pydantic model.
+
+    Returns:
+        The validated model instance, or a (error_dict, 422) tuple on failure.
+    """
+    current_app.logger.debug("Request JSON: %s", data)
+    try:
+        return model_class(**data)
+    except ValidationError as e:
+        current_app.logger.error("Validation error: %s", e.errors())
+        errors = [
+            {
+                "type": err["type"],
+                "loc": err["loc"],
+                "msg": err["msg"],
+                "input": str(err.get("input", ""))[:100],
+            }
+            for err in e.errors()
+        ]
+        return {"message": "Validation failed", "errors": errors}, 422
 
 
 def _handle_device_type(data: dict[str, Any]) -> dict[str, Any]:
