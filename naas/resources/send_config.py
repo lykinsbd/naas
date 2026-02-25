@@ -7,6 +7,7 @@ from naas import __base_response__
 from naas.library.auth import job_locker
 from naas.library.decorators import valid_post
 from naas.library.netmiko_lib import netmiko_send_config
+from naas.models import JobResponse, SendConfigRequest, validate_request
 
 
 class SendConfig(Resource):
@@ -32,33 +33,56 @@ class SendConfig(Resource):
         Secured by Basic Auth, which is then passed to the network device.
         :return: A dict of the job ID, a 202 response code, and the job_id as the X-Request-ID header
         """
+        # Validate request with Pydantic
+        result = validate_request(SendConfigRequest, request.json)
+        if not isinstance(result, SendConfigRequest):
+            return result
+        validated = result
+
+        ip_str = str(validated.ip)
+
+        # Log this request's details
+        current_app.logger.info(
+            "%s: %s is issuing %s command(s) to %s:%s",
+            g.request_id,
+            g.credentials.username,
+            len(validated.config),
+            ip_str,
+            validated.port,
+        )
+        current_app.logger.debug(
+            "%s: %s is issuing the following commands to %s:%s: %s",
+            g.request_id,
+            g.credentials.username,
+            ip_str,
+            validated.port,
+            validated.config,
+        )
 
         # Enqueue your job, and return the job ID
         current_app.logger.debug(
             "%s: Enqueueing job for %s@%s:%s",
             g.request_id,
             g.credentials.username,
-            request.json["ip"],
-            request.json["port"],
+            ip_str,
+            validated.port,
         )
         job = current_app.config["q"].enqueue(
             netmiko_send_config,
-            ip=request.json["ip"],
-            port=request.json["port"],
-            device_type=request.json["platform"],
+            ip=ip_str,
+            port=validated.port,
+            device_type=validated.platform,
             credentials=g.credentials,
-            commands=request.json["commands"],
-            save_config=request.json["save_config"],
-            commit=request.json["commit"],
-            delay_factor=request.json["delay_factor"],
+            commands=validated.config,
+            save_config=validated.save_config,
+            commit=validated.commit,
+            delay_factor=validated.delay_factor,
             job_id=g.request_id,
             result_ttl=86460,
             failure_ttl=86460,
         )
         job_id = job.get_id()
-        current_app.logger.info(
-            "%s: Enqueued job for %s@%s:%s", job_id, g.credentials.username, request.json["ip"], request.json["port"]
-        )
+        current_app.logger.info("%s: Enqueued job for %s@%s:%s", job_id, g.credentials.username, ip_str, validated.port)
 
         # Generate the un/pw hash:
         user_hash = g.credentials.salted_hash()
@@ -67,6 +91,6 @@ class SendConfig(Resource):
         job_locker(salted_creds=user_hash, job_id=job_id)
 
         # Return our payload containing job_id added to the base response, a 202 Accepted, and the X-Request-ID header
-        response = {"job_id": job_id}
+        response = JobResponse(job_id=job_id, message="Job enqueued").model_dump()
         response.update(__base_response__)
         return response, 202, {"X-Request-ID": job_id}

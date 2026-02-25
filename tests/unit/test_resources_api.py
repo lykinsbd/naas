@@ -3,6 +3,8 @@
 from base64 import b64encode
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 
 class TestSendCommand:
     """Test send_command resource."""
@@ -33,9 +35,10 @@ class TestSendCommand:
                 headers={"Authorization": f"Basic {auth}"},
             )
 
-        if response.status_code != 202:
-            print(f"Response: {response.get_json()}")
         assert response.status_code == 202
+        assert response.json["job_id"] is not None
+        assert response.json["message"] == "Job enqueued"
+        assert response.headers["X-Request-ID"] == response.json["job_id"]
 
     def test_send_command_post_no_auth(self, client):
         """Test POST without auth returns 401."""
@@ -48,6 +51,156 @@ class TestSendCommand:
         )
 
         assert response.status_code == 401
+
+    def test_send_command_invalid_ip(self, app, client):
+        """Test POST with invalid IP returns 422."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
+            response = client.post(
+                "/send_command",
+                json={
+                    "ip": "not-an-ip",
+                    "commands": ["show version"],
+                },
+                headers={"Authorization": f"Basic {auth}"},
+            )
+
+        assert response.status_code == 422
+        assert "errors" in response.json
+
+    def test_send_command_empty_commands(self, app, client):
+        """Test POST with empty commands list returns 422."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
+            response = client.post(
+                "/send_command",
+                json={
+                    "ip": "192.168.1.1",
+                    "commands": [],
+                },
+                headers={"Authorization": f"Basic {auth}"},
+            )
+
+        assert response.status_code == 422
+        assert "errors" in response.json
+
+    def test_send_command_empty_string_in_commands(self, app, client):
+        """Test POST with empty string in commands list returns 422."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
+            response = client.post(
+                "/send_command",
+                json={
+                    "ip": "192.0.2.1",
+                    "commands": ["show version", "  ", "show run"],
+                },
+                headers={"Authorization": f"Basic {auth}"},
+            )
+
+        assert response.status_code == 422
+        assert "errors" in response.json
+
+    def test_send_command_unexpected_error(self, app, client):
+        """Test POST with unexpected error during validation."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with (
+            patch("naas.library.validation.tacacs_auth_lockout", return_value=False),
+            patch("naas.resources.send_command.SendCommandRequest") as mock_model,
+        ):
+            mock_model.side_effect = RuntimeError("Unexpected error")
+
+            with pytest.raises(RuntimeError):
+                client.post(
+                    "/send_command",
+                    json={
+                        "ip": "192.0.2.1",
+                        "commands": ["show version"],
+                    },
+                    headers={"Authorization": f"Basic {auth}"},
+                )
+
+    def test_send_command_invalid_port(self, app, client):
+        """Test POST with invalid port returns 422."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
+            response = client.post(
+                "/send_command",
+                json={
+                    "ip": "192.168.1.1",
+                    "port": 99999,
+                    "commands": ["show version"],
+                },
+                headers={"Authorization": f"Basic {auth}"},
+            )
+
+        assert response.status_code == 422
+        assert "errors" in response.json
+
+    def test_send_command_invalid_platform(self, app, client):
+        """Test POST with invalid platform returns 422."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
+            response = client.post(
+                "/send_command",
+                json={
+                    "ip": "192.0.2.1",
+                    "commands": ["show version"],
+                    "platform": "not_a_real_platform",
+                },
+                headers={"Authorization": f"Basic {auth}"},
+            )
+
+        assert response.status_code == 422
+        assert "errors" in response.json
+
+    def test_send_command_device_type_backward_compat(self, app, client):
+        """Test POST with deprecated device_type maps to platform."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
+            response = client.post(
+                "/send_command",
+                json={
+                    "ip": "192.0.2.1",
+                    "commands": ["show version"],
+                    "device_type": "arista_eos",
+                },
+                headers={"Authorization": f"Basic {auth}"},
+            )
+
+        assert response.status_code == 202
+
+    def test_send_command_device_type_ignored_when_platform_present(self, app, client):
+        """Test POST with both device_type and platform uses platform."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
+            response = client.post(
+                "/send_command",
+                json={
+                    "ip": "192.0.2.1",
+                    "commands": ["show version"],
+                    "device_type": "arista_eos",
+                    "platform": "cisco_nxos",
+                },
+                headers={"Authorization": f"Basic {auth}"},
+            )
+
+        assert response.status_code == 202
 
     def test_send_command_with_request_id(self, app, client):
         """Test POST with custom X-Request-ID uses that ID."""
@@ -108,7 +261,83 @@ class TestSendConfig:
 
         assert response.status_code == 202
         assert "job_id" in response.json
+        assert response.json["message"] == "Job enqueued"
         assert response.headers["X-Request-ID"] == response.json["job_id"]
+
+    def test_send_config_empty_string_in_commands(self, app, client):
+        """Test POST with empty string in commands list returns 422."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
+            response = client.post(
+                "/send_config",
+                json={
+                    "ip": "192.0.2.1",
+                    "commands": ["interface gi0/1", "  ", "description test"],
+                },
+                headers={"Authorization": f"Basic {auth}"},
+            )
+
+        assert response.status_code == 422
+        assert "errors" in response.json
+
+    def test_send_config_missing_both_config_and_commands(self, app, client):
+        """Test POST without config or commands returns 422."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
+            response = client.post(
+                "/send_config",
+                json={
+                    "ip": "192.0.2.1",
+                },
+                headers={"Authorization": f"Basic {auth}"},
+            )
+
+        assert response.status_code == 422
+        assert "errors" in response.json
+
+    def test_send_config_invalid_platform(self, app, client):
+        """Test POST with invalid platform returns 422."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
+            response = client.post(
+                "/send_config",
+                json={
+                    "ip": "192.0.2.1",
+                    "commands": ["interface gi0/1"],
+                    "platform": "not_a_real_platform",
+                },
+                headers={"Authorization": f"Basic {auth}"},
+            )
+
+        assert response.status_code == 422
+        assert "errors" in response.json
+
+    def test_send_config_unexpected_error(self, app, client):
+        """Test POST with unexpected error during validation."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with (
+            patch("naas.library.validation.tacacs_auth_lockout", return_value=False),
+            patch("naas.resources.send_config.SendConfigRequest") as mock_model,
+        ):
+            mock_model.side_effect = RuntimeError("Unexpected error")
+
+            with pytest.raises(RuntimeError):
+                client.post(
+                    "/send_config",
+                    json={
+                        "ip": "192.0.2.1",
+                        "commands": ["interface gi0/1"],
+                    },
+                    headers={"Authorization": f"Basic {auth}"},
+                )
 
     def test_send_config_post_no_auth(self, client):
         """Test POST without auth returns 401."""

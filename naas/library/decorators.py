@@ -4,7 +4,7 @@
 from functools import wraps
 from uuid import uuid4
 
-from flask import current_app, g, request
+from flask import g, request
 
 from naas.library import validation
 from naas.library.auth import Credentials
@@ -30,13 +30,6 @@ def valid_post(f):
         v.has_auth()
         v.locked_out()
         v.is_json()
-        v.is_ip_addr()
-        v.is_command_set()
-        v.has_port()
-        v.save_config()
-        v.commit()
-        v.has_platform()
-        v.has_delay_factor()
 
         # Capture or create the x-request-id, and store it on the g object
         if "x-request-id" not in v.headers.keys():
@@ -55,23 +48,6 @@ def valid_post(f):
             enable=request.json.get("enable", None),
         )
 
-        # Log this request's details
-        current_app.logger.info(
-            "%s: %s is issuing %s command(s) to %s:%s",
-            g.request_id,
-            g.credentials.username,
-            len(request.json["commands"]),
-            request.json["ip"],
-            request.json["port"],
-        )
-        current_app.logger.debug(
-            "%s: %s is issuing the following commands to %s:%s: %s",
-            g.request_id,
-            g.credentials.username,
-            request.json["ip"],
-            request.json["port"],
-            request.json["commands"],
-        )
         return f(*args, **kwargs)
 
     return wrapper

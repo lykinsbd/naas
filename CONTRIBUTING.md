@@ -71,6 +71,30 @@ List all available tasks:
 invoke --list
 ```
 
+## Docker and Dependencies
+
+### Dependency Management
+
+NAAS uses `uv` for dependency management with `uv.lock` as the source of truth.
+
+**Important**: The Dockerfile uses `uv.lock` directly - there is NO `requirements.lock` file to maintain.
+
+When adding dependencies:
+
+```bash
+# Add a new dependency
+uv add package-name
+
+# Add a dev dependency
+uv add --dev package-name
+
+# Commit both pyproject.toml and uv.lock
+git add pyproject.toml uv.lock
+git commit -m "chore(deps): add package-name"
+```
+
+The Docker build automatically exports dependencies from `uv.lock` during the build process, ensuring the image always matches the lock file.
+
 ### Installing Documentation Tools
 
 To run documentation checks locally, install the tools:

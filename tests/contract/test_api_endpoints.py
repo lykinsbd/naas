@@ -88,10 +88,10 @@ class TestSendCommand:
         assert response.status_code == 415
 
     def test_post_requires_ip(self, client, auth_headers):
-        """POST /send_command without ip should return 400."""
+        """POST /send_command without ip should return 422."""
         payload = {"commands": ["show version"]}
         response = client.post("/send_command", json=payload, headers=auth_headers)
-        assert response.status_code == 400
+        assert response.status_code == 422
 
     def test_post_requires_valid_ip(self, client, auth_headers):
         """POST /send_command with invalid ip should return 422."""
@@ -103,10 +103,10 @@ class TestSendCommand:
         assert response.status_code == 422
 
     def test_post_requires_commands(self, client, auth_headers):
-        """POST /send_command without commands should return 400."""
+        """POST /send_command without commands should return 422."""
         payload = {"ip": "192.0.2.1"}
         response = client.post("/send_command", json=payload, headers=auth_headers)
-        assert response.status_code == 400
+        assert response.status_code == 422
 
     def test_post_requires_commands_list(self, client, auth_headers):
         """POST /send_command with non-list commands should return 422."""
@@ -148,16 +148,16 @@ class TestSendConfig:
         assert response.status_code == 415
 
     def test_post_requires_ip(self, client, auth_headers):
-        """POST /send_config without ip should return 400."""
+        """POST /send_config without ip should return 422."""
         payload = {"commands": ["interface Ethernet1"]}
         response = client.post("/send_config", json=payload, headers=auth_headers)
-        assert response.status_code == 400
+        assert response.status_code == 422
 
     def test_post_requires_commands(self, client, auth_headers):
-        """POST /send_config without commands should return 400."""
+        """POST /send_config without commands should return 422."""
         payload = {"ip": "192.0.2.1"}
         response = client.post("/send_config", json=payload, headers=auth_headers)
-        assert response.status_code == 400
+        assert response.status_code == 422
 
     def test_post_rejects_save_config_non_bool(self, client, auth_headers):
         """POST /send_config should reject save_config as non-bool."""
