@@ -1,15 +1,16 @@
 """Pydantic models for request/response validation."""
 
-from ipaddress import IPv4Address, IPv6Address
 from typing import Any
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, IPvAnyAddress, field_validator
 
 
 class SendCommandRequest(BaseModel):
     """Request model for send_command endpoint."""
 
-    ip: IPv4Address | IPv6Address = Field(..., description="Device IP address")
+    model_config = {"strict": True}
+
+    ip: IPvAnyAddress = Field(..., description="Device IP address")
     commands: list[str] = Field(..., min_length=1, description="Commands to execute")
     port: int = Field(default=22, ge=1, le=65535, description="SSH port")
     platform: str = Field(default="cisco_ios", description="Netmiko device type")
@@ -28,7 +29,9 @@ class SendCommandRequest(BaseModel):
 class SendConfigRequest(BaseModel):
     """Request model for send_config endpoint."""
 
-    ip: IPv4Address | IPv6Address = Field(..., description="Device IP address")
+    model_config = {"strict": True}
+
+    ip: IPvAnyAddress = Field(..., description="Device IP address")
     config: list[str] | None = Field(default=None, min_length=1, description="Configuration commands")
     commands: list[str] | None = Field(default=None, min_length=1, description="Configuration commands (alias)")
     port: int = Field(default=22, ge=1, le=65535, description="SSH port")

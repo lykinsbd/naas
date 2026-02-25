@@ -25,7 +25,8 @@ def mock_rq_queue():
 
     mock_queue = MagicMock()
     mock_queue.enqueue.return_value = mock_job
-    mock_queue.fetch_job.return_value = mock_job
+    # Return None for fetch_job to indicate no existing job
+    mock_queue.fetch_job.return_value = None
 
     return mock_queue
 

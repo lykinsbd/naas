@@ -39,7 +39,17 @@ class SendConfig(Resource):
             validated = SendConfigRequest(**request.json)
         except ValidationError as e:
             current_app.logger.error("Validation error: %s", e.errors())
-            return {"message": "Validation failed", "errors": e.errors()}, 422
+            # Convert errors to JSON-serializable format
+            errors = [
+                {
+                    "type": err["type"],
+                    "loc": err["loc"],
+                    "msg": err["msg"],
+                    "input": str(err.get("input", ""))[:100],  # Truncate input
+                }
+                for err in e.errors()
+            ]
+            return {"message": "Validation failed", "errors": errors}, 422
 
         # Enqueue your job, and return the job ID
         current_app.logger.debug(
