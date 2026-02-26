@@ -5,7 +5,9 @@ All notable changes to NAAS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-<!-- towncrier release notes start -->
+<!-
+
+- towncrier release notes start -->
 
 # NAAS 1.1.0rc2 (2026-02-26)
 
@@ -41,7 +43,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add architecture overview page with Mermaid diagrams covering system components, request lifecycle, async model rationale, and horizontal scaling. ([#146](https://github.com/lykinsbd/naas/issues/146))
 - Split CONTRIBUTING.md into a short contributor entry point and a full Development Guide reference page. ([#147](https://github.com/lykinsbd/naas/issues/147))
 - Configure Read the Docs to build the develop branch, making bleeding-edge documentation available at naas.readthedocs.io/en/develop/. ([#150](https://github.com/lykinsbd/naas/issues/150))
-- Document requirement that all merges to main must go through pull requests- Fix license section to reference existing MIT license file- Streamline README for clarity and conciseness- Update README with Read the Docs links
+- Document requirement that all merges to main must go through pull requests
+- Fix license section to reference existing MIT license file
+- Streamline README for clarity and conciseness
+- Update README with Read the Docs links
 
 ## 🧪 Testing & CI/CD
 
