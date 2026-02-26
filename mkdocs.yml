@@ -76,6 +76,7 @@ nav:
       - Environment Variables: deployment/environment-variables.md
   - Development:
       - Contributing: contributing.md
+      - Development Guide: development.md
       - Testing: testing.md
   - Reference:
       - API Reference: api-reference.md
