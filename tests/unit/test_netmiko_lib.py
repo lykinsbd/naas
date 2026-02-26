@@ -3,10 +3,16 @@
 from unittest.mock import MagicMock, patch
 
 import netmiko
+from fakeredis import FakeStrictRedis
 from paramiko import ssh_exception  # type: ignore[import-untyped]
 
+# Import module first, then replace Redis client
+import naas.library.netmiko_lib
 from naas.library.auth import Credentials
-from naas.library.netmiko_lib import netmiko_send_command, netmiko_send_config
+
+naas.library.netmiko_lib._redis_client = FakeStrictRedis(decode_responses=True)
+
+from naas.library.netmiko_lib import netmiko_send_command, netmiko_send_config  # noqa: E402
 
 
 class TestNetmikoSendCommand:
@@ -254,3 +260,33 @@ class TestCircuitBreaker:
 
             result, error = netmiko_send_command("192.168.1.4", creds, "cisco_ios", ["show version"])
             assert error is None
+
+    def test_redis_storage_properties(self):
+        """Test Redis storage class properties."""
+        from naas.library.netmiko_lib import RedisCircuitBreakerStorage
+
+        storage = RedisCircuitBreakerStorage("test_device", naas.library.netmiko_lib._redis_client)
+
+        # Test state
+        storage.state = "open"
+        assert storage.state == "open"
+
+        # Test counters
+        storage.increment_counter()
+        storage.increment_counter()
+        assert storage.counter == 2
+        storage.reset_counter()
+        assert storage.counter == 0
+
+        # Test success counter
+        storage.increment_success_counter()
+        assert storage.success_counter == 1
+        storage.reset_success_counter()
+        assert storage.success_counter == 0
+
+        # Test opened_at
+        from datetime import datetime
+
+        now = datetime.now()
+        storage.opened_at = now
+        assert storage.opened_at is not None
