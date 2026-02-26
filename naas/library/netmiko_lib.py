@@ -43,7 +43,7 @@ class RedisCircuitBreakerStorage(pybreaker.CircuitBreakerStorage):
     @property
     def state(self) -> str:
         """Get current circuit state."""
-        return self.redis.hget(self._key, "state") or "closed"
+        return self.redis.hget(self._key, "state") or "closed"  # type: ignore[return-value]
 
     @state.setter
     def state(self, state: str) -> None:
@@ -56,7 +56,7 @@ class RedisCircuitBreakerStorage(pybreaker.CircuitBreakerStorage):
 
     def reset_counter(self) -> None:
         """Reset failure counter."""
-        self.redis.hset(self._key, "counter", 0)
+        self.redis.hset(self._key, "counter", 0)  # type: ignore[arg-type]
 
     def increment_success_counter(self) -> None:
         """Increment success counter."""
@@ -64,25 +64,25 @@ class RedisCircuitBreakerStorage(pybreaker.CircuitBreakerStorage):
 
     def reset_success_counter(self) -> None:
         """Reset success counter."""
-        self.redis.hset(self._key, "success_counter", 0)
+        self.redis.hset(self._key, "success_counter", 0)  # type: ignore[arg-type]
 
     @property
     def counter(self) -> int:
         """Get failure counter."""
         val = self.redis.hget(self._key, "counter")
-        return int(val) if val else 0
+        return int(val) if val else 0  # type: ignore[arg-type]
 
     @property
     def success_counter(self) -> int:
         """Get success counter."""
         val = self.redis.hget(self._key, "success_counter")
-        return int(val) if val else 0
+        return int(val) if val else 0  # type: ignore[arg-type]
 
     @property
     def opened_at(self) -> datetime | None:
         """Get when circuit was opened."""
         val = self.redis.hget(self._key, "opened_at")
-        return datetime.fromisoformat(val) if val else None
+        return datetime.fromisoformat(val) if val else None  # type: ignore[arg-type]
 
     @opened_at.setter
     def opened_at(self, dt: datetime) -> None:
