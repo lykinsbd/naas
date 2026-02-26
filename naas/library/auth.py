@@ -63,7 +63,7 @@ def _is_locked_out(redis_key: str, redis: Redis, report_failure: bool = False) -
     if report_failure:
         redis.zadd(redis_key, {str(uuid4()): datetime.now().timestamp()})
         redis.expire(redis_key, 600)
-    return int(redis.zcard(redis_key)) >= 10  # type: ignore[arg-type]
+    return redis.zcard(redis_key) >= 10  # type: ignore[operator]  # redis stubs type zcard as Awaitable[Any]|Any; sync client always returns int
 
 
 def tacacs_auth_lockout(username: str, report_failure: bool = False) -> bool:

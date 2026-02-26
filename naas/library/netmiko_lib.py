@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 
 import netmiko
 import pybreaker
-from paramiko import ssh_exception  # type: ignore[import-untyped]
+from paramiko import ssh_exception
 from redis import Redis
 
 from naas.config import (
@@ -43,7 +43,7 @@ class RedisCircuitBreakerStorage(pybreaker.CircuitBreakerStorage):
     @property
     def state(self) -> str:
         """Get current circuit state."""
-        return self.redis.hget(self._key, "state") or "closed"  # type: ignore[return-value]
+        return self.redis.hget(self._key, "state") or "closed"  # type: ignore[return-value]  # redis stubs type hget as Awaitable[str|None]|str; sync client always returns str|None
 
     @state.setter
     def state(self, state: str) -> None:
@@ -56,7 +56,7 @@ class RedisCircuitBreakerStorage(pybreaker.CircuitBreakerStorage):
 
     def reset_counter(self) -> None:
         """Reset failure counter."""
-        self.redis.hset(self._key, "counter", 0)  # type: ignore[arg-type]
+        self.redis.hset(self._key, "counter", str(0))
 
     def increment_success_counter(self) -> None:
         """Increment success counter."""
@@ -64,25 +64,25 @@ class RedisCircuitBreakerStorage(pybreaker.CircuitBreakerStorage):
 
     def reset_success_counter(self) -> None:
         """Reset success counter."""
-        self.redis.hset(self._key, "success_counter", 0)  # type: ignore[arg-type]
+        self.redis.hset(self._key, "success_counter", str(0))
 
     @property
     def counter(self) -> int:
         """Get failure counter."""
         val = self.redis.hget(self._key, "counter")
-        return int(val) if val else 0  # type: ignore[arg-type]
+        return int(val) if val else 0  # type: ignore[arg-type]  # redis stubs type hget as Awaitable[str|None]|str; sync client always returns str|None
 
     @property
     def success_counter(self) -> int:
         """Get success counter."""
         val = self.redis.hget(self._key, "success_counter")
-        return int(val) if val else 0  # type: ignore[arg-type]
+        return int(val) if val else 0  # type: ignore[arg-type]  # redis stubs type hget as Awaitable[str|None]|str; sync client always returns str|None
 
     @property
     def opened_at(self) -> datetime | None:
         """Get when circuit was opened."""
         val = self.redis.hget(self._key, "opened_at")
-        return datetime.fromisoformat(val) if val else None  # type: ignore[arg-type]
+        return datetime.fromisoformat(val) if val else None  # type: ignore[arg-type]  # redis stubs type hget as Awaitable[str|None]|str; sync client always returns str|None
 
     @opened_at.setter
     def opened_at(self, dt: datetime) -> None:
@@ -136,7 +136,7 @@ def netmiko_send_command(
     if CIRCUIT_BREAKER_ENABLED:
         breaker = _get_circuit_breaker(ip)
         try:
-            return breaker.call(  # type: ignore[no-any-return]
+            return breaker.call(  # type: ignore[no-any-return]  # pybreaker.call() returns Any; no stubs available
                 _netmiko_send_command_impl,
                 ip,
                 credentials,
@@ -244,7 +244,7 @@ def netmiko_send_config(
     if CIRCUIT_BREAKER_ENABLED:
         breaker = _get_circuit_breaker(ip)
         try:
-            return breaker.call(  # type: ignore[no-any-return]
+            return breaker.call(  # type: ignore[no-any-return]  # pybreaker.call() returns Any; no stubs available
                 _netmiko_send_config_impl,
                 ip,
                 credentials,
