@@ -58,6 +58,21 @@ class TestSendCommand:
 
         assert response.status_code == 401
 
+    def test_send_command_device_locked_out(self, client):
+        """Test that a locked-out device returns 403."""
+        from base64 import b64encode
+        from unittest.mock import patch
+
+        auth = b64encode(b"testuser:testpass").decode()
+        with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
+            with patch("naas.resources.send_command.device_lockout", return_value=True):
+                response = client.post(
+                    "/v1/send_command",
+                    json={"ip": "192.168.1.1", "commands": ["show version"]},
+                    headers={"Authorization": f"Basic {auth}"},
+                )
+        assert response.status_code == 403
+
     def test_send_command_invalid_ip(self, app, client):
         """Test POST with invalid IP returns 422."""
         auth = b64encode(b"testuser:testpass").decode()
@@ -322,6 +337,21 @@ class TestSendConfig:
         )
 
         assert response.status_code == 401
+
+    def test_send_config_device_locked_out(self, client):
+        """Test that a locked-out device returns 403."""
+        from base64 import b64encode
+        from unittest.mock import patch
+
+        auth = b64encode(b"testuser:testpass").decode()
+        with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
+            with patch("naas.resources.send_config.device_lockout", return_value=True):
+                response = client.post(
+                    "/v1/send_config",
+                    json={"ip": "192.168.1.1", "commands": ["interface gi0/1"]},
+                    headers={"Authorization": f"Basic {auth}"},
+                )
+        assert response.status_code == 403
 
 
 class TestGetResults:

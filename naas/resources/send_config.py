@@ -6,8 +6,9 @@ from spectree import Response
 
 from naas import __base_response__
 from naas.config import JOB_TTL_FAILED, JOB_TTL_SUCCESS
-from naas.library.auth import job_locker
+from naas.library.auth import device_lockout, job_locker
 from naas.library.decorators import valid_post
+from naas.library.errorhandlers import LockedOut
 from naas.library.netmiko_lib import netmiko_send_config
 from naas.models import JobResponse, SendConfigRequest
 from naas.spec import spec
@@ -39,6 +40,10 @@ class SendConfig(Resource):
         """
         validated: SendConfigRequest = request.context.json
         ip_str = str(validated.ip)
+
+        if device_lockout(ip=ip_str):
+            current_app.logger.error("%s: Device %s is locked out", g.request_id, ip_str)
+            raise LockedOut
 
         # Log this request's details
         current_app.logger.info(

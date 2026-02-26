@@ -21,7 +21,7 @@ from naas.config import (
     REDIS_PASSWORD,
     REDIS_PORT,
 )
-from naas.library.auth import tacacs_auth_lockout
+from naas.library.auth import device_lockout, tacacs_auth_lockout
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -149,10 +149,13 @@ def netmiko_send_command(
             )
         except pybreaker.CircuitBreakerError:
             logger.warning("%s %s:Circuit breaker open, rejecting connection attempt", request_id, ip)
+            device_lockout(ip=ip, report_failure=True)
             return None, f"Circuit breaker open for device {ip} - too many recent failures"
         except (TimeoutError, netmiko.NetMikoTimeoutException) as e:
+            device_lockout(ip=ip, report_failure=True)
             return None, str(e)
         except (ssh_exception.SSHException, ValueError) as e:
+            device_lockout(ip=ip, report_failure=True)
             return None, f"Unknown SSH error connecting to device {ip}: {str(e)}"
     else:
         return _netmiko_send_command_impl(
@@ -256,10 +259,13 @@ def netmiko_send_config(
             )
         except pybreaker.CircuitBreakerError:
             logger.warning("%s %s:Circuit breaker open, rejecting connection attempt", request_id, ip)
+            device_lockout(ip=ip, report_failure=True)
             return None, f"Circuit breaker open for device {ip} - too many recent failures"
         except (TimeoutError, netmiko.NetMikoTimeoutException) as e:
+            device_lockout(ip=ip, report_failure=True)
             return None, str(e)
         except (ssh_exception.SSHException, ValueError) as e:
+            device_lockout(ip=ip, report_failure=True)
             return None, f"Unknown SSH error connecting to device {ip}: {str(e)}"
     else:
         return _netmiko_send_config_impl(
