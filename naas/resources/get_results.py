@@ -52,6 +52,8 @@ class GetResults(Resource):
             results = job.result
             r["results"] = results[0]
             r["error"] = results[1]
+        elif job_status == "failed":
+            r["error"] = str(job.exc_info).strip() if job.exc_info else "Job failed"
 
         r.update(__base_response__)
         return r
