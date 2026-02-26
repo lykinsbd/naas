@@ -71,3 +71,5 @@ nav:
   - Reference:
       - API Reference: api-reference.md
       - Changelog: changelog.md
+      - Release Notes:
+          - v1.1: release-notes/v1.1.md
