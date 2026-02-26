@@ -144,7 +144,7 @@ showcontent = true
 [[tool.towncrier.type]]
 directory = "internal"
 name = "🔧 Internal Changes"
-showcontent = false
+showcontent = true
 
 [dependency-groups]
 dev = [
