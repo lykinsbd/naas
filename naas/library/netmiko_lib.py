@@ -5,13 +5,22 @@ Library to abstract Netmiko functions for use by the NAAS API.
 """
 
 import logging
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 import netmiko
 import pybreaker
 from paramiko import ssh_exception  # type: ignore[import-untyped]
+from redis import Redis
 
-from naas.config import CIRCUIT_BREAKER_ENABLED, CIRCUIT_BREAKER_THRESHOLD, CIRCUIT_BREAKER_TIMEOUT
+from naas.config import (
+    CIRCUIT_BREAKER_ENABLED,
+    CIRCUIT_BREAKER_THRESHOLD,
+    CIRCUIT_BREAKER_TIMEOUT,
+    REDIS_HOST,
+    REDIS_PASSWORD,
+    REDIS_PORT,
+)
 from naas.library.auth import tacacs_auth_lockout
 
 if TYPE_CHECKING:
@@ -22,6 +31,68 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(name="NAAS")
 
+
+class RedisCircuitBreakerStorage(pybreaker.CircuitBreakerStorage):
+    """Redis-backed storage for circuit breaker state shared across workers."""
+
+    def __init__(self, name: str, redis_client: Redis):
+        super().__init__(name)
+        self.redis = redis_client
+        self._key = f"circuit_breaker:{name}"
+
+    @property
+    def state(self) -> str:
+        """Get current circuit state."""
+        return self.redis.hget(self._key, "state") or "closed"
+
+    @state.setter
+    def state(self, state: str) -> None:
+        """Set current circuit state."""
+        self.redis.hset(self._key, "state", state)
+
+    def increment_counter(self) -> None:
+        """Increment failure counter."""
+        self.redis.hincrby(self._key, "counter", 1)
+
+    def reset_counter(self) -> None:
+        """Reset failure counter."""
+        self.redis.hset(self._key, "counter", 0)
+
+    def increment_success_counter(self) -> None:
+        """Increment success counter."""
+        self.redis.hincrby(self._key, "success_counter", 1)
+
+    def reset_success_counter(self) -> None:
+        """Reset success counter."""
+        self.redis.hset(self._key, "success_counter", 0)
+
+    @property
+    def counter(self) -> int:
+        """Get failure counter."""
+        val = self.redis.hget(self._key, "counter")
+        return int(val) if val else 0
+
+    @property
+    def success_counter(self) -> int:
+        """Get success counter."""
+        val = self.redis.hget(self._key, "success_counter")
+        return int(val) if val else 0
+
+    @property
+    def opened_at(self) -> datetime | None:
+        """Get when circuit was opened."""
+        val = self.redis.hget(self._key, "opened_at")
+        return datetime.fromisoformat(val) if val else None
+
+    @opened_at.setter
+    def opened_at(self, dt: datetime) -> None:
+        """Set when circuit was opened."""
+        self.redis.hset(self._key, "opened_at", dt.isoformat())
+
+
+# Redis client for circuit breaker storage
+_redis_client = Redis(host=REDIS_HOST, port=int(REDIS_PORT), password=REDIS_PASSWORD, decode_responses=True)
+
 # Per-device circuit breakers
 _circuit_breakers: dict[str, pybreaker.CircuitBreaker] = {}
 
@@ -29,10 +100,12 @@ _circuit_breakers: dict[str, pybreaker.CircuitBreaker] = {}
 def _get_circuit_breaker(device_id: str) -> pybreaker.CircuitBreaker:
     """Get or create a circuit breaker for a specific device."""
     if device_id not in _circuit_breakers:
+        storage = RedisCircuitBreakerStorage(f"device_{device_id}", _redis_client)
         _circuit_breakers[device_id] = pybreaker.CircuitBreaker(
             fail_max=CIRCUIT_BREAKER_THRESHOLD,
             reset_timeout=CIRCUIT_BREAKER_TIMEOUT,
             name=f"device_{device_id}",
+            state_storage=storage,
         )
     return _circuit_breakers[device_id]
 
