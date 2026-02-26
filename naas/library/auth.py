@@ -2,7 +2,7 @@
 
 from datetime import datetime, timedelta
 from hashlib import sha512
-from pickle import dumps, loads
+from uuid import uuid4
 
 from flask import current_app
 from redis import Redis
@@ -49,98 +49,33 @@ def job_unlocker(salted_creds: str, job_id: str) -> bool:
         return False
 
 
-def tacacs_auth_lockout(username: str, report_failure: bool = False) -> bool:  # type: ignore[return]
+def _is_locked_out(redis_key: str, redis: Redis, report_failure: bool = False) -> bool:
     """
-    Upon a TACACS authentication failure, as seen by Netmiko, update a dict in Redis that holds failures for this user.
-    And if we've exceeded 10 failures in 10 minutes, lock this user out of the API for 10 minutes
-    :param username: What username are we checking on a failure count for?
-    :param report_failure: Are we reporting a new failure?  True for yes, False for no.
-    :return: False for access is still allowed, True for access is now locked out for ten minutes
+    Sliding-window lockout: 10 failures within 10 minutes triggers a lockout.
+    Uses a Redis sorted set with timestamps as scores for O(log N) window pruning.
+    :param redis_key: Redis key for this lockout counter
+    :param redis: Redis connection
+    :param report_failure: Record a new failure before checking
+    :return: True if locked out, False if access is allowed
     """
+    window_start = (datetime.now() - timedelta(minutes=10)).timestamp()
+    redis.zremrangebyscore(redis_key, 0, window_start)
+    if report_failure:
+        redis.zadd(redis_key, {str(uuid4()): datetime.now().timestamp()})
+        redis.expire(redis_key, 600)
+    return int(redis.zcard(redis_key)) >= 10  # type: ignore[arg-type]
 
-    # Can't use current_app.BLAH as we're not always in a Flask context for this, but sometimes in the RQ worker process
+
+def tacacs_auth_lockout(username: str, report_failure: bool = False) -> bool:
+    """Check (and optionally record) a TACACS auth failure for a user."""
     redis = Redis(host=REDIS_HOST, port=int(REDIS_PORT), password=REDIS_PASSWORD)
-
-    # Get (or set) the current_failures entry for this hash
-    failures = redis.hgetall("naas_failures_" + username)
-
-    # Check if there are any existing login failures
-    if failures:
-        failure_count = int(failures[b"failure_count"])  # type: ignore[index]
-        failure_timestamps = loads(failures[b"failure_timestamps"])  # type: ignore[index]
-
-        # If there are less than 9 failures, append the count, stash our timestamp, and return False
-        if failure_count < 9:
-            if report_failure:
-                report_tacacs_failure(
-                    username=username,
-                    existing_fail_count=failure_count,
-                    existing_fail_times=failure_timestamps,
-                    redis=redis,
-                )
-            return False
-
-        # If there are at least 9 failures (and potentially this is the tenth), lets dig in some.
-        elif failure_count >= 9:
-            # Evaluate the timestamps of previous failures, if they're more than ten minutes ago, delete and carry on
-            for timestamp in loads(failures[b"failure_timestamps"]):  # type: ignore[index]
-                if timestamp < datetime.now() - timedelta(minutes=10):
-                    failure_timestamps.remove(timestamp)
-                    failure_count = failure_count - 1
-
-            # If we _still_ have 9 or more failures, they're from the past 10 minutes
-            if failure_count >= 9:
-                if report_failure:
-                    # And... this makes 10 or more, return False
-                    report_tacacs_failure(
-                        username=username,
-                        existing_fail_count=failure_count,
-                        existing_fail_times=failure_timestamps,
-                        redis=redis,
-                    )
-                    return True
-                elif failure_count == 9:
-                    # There were 9 failures in the last 10 minutes, but we're not reporting a new one, you're still good
-                    return False
-                else:
-                    # There are 10 or more failures in past 10 minutes, nope good sir/madame, you're not getting in
-                    return True
-
-            # Now we can add our current failure (if any) and return True:
-            if report_failure:
-                report_tacacs_failure(
-                    username=username,
-                    existing_fail_count=failure_count,
-                    existing_fail_times=failure_timestamps,
-                    redis=redis,
-                )
-            return False
-
-    # If there aren't any existing failures, update Redis with a failure value for this user
-    else:
-        if report_failure:
-            report_tacacs_failure(username=username, existing_fail_count=0, existing_fail_times=[], redis=redis)
-        return False
+    return _is_locked_out(f"naas_failures_{username}", redis, report_failure)
 
 
-def report_tacacs_failure(username: str, existing_fail_count: int, existing_fail_times: list, redis: Redis) -> None:
-    """
-    Given a failure count and list of timestamps, increment them and stash the results in Redis
-    :param username: Who dun goofed?
-    :param existing_fail_count: How many failures were in the data (before this one we're reporting)
-    :param existing_fail_times: List of failure times (before this one)
-    :param redis: What instantiated Redis object/connection are we using
-    :return:
-    """
-
-    # Update the timestamps list with a failure for right now
-    existing_fail_times.append(datetime.now())
-    # Pickle this list for Redis insertion
-    failure_timestamps = dumps(existing_fail_times)
-
-    # Setup our failed dict we're stashing in Redis:
-    failed_dict = {"failure_count": existing_fail_count + 1, "failure_timestamps": failure_timestamps}
-    redis.hmset("naas_failures_" + username, failed_dict)  # type: ignore[arg-type]
+def device_lockout(ip: str, report_failure: bool = False) -> bool:
+    """Check (and optionally record) a connection failure for a device IP."""
+    redis = Redis(host=REDIS_HOST, port=int(REDIS_PORT), password=REDIS_PASSWORD)
+    return _is_locked_out(f"naas_failures_device_{ip}", redis, report_failure)
 
 
 class Credentials:
