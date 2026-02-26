@@ -7,13 +7,14 @@ from fakeredis import FakeStrictRedis
 from paramiko import ssh_exception
 
 # Must import the module first and patch _redis_client before importing the functions,
-# otherwise the module-level Redis client is initialized before fakeredis is injected.
-import naas.library.netmiko_lib
+# otherwise the lazy Redis client is initialized before fakeredis is injected.
+import naas.library.circuit_breaker
 from naas.library.auth import Credentials
 
-naas.library.netmiko_lib._redis_client = FakeStrictRedis(decode_responses=True)
+naas.library.circuit_breaker._redis_client = FakeStrictRedis()
 
-from naas.library.netmiko_lib import netmiko_send_command, netmiko_send_config  # noqa: E402,I001  # must follow _redis_client patch above
+from naas.library.circuit_breaker import RedisCircuitBreakerStorage  # noqa: E402,I001
+from naas.library.netmiko_lib import netmiko_send_command, netmiko_send_config  # noqa: E402,I001
 
 
 class TestNetmikoSendCommand:
@@ -264,9 +265,7 @@ class TestCircuitBreaker:
 
     def test_redis_storage_properties(self):
         """Test Redis storage class properties."""
-        from naas.library.netmiko_lib import RedisCircuitBreakerStorage
-
-        storage = RedisCircuitBreakerStorage("test_device", naas.library.netmiko_lib._redis_client)
+        storage = RedisCircuitBreakerStorage("test_device", naas.library.circuit_breaker._redis_client)
 
         # Test state
         storage.state = "open"
