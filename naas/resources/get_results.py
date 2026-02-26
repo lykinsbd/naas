@@ -26,7 +26,10 @@ class GetResults(Resource):
 
         # Ensure this user can access the job...
         auth = request.authorization
-        assert auth and auth.username and auth.password  # guaranteed by v.has_auth() above
+        if (
+            not auth or not auth.username or not auth.password
+        ):  # pragma: no cover  # has_auth() in valid_get guarantees this; guard exists because assert is stripped by python -O
+            raise Forbidden
 
         # Create a credentials object
         creds = Credentials(username=auth.username, password=auth.password)
