@@ -60,18 +60,38 @@ class ListJobs(Resource):
             start = (query.page - 1) * query.per_page
             job_ids = q.get_job_ids(offset=start, length=query.per_page)
         else:
-            # No filter - get all jobs from all registries
+            # No filter - paginate across all registries without fetching all IDs
             finished_reg = FinishedJobRegistry(queue=q)
             failed_reg = FailedJobRegistry(queue=q)
             started_reg = StartedJobRegistry(queue=q)
 
-            all_job_ids = (
-                finished_reg.get_job_ids() + failed_reg.get_job_ids() + started_reg.get_job_ids() + q.get_job_ids()
-            )
-            total_count = len(all_job_ids)
+            # (registry_or_queue, count, is_queue)
+            sources: list[tuple] = [
+                (finished_reg, finished_reg.count, False),
+                (failed_reg, failed_reg.count, False),
+                (started_reg, started_reg.count, False),
+                (q, len(q), True),
+            ]
+            total_count = sum(c for _, c, _ in sources)
+
+            # Walk sources in order, collecting IDs for the requested page
             start = (query.page - 1) * query.per_page
-            end = start + query.per_page
-            job_ids = all_job_ids[start:end]
+            remaining_skip = start
+            remaining_take = query.per_page
+            for source, count, is_queue in sources:
+                if remaining_take == 0:
+                    break
+                if remaining_skip >= count:
+                    remaining_skip -= count
+                    continue
+                reg_start = remaining_skip
+                if is_queue:
+                    chunk = source.get_job_ids(offset=reg_start, length=remaining_take)
+                else:
+                    chunk = source.get_job_ids(start=reg_start, end=reg_start + remaining_take - 1)
+                job_ids.extend(chunk)
+                remaining_take -= len(chunk)
+                remaining_skip = 0
 
         # Fetch job details
         jobs = []
