@@ -150,4 +150,5 @@ showcontent = false
 dev = [
     "mkdocs-material>=9.7.2",
     "mkdocstrings[python]>=1.0.3",
+    "types-paramiko>=4.0.0.20250822",
 ]

@@ -4,15 +4,16 @@ from unittest.mock import MagicMock, patch
 
 import netmiko
 from fakeredis import FakeStrictRedis
-from paramiko import ssh_exception  # type: ignore[import-untyped]
+from paramiko import ssh_exception
 
-# Import module first, then replace Redis client
+# Must import the module first and patch _redis_client before importing the functions,
+# otherwise the module-level Redis client is initialized before fakeredis is injected.
 import naas.library.netmiko_lib
 from naas.library.auth import Credentials
 
 naas.library.netmiko_lib._redis_client = FakeStrictRedis(decode_responses=True)
 
-from naas.library.netmiko_lib import netmiko_send_command, netmiko_send_config  # noqa: E402
+from naas.library.netmiko_lib import netmiko_send_command, netmiko_send_config  # noqa: E402,I001  # must follow _redis_client patch above
 
 
 class TestNetmikoSendCommand:

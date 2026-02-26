@@ -12,7 +12,7 @@ spec = SpecTree(
     security_schemes=[
         SecurityScheme(
             name="basicAuth",
-            data=SecuritySchemeData(type=SecureType.HTTP, scheme="basic"),  # type: ignore[call-arg]
+            data=SecuritySchemeData(type=SecureType.HTTP, scheme="basic"),  # type: ignore[call-arg]  # spectree stubs incorrectly mark all SecuritySchemeData fields as required; they have defaults
         )
     ],
     security=[{"basicAuth": []}],
