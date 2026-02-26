@@ -2,10 +2,11 @@
 
 from flask import current_app, g, request
 from flask_restful import Resource
+from rq import Retry
 from spectree import Response
 
 from naas import __base_response__
-from naas.config import JOB_TTL_FAILED, JOB_TTL_SUCCESS
+from naas.config import JOB_MAX_RETRIES, JOB_TTL_FAILED, JOB_TTL_SUCCESS
 from naas.library.auth import device_lockout, job_locker
 from naas.library.decorators import valid_post
 from naas.library.errorhandlers import LockedOut
@@ -85,6 +86,7 @@ class SendConfig(Resource):
             job_id=g.request_id,
             result_ttl=JOB_TTL_SUCCESS,
             failure_ttl=JOB_TTL_FAILED,
+            retry=Retry(max=JOB_MAX_RETRIES, interval=[1, 2, 4, 8, 16]),
         )
         job_id = job.get_id()
         current_app.logger.info("%s: Enqueued job for %s@%s:%s", job_id, g.credentials.username, ip_str, validated.port)

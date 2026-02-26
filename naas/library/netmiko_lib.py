@@ -151,12 +151,12 @@ def netmiko_send_command(
             logger.warning("%s %s:Circuit breaker open, rejecting connection attempt", request_id, ip)
             device_lockout(ip=ip, report_failure=True)
             return None, f"Circuit breaker open for device {ip} - too many recent failures"
-        except (TimeoutError, netmiko.NetMikoTimeoutException) as e:
+        except (TimeoutError, netmiko.NetMikoTimeoutException):
             device_lockout(ip=ip, report_failure=True)
-            return None, str(e)
-        except (ssh_exception.SSHException, ValueError) as e:
+            raise
+        except (ssh_exception.SSHException, ValueError):
             device_lockout(ip=ip, report_failure=True)
-            return None, f"Unknown SSH error connecting to device {ip}: {str(e)}"
+            raise
     else:
         return _netmiko_send_command_impl(
             ip, credentials, device_type, commands, port, delay_factor, verbose, request_id
@@ -261,12 +261,12 @@ def netmiko_send_config(
             logger.warning("%s %s:Circuit breaker open, rejecting connection attempt", request_id, ip)
             device_lockout(ip=ip, report_failure=True)
             return None, f"Circuit breaker open for device {ip} - too many recent failures"
-        except (TimeoutError, netmiko.NetMikoTimeoutException) as e:
+        except (TimeoutError, netmiko.NetMikoTimeoutException):
             device_lockout(ip=ip, report_failure=True)
-            return None, str(e)
-        except (ssh_exception.SSHException, ValueError) as e:
+            raise
+        except (ssh_exception.SSHException, ValueError):
             device_lockout(ip=ip, report_failure=True)
-            return None, f"Unknown SSH error connecting to device {ip}: {str(e)}"
+            raise
     else:
         return _netmiko_send_config_impl(
             ip, credentials, device_type, commands, port, save_config, commit, delay_factor, verbose, request_id

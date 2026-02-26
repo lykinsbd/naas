@@ -3,11 +3,14 @@
 from unittest.mock import MagicMock, patch
 
 import netmiko
+import pytest
 from fakeredis import FakeStrictRedis
 from paramiko import ssh_exception  # type: ignore[import-untyped]
 
-# Import module first, then replace Redis client
 import naas.library.netmiko_lib
+
+# Import module first, then replace Redis client
+from naas.config import CIRCUIT_BREAKER_THRESHOLD, CIRCUIT_BREAKER_TIMEOUT
 from naas.library.auth import Credentials
 
 naas.library.netmiko_lib._redis_client = FakeStrictRedis(decode_responses=True)
@@ -35,16 +38,14 @@ class TestNetmikoSendCommand:
             mock_conn.disconnect.assert_called_once()
 
     def test_timeout_error(self):
-        """Test timeout exception handling."""
+        """Test timeout exception is re-raised for RQ retry."""
         creds = Credentials(username="testuser", password="testpass")
 
         with patch("naas.library.netmiko_lib.netmiko.ConnectHandler") as mock_handler:
             mock_handler.side_effect = netmiko.NetMikoTimeoutException("Connection timeout")
 
-            result, error = netmiko_send_command("192.168.1.1", creds, "cisco_ios", ["show version"])
-
-            assert result is None
-            assert "Connection timeout" in error
+            with pytest.raises(netmiko.NetMikoTimeoutException):
+                netmiko_send_command("192.168.1.1", creds, "cisco_ios", ["show version"])
 
     def test_auth_failure(self):
         """Test authentication failure handling."""
@@ -61,17 +62,14 @@ class TestNetmikoSendCommand:
                 mock_lockout.assert_called_once_with(username="testuser", report_failure=True)
 
     def test_ssh_exception(self):
-        """Test SSH exception handling."""
+        """Test SSH exception is re-raised for RQ retry."""
         creds = Credentials(username="testuser", password="testpass")
 
         with patch("naas.library.netmiko_lib.netmiko.ConnectHandler") as mock_handler:
             mock_handler.side_effect = ssh_exception.SSHException("SSH error")
 
-            result, error = netmiko_send_command("192.168.1.1", creds, "cisco_ios", ["show version"])
-
-            assert result is None
-            assert "Unknown SSH error" in error
-            assert "192.168.1.1" in error
+            with pytest.raises(ssh_exception.SSHException):
+                netmiko_send_command("192.168.1.1", creds, "cisco_ios", ["show version"])
 
 
 class TestNetmikoSendConfig:
@@ -156,16 +154,14 @@ class TestNetmikoSendConfig:
             assert result is not None
 
     def test_config_timeout_error(self):
-        """Test config timeout exception handling."""
+        """Test config timeout exception is re-raised for RQ retry."""
         creds = Credentials(username="testuser", password="testpass")
 
         with patch("naas.library.netmiko_lib.netmiko.ConnectHandler") as mock_handler:
             mock_handler.side_effect = TimeoutError("Connection timeout")
 
-            result, error = netmiko_send_config("192.168.1.1", creds, "cisco_ios", ["interface Gi0/1"])
-
-            assert result is None
-            assert "Connection timeout" in error
+            with pytest.raises(TimeoutError):
+                netmiko_send_config("192.168.1.1", creds, "cisco_ios", ["interface Gi0/1"])
 
     def test_config_auth_failure(self):
         """Test config authentication failure handling."""
@@ -182,20 +178,43 @@ class TestNetmikoSendConfig:
                 mock_lockout.assert_called_once_with(username="testuser", report_failure=True)
 
     def test_config_value_error(self):
-        """Test config ValueError handling."""
+        """Test config ValueError is re-raised for RQ retry."""
         creds = Credentials(username="testuser", password="testpass")
 
         with patch("naas.library.netmiko_lib.netmiko.ConnectHandler") as mock_handler:
             mock_handler.side_effect = ValueError("Invalid value")
 
-            result, error = netmiko_send_config("192.168.1.1", creds, "cisco_ios", ["interface Gi0/1"])
-
-            assert result is None
-            assert "Unknown SSH error" in error
+            with pytest.raises(ValueError):
+                netmiko_send_config("192.168.1.1", creds, "cisco_ios", ["interface Gi0/1"])
 
 
 class TestCircuitBreaker:
     """Tests for circuit breaker functionality."""
+
+    @pytest.fixture(autouse=True)
+    def reset_circuit_breakers(self, monkeypatch):
+        """Provide isolated circuit breakers per test via fresh fakeredis."""
+        import pybreaker
+        from fakeredis import FakeStrictRedis
+
+        import naas.library.netmiko_lib as netmiko_lib
+        from naas.config import CIRCUIT_BREAKER_THRESHOLD
+
+        fresh_redis = FakeStrictRedis(decode_responses=True)
+        fresh_breakers: dict = {}
+
+        def fresh_get_circuit_breaker(device_id: str) -> pybreaker.CircuitBreaker:
+            if device_id not in fresh_breakers:
+                storage = netmiko_lib.RedisCircuitBreakerStorage(f"device_{device_id}", fresh_redis)
+                fresh_breakers[device_id] = pybreaker.CircuitBreaker(
+                    fail_max=CIRCUIT_BREAKER_THRESHOLD,
+                    reset_timeout=CIRCUIT_BREAKER_TIMEOUT,
+                    name=f"device_{device_id}",
+                    state_storage=storage,
+                )
+            return fresh_breakers[device_id]
+
+        monkeypatch.setattr(netmiko_lib, "_get_circuit_breaker", fresh_get_circuit_breaker)
 
     def test_circuit_breaker_disabled(self):
         """Test that circuit breaker can be disabled."""
@@ -223,17 +242,17 @@ class TestCircuitBreaker:
         with patch("naas.library.netmiko_lib.netmiko.ConnectHandler") as mock_handler:
             mock_handler.side_effect = netmiko.NetMikoTimeoutException("Timeout")
 
-            # Trigger failures up to threshold
-            for _ in range(5):
-                result, error = netmiko_send_command("192.168.1.2", creds, "cisco_ios", ["show version"])
-                assert result is None
+            # Trigger failures up to threshold - 1 (each raises)
+            for _ in range(CIRCUIT_BREAKER_THRESHOLD - 1):
+                with pytest.raises(netmiko.NetMikoTimeoutException):
+                    netmiko_send_command("192.168.1.2", creds, "cisco_ios", ["show version"])
 
-            # Next call should be rejected by circuit breaker
+            # Final failure opens the circuit breaker (returns, doesn't raise)
             result, error = netmiko_send_command("192.168.1.2", creds, "cisco_ios", ["show version"])
             assert result is None
             assert "Circuit breaker open" in error
 
-            # Test send_config too
+            # Subsequent calls also rejected
             result, error = netmiko_send_config("192.168.1.2", creds, "cisco_ios", ["interface Gi0/1"])
             assert result is None
             assert "Circuit breaker open" in error
@@ -243,12 +262,13 @@ class TestCircuitBreaker:
         creds = Credentials(username="testuser", password="testpass")
 
         with patch("naas.library.netmiko_lib.netmiko.ConnectHandler") as mock_handler:
-            # Fail device 1
+            # Fail device 1 up to threshold
             mock_handler.side_effect = netmiko.NetMikoTimeoutException("Timeout")
-            for _ in range(5):
-                netmiko_send_command("192.168.1.3", creds, "cisco_ios", ["show version"])
+            for _ in range(CIRCUIT_BREAKER_THRESHOLD - 1):
+                with pytest.raises(netmiko.NetMikoTimeoutException):
+                    netmiko_send_command("192.168.1.3", creds, "cisco_ios", ["show version"])
 
-            # Device 1 circuit should be open
+            # Device 1 circuit should now open
             result, error = netmiko_send_command("192.168.1.3", creds, "cisco_ios", ["show version"])
             assert "Circuit breaker open" in error
 

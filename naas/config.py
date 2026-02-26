@@ -27,6 +27,7 @@ REDIS_PASSWORD = os.environ.get("REDIS_PASSWORD", "mah_redis_pw")
 # Job TTL config (seconds)
 JOB_TTL_SUCCESS = int(os.environ.get("JOB_TTL_SUCCESS", 86400))  # 24h
 JOB_TTL_FAILED = int(os.environ.get("JOB_TTL_FAILED", 604800))  # 7 days
+JOB_MAX_RETRIES = int(os.environ.get("JOB_MAX_RETRIES", 3))
 
 # Circuit breaker config
 CIRCUIT_BREAKER_ENABLED = os.environ.get("CIRCUIT_BREAKER_ENABLED", "true").lower() == "true"
