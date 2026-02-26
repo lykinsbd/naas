@@ -186,3 +186,71 @@ class TestNetmikoSendConfig:
 
             assert result is None
             assert "Unknown SSH error" in error
+
+
+class TestCircuitBreaker:
+    """Tests for circuit breaker functionality."""
+
+    def test_circuit_breaker_disabled(self):
+        """Test that circuit breaker can be disabled."""
+        creds = Credentials(username="testuser", password="testpass")
+
+        with patch("naas.library.netmiko_lib.CIRCUIT_BREAKER_ENABLED", False):
+            with patch("naas.library.netmiko_lib.netmiko.ConnectHandler") as mock_handler:
+                mock_conn = MagicMock()
+                mock_conn.send_command.return_value = "output"
+                mock_handler.return_value = mock_conn
+
+                result, error = netmiko_send_command("192.168.1.1", creds, "cisco_ios", ["show version"])
+
+                assert error is None
+                assert result == {"show version": "output"}
+
+                result, error = netmiko_send_config("192.168.1.1", creds, "cisco_ios", ["interface Gi0/1"])
+
+                assert error is None
+
+    def test_circuit_breaker_opens_after_failures(self):
+        """Test that circuit breaker opens after threshold failures."""
+        creds = Credentials(username="testuser", password="testpass")
+
+        with patch("naas.library.netmiko_lib.netmiko.ConnectHandler") as mock_handler:
+            mock_handler.side_effect = netmiko.NetMikoTimeoutException("Timeout")
+
+            # Trigger failures up to threshold
+            for _ in range(5):
+                result, error = netmiko_send_command("192.168.1.2", creds, "cisco_ios", ["show version"])
+                assert result is None
+
+            # Next call should be rejected by circuit breaker
+            result, error = netmiko_send_command("192.168.1.2", creds, "cisco_ios", ["show version"])
+            assert result is None
+            assert "Circuit breaker open" in error
+
+            # Test send_config too
+            result, error = netmiko_send_config("192.168.1.2", creds, "cisco_ios", ["interface Gi0/1"])
+            assert result is None
+            assert "Circuit breaker open" in error
+
+    def test_circuit_breaker_per_device(self):
+        """Test that circuit breakers are per-device."""
+        creds = Credentials(username="testuser", password="testpass")
+
+        with patch("naas.library.netmiko_lib.netmiko.ConnectHandler") as mock_handler:
+            # Fail device 1
+            mock_handler.side_effect = netmiko.NetMikoTimeoutException("Timeout")
+            for _ in range(5):
+                netmiko_send_command("192.168.1.3", creds, "cisco_ios", ["show version"])
+
+            # Device 1 circuit should be open
+            result, error = netmiko_send_command("192.168.1.3", creds, "cisco_ios", ["show version"])
+            assert "Circuit breaker open" in error
+
+            # Device 2 should still work
+            mock_conn = MagicMock()
+            mock_conn.send_command.return_value = "output"
+            mock_handler.side_effect = None
+            mock_handler.return_value = mock_conn
+
+            result, error = netmiko_send_command("192.168.1.4", creds, "cisco_ios", ["show version"])
+            assert error is None
