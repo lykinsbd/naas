@@ -434,6 +434,31 @@ class TestGetResults:
         response = client.get("/v1/send_command/00000000-0000-0000-0000-000000000000")
         assert response.status_code == 401
 
+    def test_get_results_failed(self, app, client):
+        """Test GET with failed job returns error detail."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        job_id = "44444444-4444-4444-4444-444444444444"
+        job = MagicMock()
+        job.get_status = lambda: "failed"
+        job.exc_info = "NetMikoTimeoutException: Connection timed out"
+
+        def fetch_side_effect(job_id_param):
+            return job if job_id_param == job_id else None
+
+        app.config["q"].fetch_job.side_effect = fetch_side_effect
+
+        with patch("naas.resources.get_results.job_unlocker", return_value=True):
+            response = client.get(
+                f"/v1/send_command/{job_id}",
+                headers={"Authorization": f"Basic {auth}"},
+            )
+
+        assert response.status_code == 200
+        assert response.json["status"] == "failed"
+        assert "NetMikoTimeoutException" in response.json["error"]
+
     def test_get_results_wrong_user(self, app, client):
         """Test GET with wrong user returns 403."""
         auth = b64encode(b"wronguser:wrongpass").decode()
