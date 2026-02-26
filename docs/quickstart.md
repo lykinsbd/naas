@@ -26,8 +26,12 @@ Expected response:
 ```json
 {
   "status": "healthy",
-  "redis": "connected",
-  "workers": "active"
+  "version": "1.1.0",
+  "uptime_seconds": 42,
+  "components": {
+    "redis": { "status": "healthy" },
+    "queue": { "status": "healthy", "depth": 0 }
+  }
 }
 ```
 
