@@ -1,9 +1,10 @@
-# NAAS 1.1.0rc5 (2026-02-26)
+# NAAS 1.1.0rc6 (2026-02-26)
 
 ## ✨ Features
 
 - Device IP lockout: after 10 connection failures within 10 minutes, all access to that device is blocked for 10 minutes, preventing credential-spray abuse across multiple users. Also refactors the user lockout to use the same Redis sorted-set sliding-window implementation. ([#2](https://github.com/lykinsbd/naas/issues/2))
 - All log output is now structured JSON, making logs parseable by ELK, Splunk, CloudWatch, and other log aggregation tools. Each log line includes `timestamp`, `level`, `logger`, and `message` fields. ([#79](https://github.com/lykinsbd/naas/issues/79))
+- Correlation ID (request_id/job_id) now flows from API request through to worker log messages, enabling end-to-end log tracing across API and worker. ([#80](https://github.com/lykinsbd/naas/issues/80))
 - Health check endpoint now returns detailed component status including Redis connectivity, queue depth, version, and uptime. Returns `status: degraded` when Redis is unreachable. ([#81](https://github.com/lykinsbd/naas/issues/81))
 - OpenAPI spec now includes Basic Auth security scheme, enabling 'Try it out' authentication in Swagger UI at /apidoc. ([#83](https://github.com/lykinsbd/naas/issues/83))
 - All API endpoints are now available under the `/v1/` prefix. Legacy unversioned routes (`/send_command`, `/send_config`) remain functional but return `X-API-Deprecated: true` and `X-API-Sunset: 2027-01-01` headers. All responses include `X-API-Version: v1`. ([#84](https://github.com/lykinsbd/naas/issues/84))
@@ -22,6 +23,7 @@
 - Fix bare except Exception in healthcheck.py to catch redis.exceptions.RedisError specifically ([#163](https://github.com/lykinsbd/naas/issues/163))
 - Fix module-level Redis client in netmiko_lib.py initialised at import time; now lazily initialised on first use in circuit_breaker.py ([#164](https://github.com/lykinsbd/naas/issues/164))
 - Failed jobs now include error detail in the API response. Previously `GET /v1/send_command/{job_id}` returned no error information when a job had status `failed`.
+- Fix job.get_id() → job.id (rq removed get_id() in a recent release); was causing 500 errors on all job submissions.
 
 ## 📚 Documentation
 
@@ -43,7 +45,12 @@
 
 ## 🔧 Internal Changes
 
-- [#80](https://github.com/lykinsbd/naas/issues/80), [#107](https://github.com/lykinsbd/naas/issues/107), [#128](https://github.com/lykinsbd/naas/issues/128), [#154](https://github.com/lykinsbd/naas/issues/154), [#161](https://github.com/lykinsbd/naas/issues/161), [#162](https://github.com/lykinsbd/naas/issues/162)
+- Automate cleanup of released changelog fragments from develop ([#107](https://github.com/lykinsbd/naas/issues/107))
+- Add invoke export-spec task and CI check to keep docs/swagger/openapi.json in sync with code; remove stale docs/swagger/naas.yaml ([#128](https://github.com/lykinsbd/naas/issues/128))
+- Audit and fix all lint/type-checking exemptions: add types-paramiko stubs, fix hset int->str args, remove dead auth guard in get_results, add inline justification for all remaining ignores. ([#154](https://github.com/lykinsbd/naas/issues/154))
+- Extract circuit breaker infrastructure into naas/library/circuit_breaker.py; deduplicate circuit breaker wrapper in netmiko_lib.py; lazy-init Redis client to prevent import-time failure when Redis is unavailable ([#161](https://github.com/lykinsbd/naas/issues/161))
+- Remove dead validation methods from Validate class (has_port, is_ip_addr, save_config, commit, is_command_set, has_platform, has_delay_factor) — Pydantic models in models.py handle all request validation now ([#162](https://github.com/lykinsbd/naas/issues/162))
+- Move mypy into the enforced lint job so type errors block CI. Previously mypy ran with continue-on-error=true in a separate job and failures were silently ignored.
 
 # NAAS 1.0.1 (2026-02-24)
 
