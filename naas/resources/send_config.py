@@ -86,7 +86,7 @@ class SendConfig(Resource):
             result_ttl=JOB_TTL_SUCCESS,
             failure_ttl=JOB_TTL_FAILED,
         )
-        job_id = job.get_id()
+        job_id = job.id
         current_app.logger.info("%s: Enqueued job for %s@%s:%s", job_id, g.credentials.username, ip_str, validated.port)
 
         # Generate the un/pw hash:
