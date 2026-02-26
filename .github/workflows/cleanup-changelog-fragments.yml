@@ -1,0 +1,73 @@
+name: Cleanup Released Changelog Fragments
+
+on:
+  workflow_run:
+    workflows: ["Release"]
+    types:
+      - completed
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  cleanup-fragments:
+    name: Cleanup Released Fragments
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Checkout develop
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Extract version from main
+        id: version
+        run: |
+          git fetch origin main
+          git checkout origin/main -- CHANGELOG.md
+          VERSION=$(grep -m 1 "^# NAAS" CHANGELOG.md | sed 's/# NAAS \([0-9.]*\).*/\1/')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Detected version: $VERSION"
+          git checkout develop -- CHANGELOG.md
+
+      - name: Run cleanup script
+        run: |
+          python .github/scripts/cleanup_released_fragments.py ${{ steps.version.outputs.version }}
+
+      - name: Check if fragments were deleted
+        id: check
+        run: |
+          if git diff --quiet; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "No fragments to clean up"
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "Fragments deleted:"
+            git status --short
+          fi
+
+      - name: Create Pull Request
+        if: steps.check.outputs.has_changes == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: cleanup changelog fragments released in v${{ steps.version.outputs.version }}"
+          branch: chore/cleanup-released-fragments-v${{ steps.version.outputs.version }}
+          delete-branch: true
+          title: "chore: cleanup changelog fragments released in v${{ steps.version.outputs.version }}"
+          body-path: pr_body.txt
+          labels: |
+            automated
+            changelog
+            internal
+          base: develop

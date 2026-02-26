@@ -29,6 +29,9 @@ jobs:
       - name: Check ruff formatting
         run: uv run ruff format --check naas/ tests/
 
+      - name: Run mypy
+        run: uv run mypy naas/
+
   check-changelog:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
@@ -60,10 +63,6 @@ jobs:
           fi
 
           echo "✅ Found changelog fragment(s)"
-
-      - name: Run mypy
-        run: uv run mypy naas/
-        continue-on-error: true
 
   lint-summary:
     name: Code Quality

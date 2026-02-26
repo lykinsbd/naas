@@ -9,11 +9,12 @@ ENV LC_ALL=C.UTF-8
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 # Copy dependency files and source
-COPY pyproject.toml requirements.lock README.md ./
+COPY pyproject.toml uv.lock README.md ./
 COPY naas/ ./naas/
 
 # Install dependencies and naas package to system Python
-RUN uv pip install --system -r requirements.lock && \
+# Use uv.lock directly via export to ensure sync
+RUN uv export --no-dev --no-emit-project | uv pip install --system -r /dev/stdin && \
     uv pip install --system --no-deps -e .
 
 ########################################

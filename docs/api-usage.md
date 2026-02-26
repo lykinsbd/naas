@@ -8,6 +8,7 @@ Detailed examples for common NAAS API operations.
 - [Send Command](#send-command)
 - [Send Configuration](#send-configuration)
 - [Job Status and Results](#job-status-and-results)
+- [List Jobs](#list-jobs)
 - [Python Examples](#python-examples)
 - [Error Handling](#error-handling)
 
@@ -33,7 +34,7 @@ Execute show commands on network devices.
 ### Basic Example
 
 ```bash
-curl -k -X POST https://localhost:8443/send_command \
+curl -k -X POST https://localhost:8443/v1/send_command \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -d '{
@@ -46,7 +47,7 @@ curl -k -X POST https://localhost:8443/send_command \
 ### With Custom Port
 
 ```bash
-curl -k -X POST https://localhost:8443/send_command \
+curl -k -X POST https://localhost:8443/v1/send_command \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -d '{
@@ -60,7 +61,7 @@ curl -k -X POST https://localhost:8443/send_command \
 ### With Enable Password
 
 ```bash
-curl -k -X POST https://localhost:8443/send_command \
+curl -k -X POST https://localhost:8443/v1/send_command \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -d '{
@@ -76,7 +77,7 @@ curl -k -X POST https://localhost:8443/send_command \
 Track your requests with custom IDs:
 
 ```bash
-curl -k -X POST https://localhost:8443/send_command \
+curl -k -X POST https://localhost:8443/v1/send_command \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -H "X-Request-ID: my-custom-id-12345" \
@@ -98,6 +99,10 @@ NAAS supports all [Netmiko platforms](https://github.com/ktbyers/netmiko/blob/de
 - `hp_procurve` - HP ProCurve
 - And many more...
 
+!!! warning "Deprecated: `device_type`"
+    The `device_type` field is deprecated and will be removed in v2.0. Use `platform` instead.
+    Both fields are accepted in v1.x, but `device_type` logs a deprecation warning.
+
 ## Send Configuration
 
 Push configuration changes to devices.
@@ -105,7 +110,7 @@ Push configuration changes to devices.
 ### Basic Configuration
 
 ```bash
-curl -k -X POST https://localhost:8443/send_config \
+curl -k -X POST https://localhost:8443/v1/send_config \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -d '{
@@ -124,7 +129,7 @@ curl -k -X POST https://localhost:8443/send_config \
 Automatically save configuration after changes:
 
 ```bash
-curl -k -X POST https://localhost:8443/send_config \
+curl -k -X POST https://localhost:8443/v1/send_config \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -d '{
@@ -143,7 +148,7 @@ curl -k -X POST https://localhost:8443/send_config \
 For platforms that require commit:
 
 ```bash
-curl -k -X POST https://localhost:8443/send_config \
+curl -k -X POST https://localhost:8443/v1/send_config \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -d '{
@@ -161,8 +166,18 @@ curl -k -X POST https://localhost:8443/send_config \
 ### Check Job Status
 
 ```bash
-curl -k https://localhost:8443/send_command/550e8400-e29b-41d4-a716-446655440000 \
+curl -k https://localhost:8443/v1/send_command/550e8400-e29b-41d4-a716-446655440000 \
   -u "admin:password"
+```
+
+The `X-Request-ID` header in the 202 response contains the job ID:
+
+```bash
+# Capture job ID from response header
+JOB_ID=$(curl -k -s -D - -X POST https://localhost:8443/v1/send_command \
+  -u "admin:password" -H "Content-Type: application/json" \
+  -d '{"ip": "192.168.1.1", "platform": "cisco_ios", "commands": ["show version"]}' \
+  | grep -i x-request-id | awk '{print $2}' | tr -d '\r')
 ```
 
 ### Job States
@@ -211,6 +226,44 @@ curl -k https://localhost:8443/send_command/550e8400-e29b-41d4-a716-446655440000
   "enqueued_at": "2026-02-22T19:00:00Z",
   "started_at": "2026-02-22T19:00:01Z",
   "ended_at": "2026-02-22T19:00:02Z"
+}
+```
+
+## List Jobs
+
+List all jobs with optional pagination and status filtering.
+
+```bash
+# All jobs (default: page 1, 20 per page)
+curl -k -u "admin:password" https://localhost:8443/v1/jobs
+
+# Filter by status
+curl -k -u "admin:password" "https://localhost:8443/v1/jobs?status=failed"
+
+# Paginate
+curl -k -u "admin:password" "https://localhost:8443/v1/jobs?page=2&per_page=50"
+```
+
+Valid `status` values: `queued`, `started`, `finished`, `failed`.
+
+Response:
+
+```json
+{
+  "jobs": [
+    {
+      "job_id": "550e8400-e29b-41d4-a716-446655440000",
+      "status": "finished",
+      "created_at": "2026-02-22T19:00:00+00:00",
+      "ended_at": "2026-02-22T19:00:05+00:00"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "per_page": 20,
+    "total": 1,
+    "pages": 1
+  }
 }
 ```
 
@@ -276,7 +329,7 @@ from aiohttp import BasicAuth
 async def send_command(session, device_ip, commands):
     """Send command to device via NAAS."""
     async with session.post(
-        "https://localhost:8443/send_command",
+        "https://localhost:8443/v1/send_command",
         json={
             "ip": device_ip,
             "platform": "cisco_ios",
@@ -291,7 +344,7 @@ async def get_results(session, job_id):
     """Poll for job results."""
     while True:
         async with session.get(
-            f"https://localhost:8443/send_command/{job_id}",
+            f"https://localhost:8443/v1/send_command/{job_id}",
             ssl=False
         ) as response:
             data = await response.json()
@@ -335,36 +388,39 @@ if __name__ == "__main__":
 
 - `200 OK` - Job status retrieved successfully
 - `202 Accepted` - Job queued successfully
-- `400 Bad Request` - Invalid request format
 - `401 Unauthorized` - Missing or invalid credentials
+- `403 Forbidden` - Job belongs to another user, or device is locked out
 - `404 Not Found` - Job ID not found
-- `422 Unprocessable Entity` - Invalid parameters
-- `429 Too Many Requests` - Rate limited
+- `422 Unprocessable Entity` - Validation failed (invalid IP, unknown platform, etc.)
 
 ### Example Error Responses
 
-**Invalid IP Address**:
+**Validation error (422)**:
 
 ```json
 {
-  "message": "Invalid IP address format"
+  "validation_error": {
+    "json": [
+      {
+        "loc": ["ip"],
+        "msg": "value is not a valid IPv4 address",
+        "type": "value_error"
+      }
+    ]
+  }
 }
 ```
 
-**Authentication Failed**:
+**Authentication failed (401)**:
 
 ```json
-{
-  "message": "Authentication failed"
-}
+{ "message": "Unauthorized" }
 ```
 
-**Missing Required Field**:
+**Device locked out (403)**:
 
 ```json
-{
-  "message": "Missing required field: commands"
-}
+{ "message": "Forbidden" }
 ```
 
 ### Handling Errors in Python
@@ -377,7 +433,7 @@ def send_command_safe(ip, commands):
     """Send command with error handling."""
     try:
         response = requests.post(
-            "https://localhost:8443/send_command",
+            "https://localhost:8443/v1/send_command",
             auth=HTTPBasicAuth("admin", "password"),
             verify=False,
             json={

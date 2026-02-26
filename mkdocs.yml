@@ -31,6 +31,7 @@ theme:
     - search.suggest
     - search.highlight
     - content.code.copy
+    - content.code.annotate
 
 plugins:
   - search
@@ -45,7 +46,11 @@ plugins:
 markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.tabbed:
       alternate_style: true
   - admonition
@@ -58,16 +63,23 @@ nav:
   - Getting Started:
       - Quick Start: quickstart.md
       - Installation: installation.md
+      - Architecture: architecture.md
   - User Guide:
       - API Usage: api-usage.md
+      - Observability: observability.md
+      - Reliability: reliability.md
       - Security: security.md
       - Troubleshooting: troubleshooting.md
   - Deployment:
       - Docker Compose: deployment/docker-compose.md
       - Kubernetes: deployment/kubernetes.md
+      - Environment Variables: deployment/environment-variables.md
   - Development:
       - Contributing: contributing.md
+      - Development Guide: development.md
       - Testing: testing.md
   - Reference:
       - API Reference: api-reference.md
       - Changelog: changelog.md
+      - Release Notes:
+          - v1.1: release-notes/v1.1.md

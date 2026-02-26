@@ -89,17 +89,17 @@ Common issues and solutions for NAAS deployment and operation.
 
    ```bash
    # Correct
-   curl -k -u "username:password" https://localhost:8443/send_command
+   curl -k -u "username:password" https://localhost:8443/v1/send_command
 
    # Wrong - missing credentials
-   curl -k https://localhost:8443/send_command
+   curl -k https://localhost:8443/v1/send_command
    ```
 
 2. Check for special characters in password:
 
    ```bash
    # URL encode special characters
-   curl -k -u "username:p@ssw0rd!" https://localhost:8443/send_command
+   curl -k -u "username:p@ssw0rd!" https://localhost:8443/v1/send_command
    ```
 
 3. Verify credentials work directly on device:
@@ -133,7 +133,7 @@ Common issues and solutions for NAAS deployment and operation.
 
 ### Redis Connection Failed
 
-**Symptom**: `{"status": "unhealthy", "redis": "disconnected"}`
+**Symptom**: `{"status": "degraded", "components": {"redis": {"status": "unhealthy"}, ...}}`
 
 **Solutions**:
 
@@ -405,7 +405,7 @@ LLEN rq:queue:default
 curl -k https://localhost:8443/healthcheck
 
 # Test with verbose output
-curl -k -v -X POST https://localhost:8443/send_command \
+curl -k -v -X POST https://localhost:8443/v1/send_command \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -d '{"ip": "192.168.1.1", "platform": "cisco_ios", "commands": ["show version"]}'

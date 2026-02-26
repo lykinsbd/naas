@@ -62,14 +62,14 @@ def generate_selfsigned_cert(
     # Allow addressing by IP, for when you don't have real DNS (common in most testing scenarios)
     if public_ip is not None:
         # openssl wants DNSnames for ips...
-        alt_names_list.append(x509.DNSName(str(public_ip)))  # type: ignore[arg-type]
+        alt_names_list.append(x509.DNSName(str(public_ip)))
         # ... whereas golang's crypto/tls is stricter, and needs IPAddresses
-        alt_names_list.append(x509.IPAddress(public_ip))  # type: ignore[arg-type]
+        alt_names_list.append(x509.IPAddress(public_ip))  # type: ignore[arg-type]  # cryptography stubs type alt_names_list as list[DNSName]; SubjectAlternativeName accepts both
     if private_ip is not None:
         # openssl wants DNSnames for ips...
-        alt_names_list.append(x509.DNSName(str(private_ip)))  # type: ignore[arg-type]
+        alt_names_list.append(x509.DNSName(str(private_ip)))
         # ... whereas golang's crypto/tls is stricter, and needs IPAddresses
-        alt_names_list.append(x509.IPAddress(private_ip))  # type: ignore[arg-type]
+        alt_names_list.append(x509.IPAddress(private_ip))  # type: ignore[arg-type]  # cryptography stubs type alt_names_list as list[DNSName]; SubjectAlternativeName accepts both
 
     alt_names = x509.SubjectAlternativeName(alt_names_list)
 

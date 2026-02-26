@@ -26,8 +26,12 @@ Expected response:
 ```json
 {
   "status": "healthy",
-  "redis": "connected",
-  "workers": "active"
+  "version": "1.1.0",
+  "uptime_seconds": 42,
+  "components": {
+    "redis": { "status": "healthy" },
+    "queue": { "status": "healthy", "depth": 0 }
+  }
 }
 ```
 
@@ -37,7 +41,7 @@ Send a command to a network device:
 
 ```bash
 # Send command (replace with your device credentials)
-curl -k -X POST https://localhost:8443/send_command \
+curl -k -X POST https://localhost:8443/v1/send_command \
   -u "device_username:device_password" \
   -H "Content-Type: application/json" \
   -d '{
@@ -51,7 +55,8 @@ Response:
 
 ```json
 {
-  "job_id": "550e8400-e29b-41d4-a716-446655440000"
+  "job_id": "550e8400-e29b-41d4-a716-446655440000",
+  "message": "Job enqueued"
 }
 ```
 
@@ -61,7 +66,7 @@ Check the job status and retrieve results:
 
 ```bash
 # Get results (use the job_id from previous response)
-curl -k https://localhost:8443/send_command/550e8400-e29b-41d4-a716-446655440000 \
+curl -k https://localhost:8443/v1/send_command/550e8400-e29b-41d4-a716-446655440000 \
   -u "device_username:device_password"
 ```
 
@@ -83,7 +88,7 @@ Response when complete:
 Push configuration changes:
 
 ```bash
-curl -k -X POST https://localhost:8443/send_config \
+curl -k -X POST https://localhost:8443/v1/send_config \
   -u "device_username:device_password" \
   -H "Content-Type: application/json" \
   -d '{

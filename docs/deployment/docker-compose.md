@@ -10,13 +10,13 @@ git clone https://github.com/lykinsbd/naas.git
 cd naas
 
 # Start all services
-docker-compose up -d
+docker compose up -d
 
 # Check status
-docker-compose ps
+docker compose ps
 
 # View logs
-docker-compose logs -f
+docker compose logs -f
 ```
 
 ## Services
