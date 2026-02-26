@@ -115,7 +115,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add CHANGELOG.md
+          uv lock
+          git add CHANGELOG.md uv.lock
           if [[ "${{ needs.check-version.outputs.is_prerelease }}" == "false" ]]; then
             # Only commit fragment deletions on final release
             git add changes/
