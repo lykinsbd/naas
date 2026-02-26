@@ -4,6 +4,7 @@ import time
 
 from flask import current_app
 from flask_restful import Resource
+from redis.exceptions import RedisError
 
 from naas import __version__
 
@@ -20,7 +21,7 @@ class HealthCheck(Resource):
         try:
             redis.ping()
             redis_status = "healthy"
-        except Exception:
+        except RedisError:
             redis_status = "unhealthy"
 
         overall = "healthy" if redis_status == "healthy" else "degraded"

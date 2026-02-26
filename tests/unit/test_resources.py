@@ -40,7 +40,9 @@ class TestHealthCheck:
 
     def test_get_redis_unhealthy(self, app, client):
         """Healthcheck should return degraded when Redis is unreachable."""
-        with patch.object(app.config["redis"], "ping", side_effect=Exception("connection refused")):
+        from redis.exceptions import ConnectionError as RedisConnectionError
+
+        with patch.object(app.config["redis"], "ping", side_effect=RedisConnectionError("connection refused")):
             response = client.get("/healthcheck")
         data = response.get_json()
         assert data["status"] == "degraded"
