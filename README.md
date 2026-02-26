@@ -64,7 +64,7 @@ Contributions welcome! See the [Contributing Guide](https://naas.readthedocs.io/
 
 ## License
 
-[License information coming soon]
+MIT License - see [LICENSE](LICENSE) file for details
 
 ---
 
