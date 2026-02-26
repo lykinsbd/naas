@@ -7,9 +7,6 @@ Thank you for your interest in contributing to NAAS (Netmiko As A Service)!
 1. Install [uv](https://github.com/astral-sh/uv):
 
 ```bash
-1. Install [uv](https://github.com/astral-sh/uv):
-
-```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
 # or
 brew install uv
@@ -20,9 +17,7 @@ brew install uv
 ```bash
 git clone https://github.com/lykinsbd/naas.git
 cd naas
-uv venv --python 3.11
-source .venv/bin/activate
-uv pip install -e ".[dev]"
+uv sync --extra dev
 ```
 
 3. Install pre-commit hooks:

@@ -60,14 +60,19 @@ nav:
       - Installation: installation.md
   - User Guide:
       - API Usage: api-usage.md
+      - Observability: observability.md
+      - Reliability: reliability.md
       - Security: security.md
       - Troubleshooting: troubleshooting.md
   - Deployment:
       - Docker Compose: deployment/docker-compose.md
       - Kubernetes: deployment/kubernetes.md
+      - Environment Variables: deployment/environment-variables.md
   - Development:
       - Contributing: contributing.md
       - Testing: testing.md
   - Reference:
       - API Reference: api-reference.md
       - Changelog: changelog.md
+      - Release Notes:
+          - v1.1: release-notes/v1.1.md

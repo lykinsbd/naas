@@ -19,7 +19,7 @@ cd naas
 docker compose up -d
 
 # Send a command
-curl -k -X POST https://localhost:8443/send_command \
+curl -k -X POST https://localhost:8443/v1/send_command \
   -u "username:password" \
   -H "Content-Type: application/json" \
   -d '{"ip": "192.168.1.1", "platform": "cisco_ios", "commands": ["show version"]}'

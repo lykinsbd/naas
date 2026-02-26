@@ -32,7 +32,7 @@ curl -X POST https://naas.example.com/v1/send_command \
 }
 
 # Get results
-curl https://naas.example.com/v1/get_results/abc123 \
+curl https://naas.example.com/v1/send_command/abc123 \
   -u admin:password
 ```
 
