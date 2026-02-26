@@ -1,27 +1,19 @@
 #!/usr/bin/env python3
 
+
 """
 Library to abstract Netmiko functions for use by the NAAS API.
 """
 
 import logging
-from datetime import datetime
 from typing import TYPE_CHECKING
 
 import netmiko
-import pybreaker
 from paramiko import ssh_exception
-from redis import Redis
 
-from naas.config import (
-    CIRCUIT_BREAKER_ENABLED,
-    CIRCUIT_BREAKER_THRESHOLD,
-    CIRCUIT_BREAKER_TIMEOUT,
-    REDIS_HOST,
-    REDIS_PASSWORD,
-    REDIS_PORT,
-)
-from naas.library.auth import device_lockout, tacacs_auth_lockout
+from naas.config import CIRCUIT_BREAKER_ENABLED
+from naas.library.auth import tacacs_auth_lockout
+from naas.library.circuit_breaker import with_circuit_breaker
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -30,84 +22,6 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(name="NAAS")
-
-
-class RedisCircuitBreakerStorage(pybreaker.CircuitBreakerStorage):
-    """Redis-backed storage for circuit breaker state shared across workers."""
-
-    def __init__(self, name: str, redis_client: Redis):
-        super().__init__(name)
-        self.redis = redis_client
-        self._key = f"circuit_breaker:{name}"
-
-    @property
-    def state(self) -> str:
-        """Get current circuit state."""
-        return self.redis.hget(self._key, "state") or "closed"  # type: ignore[return-value]  # redis stubs type hget as Awaitable[str|None]|str; sync client always returns str|None
-
-    @state.setter
-    def state(self, state: str) -> None:
-        """Set current circuit state."""
-        self.redis.hset(self._key, "state", state)
-
-    def increment_counter(self) -> None:
-        """Increment failure counter."""
-        self.redis.hincrby(self._key, "counter", 1)
-
-    def reset_counter(self) -> None:
-        """Reset failure counter."""
-        self.redis.hset(self._key, "counter", str(0))
-
-    def increment_success_counter(self) -> None:
-        """Increment success counter."""
-        self.redis.hincrby(self._key, "success_counter", 1)
-
-    def reset_success_counter(self) -> None:
-        """Reset success counter."""
-        self.redis.hset(self._key, "success_counter", str(0))
-
-    @property
-    def counter(self) -> int:
-        """Get failure counter."""
-        val = self.redis.hget(self._key, "counter")
-        return int(val) if val else 0  # type: ignore[arg-type]  # redis stubs type hget as Awaitable[str|None]|str; sync client always returns str|None
-
-    @property
-    def success_counter(self) -> int:
-        """Get success counter."""
-        val = self.redis.hget(self._key, "success_counter")
-        return int(val) if val else 0  # type: ignore[arg-type]  # redis stubs type hget as Awaitable[str|None]|str; sync client always returns str|None
-
-    @property
-    def opened_at(self) -> datetime | None:
-        """Get when circuit was opened."""
-        val = self.redis.hget(self._key, "opened_at")
-        return datetime.fromisoformat(val) if val else None  # type: ignore[arg-type]  # redis stubs type hget as Awaitable[str|None]|str; sync client always returns str|None
-
-    @opened_at.setter
-    def opened_at(self, dt: datetime) -> None:
-        """Set when circuit was opened."""
-        self.redis.hset(self._key, "opened_at", dt.isoformat())
-
-
-# Redis client for circuit breaker storage
-_redis_client = Redis(host=REDIS_HOST, port=int(REDIS_PORT), password=REDIS_PASSWORD, decode_responses=True)
-
-# Per-device circuit breakers
-_circuit_breakers: dict[str, pybreaker.CircuitBreaker] = {}
-
-
-def _get_circuit_breaker(device_id: str) -> pybreaker.CircuitBreaker:
-    """Get or create a circuit breaker for a specific device."""
-    if device_id not in _circuit_breakers:
-        storage = RedisCircuitBreakerStorage(f"device_{device_id}", _redis_client)
-        _circuit_breakers[device_id] = pybreaker.CircuitBreaker(
-            fail_max=CIRCUIT_BREAKER_THRESHOLD,
-            reset_timeout=CIRCUIT_BREAKER_TIMEOUT,
-            name=f"device_{device_id}",
-            state_storage=storage,
-        )
-    return _circuit_breakers[device_id]
 
 
 def netmiko_send_command(
@@ -134,33 +48,20 @@ def netmiko_send_command(
     :return: A Tuple of a dict of the results (if any) and a string describing the error (if any)
     """
     if CIRCUIT_BREAKER_ENABLED:
-        breaker = _get_circuit_breaker(ip)
-        try:
-            return breaker.call(  # type: ignore[no-any-return]  # pybreaker.call() returns Any; no stubs available
-                _netmiko_send_command_impl,
-                ip,
-                credentials,
-                device_type,
-                commands,
-                port,
-                delay_factor,
-                verbose,
-                request_id,
-            )
-        except pybreaker.CircuitBreakerError:
-            logger.warning("%s %s:Circuit breaker open, rejecting connection attempt", request_id, ip)
-            device_lockout(ip=ip, report_failure=True)
-            return None, f"Circuit breaker open for device {ip} - too many recent failures"
-        except (TimeoutError, netmiko.NetMikoTimeoutException) as e:
-            device_lockout(ip=ip, report_failure=True)
-            return None, str(e)
-        except (ssh_exception.SSHException, ValueError) as e:
-            device_lockout(ip=ip, report_failure=True)
-            return None, f"Unknown SSH error connecting to device {ip}: {str(e)}"
-    else:
-        return _netmiko_send_command_impl(
-            ip, credentials, device_type, commands, port, delay_factor, verbose, request_id
+        return with_circuit_breaker(  # type: ignore[no-any-return]  # pybreaker has no stubs; with_circuit_breaker returns Any
+            ip,
+            request_id,
+            _netmiko_send_command_impl,
+            ip,
+            credentials,
+            device_type,
+            commands,
+            port,
+            delay_factor,
+            verbose,
+            request_id,
         )
+    return _netmiko_send_command_impl(ip, credentials, device_type, commands, port, delay_factor, verbose, request_id)
 
 
 def _netmiko_send_command_impl(
@@ -173,7 +74,6 @@ def _netmiko_send_command_impl(
     verbose: bool = False,
     request_id: str = "",
 ) -> "tuple[dict | None, str | None]":
-    # Create device dict to pass netmiko
     netmiko_device = {
         "device_type": device_type,
         "ip": ip,
@@ -196,7 +96,6 @@ def _netmiko_send_command_impl(
             logger.debug("%s %s:Sending %s", request_id, ip, command)
             net_output[command] = net_connect.send_command(command, delay_factor=delay_factor)
 
-        # Perform graceful disconnection of this SSH session
         net_connect.disconnect()
 
     except (TimeoutError, netmiko.NetMikoTimeoutException) as e:
@@ -242,35 +141,24 @@ def netmiko_send_config(
     :return: A Tuple of a dict of the results (if any) and a string describing the error (if any)
     """
     if CIRCUIT_BREAKER_ENABLED:
-        breaker = _get_circuit_breaker(ip)
-        try:
-            return breaker.call(  # type: ignore[no-any-return]  # pybreaker.call() returns Any; no stubs available
-                _netmiko_send_config_impl,
-                ip,
-                credentials,
-                device_type,
-                commands,
-                port,
-                save_config,
-                commit,
-                delay_factor,
-                verbose,
-                request_id,
-            )
-        except pybreaker.CircuitBreakerError:
-            logger.warning("%s %s:Circuit breaker open, rejecting connection attempt", request_id, ip)
-            device_lockout(ip=ip, report_failure=True)
-            return None, f"Circuit breaker open for device {ip} - too many recent failures"
-        except (TimeoutError, netmiko.NetMikoTimeoutException) as e:
-            device_lockout(ip=ip, report_failure=True)
-            return None, str(e)
-        except (ssh_exception.SSHException, ValueError) as e:
-            device_lockout(ip=ip, report_failure=True)
-            return None, f"Unknown SSH error connecting to device {ip}: {str(e)}"
-    else:
-        return _netmiko_send_config_impl(
-            ip, credentials, device_type, commands, port, save_config, commit, delay_factor, verbose, request_id
+        return with_circuit_breaker(  # type: ignore[no-any-return]  # pybreaker has no stubs; with_circuit_breaker returns Any
+            ip,
+            request_id,
+            _netmiko_send_config_impl,
+            ip,
+            credentials,
+            device_type,
+            commands,
+            port,
+            save_config,
+            commit,
+            delay_factor,
+            verbose,
+            request_id,
         )
+    return _netmiko_send_config_impl(
+        ip, credentials, device_type, commands, port, save_config, commit, delay_factor, verbose, request_id
+    )
 
 
 def _netmiko_send_config_impl(
@@ -285,7 +173,6 @@ def _netmiko_send_config_impl(
     verbose: bool = False,
     request_id: str = "",
 ) -> "tuple[dict | None, str | None]":
-    # Create device dict to pass netmiko
     netmiko_device = {
         "device_type": device_type,
         "ip": ip,
@@ -328,7 +215,6 @@ def _netmiko_send_config_impl(
                     "%s %s: This device_type (%s) does not support the commit operation", request_id, ip, device_type
                 )
 
-        # Perform graceful disconnection of this SSH session
         net_connect.disconnect()
 
     except (TimeoutError, netmiko.NetMikoTimeoutException) as e:
