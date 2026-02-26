@@ -9,10 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # NAAS 1.1.0rc1 (2026-02-26)
 
-## ⚠️ Deprecations
-
-- The `device_type` request parameter is deprecated in favour of `platform`. It continues to work but will be removed in v2.0. ([#85](https://github.com/lykinsbd/naas/issues/85))
-
 ## ✨ Features
 
 - Device IP lockout: after 10 connection failures within 10 minutes, all access to that device is blocked for 10 minutes, preventing credential-spray abuse across multiple users. Also refactors the user lockout to use the same Redis sorted-set sliding-window implementation. ([#2](https://github.com/lykinsbd/naas/issues/2))
@@ -30,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## 🐛 Bug Fixes
 
-- Failed jobs now include error detail in the API response. Previously `GET /v1/send_command/{job_id}` returned no error information when a job had status `failed`. ()
+- Failed jobs now include error detail in the API response. Previously `GET /v1/send_command/{job_id}` returned no error information when a job had status `failed`.
 
 ## 📚 Documentation
 
@@ -41,10 +37,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add architecture overview page with Mermaid diagrams covering system components, request lifecycle, async model rationale, and horizontal scaling. ([#146](https://github.com/lykinsbd/naas/issues/146))
 - Split CONTRIBUTING.md into a short contributor entry point and a full Development Guide reference page. ([#147](https://github.com/lykinsbd/naas/issues/147))
 - Configure Read the Docs to build the develop branch, making bleeding-edge documentation available at naas.readthedocs.io/en/develop/. ([#150](https://github.com/lykinsbd/naas/issues/150))
-- Document requirement that all merges to main must go through pull requests ()
-- Fix license section to reference existing MIT license file ()
-- Streamline README for clarity and conciseness ()
-- Update README with Read the Docs links ()
+- Document requirement that all merges to main must go through pull requests
+- Fix license section to reference existing MIT license file
+- Streamline README for clarity and conciseness
+- Update README with Read the Docs links
 
 ## 🧪 Testing & CI/CD
 
