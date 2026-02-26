@@ -130,9 +130,12 @@ jobs:
 
       - name: Extract changelog excerpt
         run: |
-          awk '/^# NAAS ${{ needs.check-version.outputs.version }}/,/^# NAAS [0-9]/' CHANGELOG.md | head -n -1 > .changelog-excerpt.md
+          VERSION="${{ needs.check-version.outputs.version }}"
+          # Extract only the current version's section — stop at the next top-level heading
+          awk "/^# NAAS ${VERSION}/{found=1} found && /^# / && !/^# NAAS ${VERSION}/{exit} found{print}" CHANGELOG.md > .changelog-excerpt.md
           if [ ! -s .changelog-excerpt.md ]; then
-            awk '/^# NAAS ${{ needs.check-version.outputs.version }}/,EOF' CHANGELOG.md > .changelog-excerpt.md
+            echo "ERROR: Could not extract changelog for version ${VERSION}"
+            exit 1
           fi
 
           # Add pre-release warning for beta/rc
