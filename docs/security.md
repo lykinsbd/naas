@@ -18,12 +18,11 @@ Guidelines for securing your NAAS deployment.
 
 NAAS transmits credentials to network devices. **Never** use HTTP in production.
 
-**Default**: NAAS uses HTTPS with self-signed certificates.
+**Default**: NAAS generates a self-signed certificate at startup if no certificate is provided.
 
-**Production**: Use valid TLS certificates from a trusted CA.
+**Production**: Supply a valid TLS certificate via environment variables:
 
 ```bash
-# Use Let's Encrypt or your organization's CA
 export NAAS_CERT=$(cat /path/to/fullchain.pem)
 export NAAS_KEY=$(cat /path/to/privkey.pem)
 export NAAS_CA_BUNDLE=$(cat /path/to/chain.pem)
@@ -33,16 +32,12 @@ docker compose up -d
 
 ### TLS Configuration
 
-Ensure strong TLS configuration:
+TLS is handled by Gunicorn directly — no reverse proxy required. The cipher suite and minimum TLS version are hardcoded to secure defaults:
 
-```yaml
-# docker-compose.override.yml
-services:
-  api:
-    environment:
-      - TLS_MIN_VERSION=1.2
-      - TLS_CIPHERS=ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384
-```
+- **Minimum version**: TLS 1.2
+- **Ciphers**: `HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!3DES:!MD5:!PSK`
+
+For custom cipher configuration, use a reverse proxy (see [Reverse Proxy](#reverse-proxy) below).
 
 ### Certificate Rotation
 
@@ -52,9 +47,10 @@ Rotate certificates before expiration:
 # Check certificate expiration
 openssl x509 -in cert.pem -noout -enddate
 
-# Update certificates
+# Update certificates and restart
 export NAAS_CERT=$(cat new-cert.pem)
 export NAAS_KEY=$(cat new-key.pem)
+export NAAS_CA_BUNDLE=$(cat new-bundle.pem)
 docker compose up -d
 ```
 
