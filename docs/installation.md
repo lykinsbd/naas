@@ -10,10 +10,10 @@ git clone https://github.com/lykinsbd/naas.git
 cd naas
 
 # Start services
-docker-compose up -d
+docker compose up -d
 
 # Verify it's running
-curl -k https://localhost:8443/healthcheck -u admin:password
+curl -k https://localhost:8443/healthcheck
 ```
 
 ## Manual Installation

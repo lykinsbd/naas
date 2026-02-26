@@ -2,21 +2,23 @@
 # -*- coding: UTF-8 -*-
 
 """
- worker.py
- Author: Brett Lykins (lykinsbd@gmail.com)
- Description: Handle launching of rq workers
+worker.py
+Author: Brett Lykins (lykinsbd@gmail.com)
+Description: Handle launching of rq workers
 """
 
+import signal
 from argparse import ArgumentParser, Namespace
+from collections.abc import Sequence
 from logging import basicConfig, getLogger
-from naas.library.netmiko_lib import netmiko_send_command, netmiko_send_config  # noqa F401
-from redis import Redis
-from rq import Worker, Queue
 from multiprocessing import Process
 from socket import gethostname
 from time import sleep
-from typing import Optional, Sequence
 
+from redis import Redis
+from rq import Queue, Worker
+
+from naas.library.netmiko_lib import netmiko_send_command, netmiko_send_config  # noqa F401
 
 logger = getLogger("naas_worker")
 
@@ -108,7 +110,7 @@ def arg_parsing() -> Namespace:
 
 
 def worker_launch(
-    name: str, queues: Sequence[Queue], redis_host: str, redis_port: int, log_level: str, redis_pw: Optional[str] = None
+    name: str, queues: Sequence[Queue], redis_host: str, redis_port: int, log_level: str, redis_pw: str | None = None
 ) -> None:
     """
     Function for launching an rq worker
@@ -123,10 +125,10 @@ def worker_launch(
 
     # Initialize our Redis connection
     logger.debug("Initializing Redis connection to redis://%s:%s", redis_host, str(redis_port))
-    redis_conn_dict = {"host": redis_host, "port": redis_port}
     if redis_pw:
-        redis_conn_dict["password"] = redis_pw
-    redis_conn = Redis(**redis_conn_dict)
+        redis_conn = Redis(host=redis_host, port=redis_port, password=redis_pw)
+    else:
+        redis_conn = Redis(host=redis_host, port=redis_port)
 
     logger.debug(
         "Starting rq worker %s, with connection to redis://%s:%s, to watch the following queue(s): %s",
@@ -136,7 +138,16 @@ def worker_launch(
         queues,
     )
     w = Worker(queues=queues, name=name, connection=redis_conn)
-    w.work(logging_level=log_level)
+
+    # Setup signal handlers for graceful shutdown
+    def request_stop(signum, frame):
+        logger.info("Received signal %s, requesting graceful shutdown", signum)
+        w.request_stop(signum, frame)
+
+    signal.signal(signal.SIGTERM, request_stop)
+    signal.signal(signal.SIGINT, request_stop)
+
+    w.work(logging_level=log_level, max_jobs=None, with_scheduler=False)
 
 
 if __name__ == "__main__":

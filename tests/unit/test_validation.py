@@ -2,9 +2,9 @@
 
 import pytest
 from flask import Flask
-from werkzeug.exceptions import BadRequest, UnprocessableEntity
+from werkzeug.exceptions import BadRequest
 
-from naas.library.errorhandlers import InvalidIP, NoAuth, NoJSON
+from naas.library.errorhandlers import NoAuth, NoJSON
 from naas.library.validation import Validate
 
 
@@ -30,7 +30,6 @@ class TestValidateIsJson:
     def test_no_json_raises_error(self, validation_app):
         """Request with empty JSON should raise NoJSON."""
         with validation_app.test_request_context("/test", method="POST", json={}):
-            # Empty JSON dict is falsy, should raise NoJSON
             with pytest.raises(NoJSON):
                 Validate.is_json()
 
@@ -53,7 +52,6 @@ class TestValidateHasAuth:
 
     def test_missing_username_raises_error(self, validation_app):
         """Auth without username should raise NoAuth."""
-        # Empty username in basic auth (":pass" base64 encoded)
         with validation_app.test_request_context("/test", method="POST"):
             from flask import request
             from werkzeug.datastructures import Authorization
@@ -61,47 +59,6 @@ class TestValidateHasAuth:
             request.authorization = Authorization({"username": None, "password": "pass"})
             with pytest.raises(NoAuth):
                 Validate.has_auth()
-
-
-class TestValidateHasPort:
-    """Tests for Validate.has_port()."""
-
-    def test_sets_default_port(self, validation_app):
-        """Should set port to 22 if not provided."""
-        with validation_app.test_request_context("/test", method="POST", json={}):
-            from flask import request
-
-            Validate.has_port()
-            assert request.json["port"] == 22
-
-    def test_preserves_existing_port(self, validation_app):
-        """Should preserve port if already set."""
-        with validation_app.test_request_context("/test", method="POST", json={"port": 2222}):
-            from flask import request
-
-            Validate.has_port()
-            assert request.json["port"] == 2222
-
-
-class TestValidateIsIpAddr:
-    """Tests for Validate.is_ip_addr()."""
-
-    def test_valid_ipv4_passes(self, validation_app):
-        """Valid IPv4 address should pass."""
-        with validation_app.test_request_context("/test", method="POST", json={"ip": "192.168.1.1"}):
-            Validate.is_ip_addr()  # Should not raise
-
-    def test_missing_ip_raises_badrequest(self, validation_app):
-        """Missing IP field should raise BadRequest."""
-        with validation_app.test_request_context("/test", method="POST", json={}):
-            with pytest.raises(BadRequest):
-                Validate.is_ip_addr()
-
-    def test_invalid_ip_raises_invalidip(self, validation_app):
-        """Invalid IP address should raise InvalidIP."""
-        with validation_app.test_request_context("/test", method="POST", json={"ip": "not.an.ip"}):
-            with pytest.raises(InvalidIP):
-                Validate.is_ip_addr()
 
 
 class TestValidateIsUuid:
@@ -117,150 +74,6 @@ class TestValidateIsUuid:
         with validation_app.test_request_context("/test"):
             with pytest.raises(BadRequest):
                 Validate.is_uuid("not-a-uuid")
-
-
-class TestValidateSaveConfig:
-    """Tests for Validate.save_config()."""
-
-    def test_sets_default_false(self, validation_app):
-        """Should set save_config to False if not provided."""
-        with validation_app.test_request_context("/test", method="POST", json={}):
-            from flask import request
-
-            Validate.save_config()
-            assert request.json["save_config"] is False
-
-    def test_preserves_true_value(self, validation_app):
-        """Should preserve save_config if set to True."""
-        with validation_app.test_request_context("/test", method="POST", json={"save_config": True}):
-            from flask import request
-
-            Validate.save_config()
-            assert request.json["save_config"] is True
-
-    def test_non_bool_raises_error(self, validation_app):
-        """Non-boolean save_config should raise UnprocessableEntity."""
-        with validation_app.test_request_context("/test", method="POST", json={"save_config": "yes"}):
-            with pytest.raises(UnprocessableEntity):
-                Validate.save_config()
-
-
-class TestValidateCommit:
-    """Tests for Validate.commit()."""
-
-    def test_sets_default_false(self, validation_app):
-        """Should set commit to False if not provided."""
-        with validation_app.test_request_context("/test", method="POST", json={}):
-            from flask import request
-
-            Validate.commit()
-            assert request.json["commit"] is False
-
-    def test_preserves_true_value(self, validation_app):
-        """Should preserve commit if set to True."""
-        with validation_app.test_request_context("/test", method="POST", json={"commit": True}):
-            from flask import request
-
-            Validate.commit()
-            assert request.json["commit"] is True
-
-    def test_non_bool_raises_error(self, validation_app):
-        """Non-boolean commit should raise UnprocessableEntity."""
-        with validation_app.test_request_context("/test", method="POST", json={"commit": 1}):
-            with pytest.raises(UnprocessableEntity):
-                Validate.commit()
-
-
-class TestValidateIsCommandSet:
-    """Tests for Validate.is_command_set()."""
-
-    def test_valid_commands_list_passes(self, validation_app):
-        """Valid commands list should pass."""
-        with validation_app.test_request_context("/test", method="POST", json={"commands": ["show version"]}):
-            Validate.is_command_set()  # Should not raise
-
-    def test_missing_commands_raises_badrequest(self, validation_app):
-        """Missing commands field should raise BadRequest."""
-        with validation_app.test_request_context("/test", method="POST", json={}):
-            with pytest.raises(BadRequest):
-                Validate.is_command_set()
-
-    def test_non_list_commands_raises_error(self, validation_app):
-        """Non-list commands should raise UnprocessableEntity."""
-        with validation_app.test_request_context("/test", method="POST", json={"commands": "show version"}):
-            with pytest.raises(UnprocessableEntity):
-                Validate.is_command_set()
-
-
-class TestValidateHasPlatform:
-    """Tests for Validate.has_platform()."""
-
-    def test_sets_default_cisco_ios(self, validation_app):
-        """Should set platform to cisco_ios if not provided."""
-        with validation_app.test_request_context("/test", method="POST", json={}):
-            from flask import request
-
-            Validate.has_platform()
-            assert request.json["platform"] == "cisco_ios"
-
-    def test_preserves_existing_platform(self, validation_app):
-        """Should preserve platform if already set."""
-        with validation_app.test_request_context("/test", method="POST", json={"platform": "arista_eos"}):
-            from flask import request
-
-            Validate.has_platform()
-            assert request.json["platform"] == "arista_eos"
-
-    def test_non_string_raises_error(self, validation_app):
-        """Non-string platform should raise UnprocessableEntity."""
-        with validation_app.test_request_context("/test", method="POST", json={"platform": 123}):
-            with pytest.raises(UnprocessableEntity):
-                Validate.has_platform()
-
-    def test_backward_compat_device_type(self, validation_app, caplog):
-        """Should accept deprecated device_type and map to platform."""
-        with validation_app.test_request_context("/test", method="POST", json={"device_type": "juniper_junos"}):
-            from flask import request
-
-            Validate.has_platform()
-            assert request.json["platform"] == "juniper_junos"
-            assert "deprecated" in caplog.text.lower()
-
-    def test_platform_takes_precedence(self, validation_app):
-        """If both provided, platform takes precedence."""
-        with validation_app.test_request_context(
-            "/test", method="POST", json={"device_type": "cisco_ios", "platform": "arista_eos"}
-        ):
-            from flask import request
-
-            Validate.has_platform()
-            assert request.json["platform"] == "arista_eos"
-
-
-class TestValidateHasDelayFactor:
-    """Tests for Validate.has_delay_factor()."""
-
-    def test_sets_default_one(self, validation_app):
-        """Should set delay_factor to 1 if not provided."""
-        with validation_app.test_request_context("/test", method="POST", json={}):
-            from flask import request
-
-            Validate.has_delay_factor()
-            assert request.json["delay_factor"] == 1
-
-    def test_preserves_existing_delay_factor(self, validation_app):
-        """Should preserve delay_factor if already set."""
-        with validation_app.test_request_context("/test", method="POST", json={"delay_factor": 5}):
-            from flask import request
-
-            Validate.has_delay_factor()
-            assert request.json["delay_factor"] == 5
-
-    def test_non_int_raises_error(self, validation_app):
-        """Non-integer delay_factor should raise UnprocessableEntity."""
-        with validation_app.test_request_context("/test", method="POST", json={"delay_factor": "5"}):
-            with pytest.raises(UnprocessableEntity):
-                Validate.has_delay_factor()
 
 
 class TestValidateLockedOut:

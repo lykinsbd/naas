@@ -3,10 +3,18 @@
 from unittest.mock import MagicMock, patch
 
 import netmiko
-from paramiko import ssh_exception  # type: ignore[import-untyped]
+from fakeredis import FakeStrictRedis
+from paramiko import ssh_exception
 
+# Must import the module first and patch _redis_client before importing the functions,
+# otherwise the lazy Redis client is initialized before fakeredis is injected.
+import naas.library.circuit_breaker
 from naas.library.auth import Credentials
-from naas.library.netmiko_lib import netmiko_send_command, netmiko_send_config
+
+naas.library.circuit_breaker._redis_client = FakeStrictRedis()
+
+from naas.library.circuit_breaker import RedisCircuitBreakerStorage  # noqa: E402,I001
+from naas.library.netmiko_lib import netmiko_send_command, netmiko_send_config  # noqa: E402,I001
 
 
 class TestNetmikoSendCommand:
@@ -186,3 +194,99 @@ class TestNetmikoSendConfig:
 
             assert result is None
             assert "Unknown SSH error" in error
+
+
+class TestCircuitBreaker:
+    """Tests for circuit breaker functionality."""
+
+    def test_circuit_breaker_disabled(self):
+        """Test that circuit breaker can be disabled."""
+        creds = Credentials(username="testuser", password="testpass")
+
+        with patch("naas.library.netmiko_lib.CIRCUIT_BREAKER_ENABLED", False):
+            with patch("naas.library.netmiko_lib.netmiko.ConnectHandler") as mock_handler:
+                mock_conn = MagicMock()
+                mock_conn.send_command.return_value = "output"
+                mock_handler.return_value = mock_conn
+
+                result, error = netmiko_send_command("192.168.1.1", creds, "cisco_ios", ["show version"])
+
+                assert error is None
+                assert result == {"show version": "output"}
+
+                result, error = netmiko_send_config("192.168.1.1", creds, "cisco_ios", ["interface Gi0/1"])
+
+                assert error is None
+
+    def test_circuit_breaker_opens_after_failures(self):
+        """Test that circuit breaker opens after threshold failures."""
+        creds = Credentials(username="testuser", password="testpass")
+
+        with patch("naas.library.netmiko_lib.netmiko.ConnectHandler") as mock_handler:
+            mock_handler.side_effect = netmiko.NetMikoTimeoutException("Timeout")
+
+            # Trigger failures up to threshold
+            for _ in range(5):
+                result, error = netmiko_send_command("192.168.1.2", creds, "cisco_ios", ["show version"])
+                assert result is None
+
+            # Next call should be rejected by circuit breaker
+            result, error = netmiko_send_command("192.168.1.2", creds, "cisco_ios", ["show version"])
+            assert result is None
+            assert "Circuit breaker open" in error
+
+            # Test send_config too
+            result, error = netmiko_send_config("192.168.1.2", creds, "cisco_ios", ["interface Gi0/1"])
+            assert result is None
+            assert "Circuit breaker open" in error
+
+    def test_circuit_breaker_per_device(self):
+        """Test that circuit breakers are per-device."""
+        creds = Credentials(username="testuser", password="testpass")
+
+        with patch("naas.library.netmiko_lib.netmiko.ConnectHandler") as mock_handler:
+            # Fail device 1
+            mock_handler.side_effect = netmiko.NetMikoTimeoutException("Timeout")
+            for _ in range(5):
+                netmiko_send_command("192.168.1.3", creds, "cisco_ios", ["show version"])
+
+            # Device 1 circuit should be open
+            result, error = netmiko_send_command("192.168.1.3", creds, "cisco_ios", ["show version"])
+            assert "Circuit breaker open" in error
+
+            # Device 2 should still work
+            mock_conn = MagicMock()
+            mock_conn.send_command.return_value = "output"
+            mock_handler.side_effect = None
+            mock_handler.return_value = mock_conn
+
+            result, error = netmiko_send_command("192.168.1.4", creds, "cisco_ios", ["show version"])
+            assert error is None
+
+    def test_redis_storage_properties(self):
+        """Test Redis storage class properties."""
+        storage = RedisCircuitBreakerStorage("test_device", naas.library.circuit_breaker._redis_client)
+
+        # Test state
+        storage.state = "open"
+        assert storage.state == "open"
+
+        # Test counters
+        storage.increment_counter()
+        storage.increment_counter()
+        assert storage.counter == 2
+        storage.reset_counter()
+        assert storage.counter == 0
+
+        # Test success counter
+        storage.increment_success_counter()
+        assert storage.success_counter == 1
+        storage.reset_success_counter()
+        assert storage.success_counter == 0
+
+        # Test opened_at
+        from datetime import datetime
+
+        now = datetime.now()
+        storage.opened_at = now
+        assert storage.opened_at is not None

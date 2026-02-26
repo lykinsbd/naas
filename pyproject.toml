@@ -1,6 +1,6 @@
 [project]
 name = "naas"
-version = "1.0.1"
+version = "1.1.0rc6"
 description = "Netmiko As A Service - REST API wrapper for Netmiko"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -18,11 +18,15 @@ dependencies = [
     "gunicorn>=20.0.4",
     "netmiko>=3.0.0",
     "paramiko>=2.7.1",
+    "pybreaker>=1.4.1",
+    "pydantic>=2.0.0",
     "pyserial>=3.4",
+    "python-json-logger>=4.0.0",
     "pyyaml>=5.3",
     "redis>=3.4.1",
     "rq>=1.2.2",
     "scp>=0.13.2",
+    "spectree>=2.0.1",
     "textfsm>=1.1.0",
 ]
 
@@ -140,4 +144,11 @@ showcontent = true
 [[tool.towncrier.type]]
 directory = "internal"
 name = "🔧 Internal Changes"
-showcontent = false
+showcontent = true
+
+[dependency-groups]
+dev = [
+    "mkdocs-material>=9.7.2",
+    "mkdocstrings[python]>=1.0.3",
+    "types-paramiko>=4.0.0.20250822",
+]

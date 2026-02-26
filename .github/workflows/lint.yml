@@ -4,7 +4,7 @@ on:
   push:
     branches: [main, develop]
   pull_request:
-    branches: [main, develop]
+    branches: [main, develop, 'release/**']
 
 jobs:
   lint:
@@ -28,6 +28,9 @@ jobs:
 
       - name: Check ruff formatting
         run: uv run ruff format --check naas/ tests/
+
+      - name: Run mypy
+        run: uv run mypy naas/
 
   check-changelog:
     runs-on: ubuntu-latest
@@ -60,10 +63,6 @@ jobs:
           fi
 
           echo "✅ Found changelog fragment(s)"
-
-      - name: Run mypy
-        run: uv run mypy naas/
-        continue-on-error: true
 
   lint-summary:
     name: Code Quality

@@ -146,7 +146,7 @@ Need to make a change?
   │    └─→ Branch from release/1.0, target release/1.0
   │
   └─ Documentation-only change?
-       └─→ Can branch from develop OR main (if urgent)
+       └─→ Branch from main, target main (required for Read the Docs)
 ```
 
 **ALWAYS ASK:** "What's the correct base branch for this work?"
@@ -200,8 +200,11 @@ chore(deps): upgrade netmiko to 4.6.0
 
 - **ONLY target these branches:** `develop`, `main`, or `release/X.Y`
 - **NEVER target feature branches** - PRs must go to protected branches
+- **ALL merges to `main` require PR review** - Including release/hotfix branches
+- **Documentation PRs target `main`** - Required for Read the Docs integration
 - Feature branches merge to develop, not to other feature branches
-- Hotfix branches merge to release/X.Y, then main, then develop
+- Hotfix branches: PR to release/X.Y, then PR to main, then PR to develop
+- Release branches: PR to main (never direct merge)
 
 **Merge Strategy:**
 
@@ -265,9 +268,9 @@ chore(deps): upgrade netmiko to 4.6.0
 
 ### Current State
 
-- **Version:** v1.0.0 released, develop at v1.1.0a1
+- **Version:** v1.0.0 released, v1.1.0rc1 on release/1.1, develop at v1.1.0a1
 - **Active branches:** main, develop, release/1.0, release/1.1
-- **Milestone:** v1.1 (30+ issues planned)
+- **Milestone:** v1.2 (next development cycle)
 
 ### Key Technologies
 

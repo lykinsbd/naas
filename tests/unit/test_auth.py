@@ -1,110 +1,72 @@
-from datetime import datetime, timedelta
-from pickle import dumps
 from unittest.mock import MagicMock
 
-from naas.library.auth import Credentials, job_unlocker, report_tacacs_failure, tacacs_auth_lockout
+from naas.library.auth import Credentials, device_lockout, job_unlocker, tacacs_auth_lockout
 
 
-class TestTacacsAuthLockout:
-    """Test TACACS authentication lockout functionality."""
+class TestLockout:
+    """Test sliding-window lockout for both user (TACACS) and device."""
 
-    def test_no_failures_no_report(self, fake_redis, monkeypatch):
-        """Test checking failures when none exist and not reporting."""
+    def test_no_failures_not_locked(self, fake_redis, monkeypatch):
         monkeypatch.setattr("naas.library.auth.Redis", lambda **kwargs: fake_redis)
         assert tacacs_auth_lockout(username="testuser") is False
 
-    def test_first_failure_report(self, fake_redis, monkeypatch):
-        """Test reporting the first failure."""
+    def test_first_failure_not_locked(self, fake_redis, monkeypatch):
         monkeypatch.setattr("naas.library.auth.Redis", lambda **kwargs: fake_redis)
         assert tacacs_auth_lockout(username="testuser", report_failure=True) is False
 
-        failures = fake_redis.hgetall("naas_failures_testuser")
-        assert int(failures[b"failure_count"]) == 1
-
-    def test_nine_failures_no_lockout(self, fake_redis, monkeypatch):
-        """Test that 9 failures don't trigger lockout."""
+    def test_nine_failures_not_locked(self, fake_redis, monkeypatch):
         monkeypatch.setattr("naas.library.auth.Redis", lambda **kwargs: fake_redis)
-
         for _ in range(9):
             tacacs_auth_lockout(username="testuser", report_failure=True)
-
         assert tacacs_auth_lockout(username="testuser") is False
 
     def test_tenth_failure_triggers_lockout(self, fake_redis, monkeypatch):
-        """Test that the 10th failure triggers lockout."""
         monkeypatch.setattr("naas.library.auth.Redis", lambda **kwargs: fake_redis)
-
         for _ in range(9):
             tacacs_auth_lockout(username="testuser", report_failure=True)
-
         assert tacacs_auth_lockout(username="testuser", report_failure=True) is True
 
     def test_lockout_persists(self, fake_redis, monkeypatch):
-        """Test that lockout persists after 10 failures."""
         monkeypatch.setattr("naas.library.auth.Redis", lambda **kwargs: fake_redis)
-
         for _ in range(10):
             tacacs_auth_lockout(username="testuser", report_failure=True)
-
         assert tacacs_auth_lockout(username="testuser") is True
-        assert tacacs_auth_lockout(username="testuser", report_failure=True) is True
 
     def test_old_failures_expire(self, fake_redis, monkeypatch):
-        """Test that failures older than 10 minutes are removed."""
+        """Failures outside the 10-minute window are pruned and don't count."""
         monkeypatch.setattr("naas.library.auth.Redis", lambda **kwargs: fake_redis)
+        from datetime import datetime, timedelta
 
-        # Create 9 old failures
-        old_timestamps = [datetime.now() - timedelta(minutes=30) for _ in range(9)]
-        fail_dict = {"failure_count": 9, "failure_timestamps": dumps(old_timestamps)}
-        fake_redis.hset("naas_failures_testuser", mapping=fail_dict)
-
+        old_ts = (datetime.now() - timedelta(minutes=30)).timestamp()
+        for i in range(9):
+            fake_redis.zadd("naas_failures_testuser", {f"old-{i}": old_ts})
         assert tacacs_auth_lockout(username="testuser") is False
 
-    def test_old_failures_expire_new_failure_allowed(self, fake_redis, monkeypatch):
-        """Test that new failure after old ones expire doesn't trigger lockout."""
+    def test_old_failures_plus_new_not_locked(self, fake_redis, monkeypatch):
         monkeypatch.setattr("naas.library.auth.Redis", lambda **kwargs: fake_redis)
+        from datetime import datetime, timedelta
 
-        old_timestamps = [datetime.now() - timedelta(minutes=30) for _ in range(9)]
-        fail_dict = {"failure_count": 9, "failure_timestamps": dumps(old_timestamps)}
-        fake_redis.hset("naas_failures_testuser", mapping=fail_dict)
-
+        old_ts = (datetime.now() - timedelta(minutes=30)).timestamp()
+        for i in range(9):
+            fake_redis.zadd("naas_failures_testuser", {f"old-{i}": old_ts})
         assert tacacs_auth_lockout(username="testuser", report_failure=True) is False
 
-    def test_mixed_old_and_new_failures(self, fake_redis, monkeypatch):
-        """Test lockout with mix of old and new failures."""
+    def test_device_lockout_no_failures(self, fake_redis, monkeypatch):
         monkeypatch.setattr("naas.library.auth.Redis", lambda **kwargs: fake_redis)
+        assert device_lockout(ip="192.0.2.1") is False
 
-        # 5 old failures + 9 new = should trigger lockout on 10th
-        old_timestamps = [datetime.now() - timedelta(minutes=30) for _ in range(5)]
-        fail_dict = {"failure_count": 5, "failure_timestamps": dumps(old_timestamps)}
-        fake_redis.hset("naas_failures_testuser", mapping=fail_dict)
-
+    def test_device_lockout_triggers_at_ten(self, fake_redis, monkeypatch):
+        monkeypatch.setattr("naas.library.auth.Redis", lambda **kwargs: fake_redis)
         for _ in range(9):
+            device_lockout(ip="192.0.2.1", report_failure=True)
+        assert device_lockout(ip="192.0.2.1", report_failure=True) is True
+
+    def test_device_lockout_independent_of_user_lockout(self, fake_redis, monkeypatch):
+        """Device and user lockouts use separate keys."""
+        monkeypatch.setattr("naas.library.auth.Redis", lambda **kwargs: fake_redis)
+        for _ in range(10):
             tacacs_auth_lockout(username="testuser", report_failure=True)
-
-        assert tacacs_auth_lockout(username="testuser", report_failure=True) is True
-
-
-class TestReportTacacsFailure:
-    """Test TACACS failure reporting."""
-
-    def test_report_first_failure(self, fake_redis):
-        """Test reporting the first failure."""
-        report_tacacs_failure(username="testuser", existing_fail_count=0, existing_fail_times=[], redis=fake_redis)
-
-        failures = fake_redis.hgetall("naas_failures_testuser")
-        assert int(failures[b"failure_count"]) == 1
-
-    def test_report_increments_count(self, fake_redis):
-        """Test that reporting increments the failure count."""
-        existing_times = [datetime.now()]
-
-        report_tacacs_failure(
-            username="testuser", existing_fail_count=1, existing_fail_times=existing_times, redis=fake_redis
-        )
-
-        failures = fake_redis.hgetall("naas_failures_testuser")
-        assert int(failures[b"failure_count"]) == 2
+        assert device_lockout(ip="192.0.2.1") is False
 
 
 class TestJobUnlocker:
