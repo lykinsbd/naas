@@ -2,6 +2,10 @@ services:
   redis:
     image: redis:7-alpine
     command: redis-server --requirepass test_password
+    ports:
+      - "16379:6379"
+    networks:
+      - naas-test
     healthcheck:
       test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
       interval: 2s
@@ -19,6 +23,8 @@ services:
       - REDIS_PORT=6379
       - REDIS_PASSWORD=test_password
       - APP_ENVIRONMENT=test
+    networks:
+      - naas-test
     depends_on:
       redis:
         condition: service_healthy
@@ -33,12 +39,29 @@ services:
     build:
       context: ../..
       dockerfile: Dockerfile
-    command: ["rq", "worker", "--url", "redis://:test_password@redis:6379"]
+    command: ["rq", "worker", "naas", "--url", "redis://:test_password@redis:6379"]
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=test_password
       - APP_ENVIRONMENT=test
+    networks:
+      - naas-test
     depends_on:
       redis:
         condition: service_healthy
+
+  cisshgo:
+    image: ghcr.io/tbotnz/cisshgo:v0.2.0
+    command: ["-listeners", "1", "-startingPort", "10022"]
+    ports:
+      - "10022:10022"
+    networks:
+      naas-test:
+        ipv4_address: 240.11.2.100
+
+networks:
+  naas-test:
+    ipam:
+      config:
+        - subnet: 240.11.2.0/24

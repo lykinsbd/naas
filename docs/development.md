@@ -109,6 +109,33 @@ uv run invoke test          # unit tests + coverage report
 uv run invoke test-all      # unit + integration tests
 ```
 
+### Running integration tests locally
+
+Integration tests require Docker. The test suite auto-starts and tears down the stack via `conftest.py`.
+
+```bash
+# Run integration tests (starts docker-compose.test.yml automatically)
+uv run pytest tests/integration -v --no-cov
+
+# Or via invoke
+uv run invoke test-all
+```
+
+The integration stack includes:
+
+- **NAAS API** at `https://localhost:18443`
+- **Redis** at `localhost:16379` (password: `test_password`)
+- **RQ Worker**
+- **cisshgo** mock SSH device at `localhost:10022` (platform: `cisco_ios`, credentials: `admin`/`admin`)
+
+To start the stack manually for debugging:
+
+```bash
+docker compose -f tests/integration/docker-compose.test.yml up -d --build
+# ... run tests or debug ...
+docker compose -f tests/integration/docker-compose.test.yml down -v
+```
+
 ## Changelog Fragments
 
 Every PR must include a changelog fragment. CI will fail without one.

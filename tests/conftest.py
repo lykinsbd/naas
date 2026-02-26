@@ -17,7 +17,7 @@ def app():
     with patch("naas.config.Redis", return_value=FakeStrictRedis()):
         with patch("naas.config.Queue") as mock_queue:
             mock_job = MagicMock()
-            mock_job.get_id.return_value = "test-job-id"
+            mock_job.id = "test-job-id"
             mock_job.meta = {}
             mock_queue.return_value.enqueue.return_value = mock_job
 
