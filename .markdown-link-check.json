@@ -5,6 +5,9 @@
     },
     {
       "pattern": "^https://127.0.0.1"
+    },
+    {
+      "pattern": "^https://naas.readthedocs.io"
     }
   ],
   "timeout": "20s",

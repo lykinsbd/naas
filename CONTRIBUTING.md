@@ -38,7 +38,7 @@ PRs are merged via squash or rebase — no merge commits.
 
 ## Full development reference
 
-See the [Development Guide](https://naas.readthedocs.io/en/latest/development/) for:
+See the [Development Guide](docs/development.md) for:
 
 - Branching strategy and hotfix workflow
 - Commit message conventions
