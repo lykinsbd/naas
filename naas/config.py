@@ -28,6 +28,11 @@ REDIS_PASSWORD = os.environ.get("REDIS_PASSWORD", "mah_redis_pw")
 JOB_TTL_SUCCESS = int(os.environ.get("JOB_TTL_SUCCESS", 86400))  # 24h
 JOB_TTL_FAILED = int(os.environ.get("JOB_TTL_FAILED", 604800))  # 7 days
 
+# Circuit breaker config
+CIRCUIT_BREAKER_ENABLED = os.environ.get("CIRCUIT_BREAKER_ENABLED", "true").lower() == "true"
+CIRCUIT_BREAKER_THRESHOLD = int(os.environ.get("CIRCUIT_BREAKER_THRESHOLD", 5))
+CIRCUIT_BREAKER_TIMEOUT = int(os.environ.get("CIRCUIT_BREAKER_TIMEOUT", 300))  # 5 minutes
+
 # Graceful shutdown config (seconds)
 SHUTDOWN_TIMEOUT = int(os.environ.get("SHUTDOWN_TIMEOUT", 30))  # 30s
 

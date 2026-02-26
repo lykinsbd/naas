@@ -8,8 +8,10 @@ import logging
 from typing import TYPE_CHECKING
 
 import netmiko
+import pybreaker
 from paramiko import ssh_exception  # type: ignore[import-untyped]
 
+from naas.config import CIRCUIT_BREAKER_ENABLED, CIRCUIT_BREAKER_THRESHOLD, CIRCUIT_BREAKER_TIMEOUT
 from naas.library.auth import tacacs_auth_lockout
 
 if TYPE_CHECKING:
@@ -19,6 +21,20 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(name="NAAS")
+
+# Per-device circuit breakers
+_circuit_breakers: dict[str, pybreaker.CircuitBreaker] = {}
+
+
+def _get_circuit_breaker(device_id: str) -> pybreaker.CircuitBreaker:
+    """Get or create a circuit breaker for a specific device."""
+    if device_id not in _circuit_breakers:
+        _circuit_breakers[device_id] = pybreaker.CircuitBreaker(
+            fail_max=CIRCUIT_BREAKER_THRESHOLD,
+            reset_timeout=CIRCUIT_BREAKER_TIMEOUT,
+            name=f"device_{device_id}",
+        )
+    return _circuit_breakers[device_id]
 
 
 def netmiko_send_command(
@@ -44,7 +60,43 @@ def netmiko_send_command(
     :param request_id: Correlation ID from the originating API request for end-to-end log tracing
     :return: A Tuple of a dict of the results (if any) and a string describing the error (if any)
     """
+    if CIRCUIT_BREAKER_ENABLED:
+        breaker = _get_circuit_breaker(ip)
+        try:
+            return breaker.call(  # type: ignore[no-any-return]
+                _netmiko_send_command_impl,
+                ip,
+                credentials,
+                device_type,
+                commands,
+                port,
+                delay_factor,
+                verbose,
+                request_id,
+            )
+        except pybreaker.CircuitBreakerError:
+            logger.warning("%s %s:Circuit breaker open, rejecting connection attempt", request_id, ip)
+            return None, f"Circuit breaker open for device {ip} - too many recent failures"
+        except (TimeoutError, netmiko.NetMikoTimeoutException) as e:
+            return None, str(e)
+        except (ssh_exception.SSHException, ValueError) as e:
+            return None, f"Unknown SSH error connecting to device {ip}: {str(e)}"
+    else:
+        return _netmiko_send_command_impl(
+            ip, credentials, device_type, commands, port, delay_factor, verbose, request_id
+        )
 
+
+def _netmiko_send_command_impl(
+    ip: str,
+    credentials: "Credentials",
+    device_type: str,
+    commands: "Sequence[str]",
+    port: int = 22,
+    delay_factor: int = 1,
+    verbose: bool = False,
+    request_id: str = "",
+) -> "tuple[dict | None, str | None]":
     # Create device dict to pass netmiko
     netmiko_device = {
         "device_type": device_type,
@@ -73,14 +125,14 @@ def netmiko_send_command(
 
     except (TimeoutError, netmiko.NetMikoTimeoutException) as e:
         logger.debug("%s %s:Netmiko timed out connecting to device: %s", request_id, ip, e)
-        return None, str(e)
+        raise  # Re-raise to trigger circuit breaker
     except netmiko.NetMikoAuthenticationException as e:
         logger.debug("%s %s:Netmiko authentication failure connecting to device: %s", request_id, ip, e)
         tacacs_auth_lockout(username=credentials.username, report_failure=True)
-        return None, str(e)
+        return None, str(e)  # Don't trigger circuit breaker for auth failures
     except (ssh_exception.SSHException, ValueError) as e:
         logger.debug("%s %s:Netmiko cannot connect to device: %s", request_id, ip, e)
-        return None, (f"Unknown SSH error connecting to device {ip}: {str(e)}")
+        raise  # Re-raise to trigger circuit breaker
 
     logger.debug("%s %s:Netmiko executed successfully.", request_id, ip)
     return net_output, None
@@ -113,7 +165,47 @@ def netmiko_send_config(
     :param request_id: Correlation ID from the originating API request for end-to-end log tracing
     :return: A Tuple of a dict of the results (if any) and a string describing the error (if any)
     """
+    if CIRCUIT_BREAKER_ENABLED:
+        breaker = _get_circuit_breaker(ip)
+        try:
+            return breaker.call(  # type: ignore[no-any-return]
+                _netmiko_send_config_impl,
+                ip,
+                credentials,
+                device_type,
+                commands,
+                port,
+                save_config,
+                commit,
+                delay_factor,
+                verbose,
+                request_id,
+            )
+        except pybreaker.CircuitBreakerError:
+            logger.warning("%s %s:Circuit breaker open, rejecting connection attempt", request_id, ip)
+            return None, f"Circuit breaker open for device {ip} - too many recent failures"
+        except (TimeoutError, netmiko.NetMikoTimeoutException) as e:
+            return None, str(e)
+        except (ssh_exception.SSHException, ValueError) as e:
+            return None, f"Unknown SSH error connecting to device {ip}: {str(e)}"
+    else:
+        return _netmiko_send_config_impl(
+            ip, credentials, device_type, commands, port, save_config, commit, delay_factor, verbose, request_id
+        )
 
+
+def _netmiko_send_config_impl(
+    ip: str,
+    credentials: "Credentials",
+    device_type: str,
+    commands: "Sequence[str]",
+    port: int = 22,
+    save_config: bool = False,
+    commit: bool = False,
+    delay_factor: int = 1,
+    verbose: bool = False,
+    request_id: str = "",
+) -> "tuple[dict | None, str | None]":
     # Create device dict to pass netmiko
     netmiko_device = {
         "device_type": device_type,
@@ -162,14 +254,14 @@ def netmiko_send_config(
 
     except (TimeoutError, netmiko.NetMikoTimeoutException) as e:
         logger.debug("%s %s:Netmiko timed out connecting to device: %s", request_id, ip, e)
-        return None, str(e)
+        raise  # Re-raise to trigger circuit breaker
     except netmiko.NetMikoAuthenticationException as e:
         logger.debug("%s %s:Netmiko authentication failure connecting to device: %s", request_id, ip, e)
         tacacs_auth_lockout(username=credentials.username, report_failure=True)
-        return None, str(e)
+        return None, str(e)  # Don't trigger circuit breaker for auth failures
     except (ssh_exception.SSHException, ValueError) as e:
         logger.debug("%s %s:Netmiko cannot connect to device: %s", request_id, ip, e)
-        return None, (f"Unknown SSH error connecting to device {ip}: {str(e)}")
+        raise  # Re-raise to trigger circuit breaker
 
     logger.debug("%s %s:Netmiko executed successfully.", request_id, ip)
     return net_output, None
