@@ -272,6 +272,16 @@
         "tags": []
       }
     },
+    "/metrics": {
+      "get": {
+        "description": "",
+        "operationId": "get__metrics",
+        "parameters": [],
+        "responses": {},
+        "summary": "prometheus_metrics <GET>",
+        "tags": []
+      }
+    },
     "/send_command": {
       "get": {
         "description": "",
