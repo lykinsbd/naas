@@ -18,6 +18,7 @@ dependencies = [
     "gunicorn>=20.0.4",
     "netmiko>=3.0.0",
     "paramiko>=2.7.1",
+    "prometheus-flask-exporter>=0.23.2",
     "pybreaker>=1.4.1",
     "pydantic>=2.0.0",
     "pyserial>=3.4",
