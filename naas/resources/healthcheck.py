@@ -5,6 +5,7 @@ import time
 from flask import current_app
 from flask_restful import Resource
 from redis.exceptions import RedisError
+from rq import Worker
 
 from naas import __version__
 
@@ -24,7 +25,18 @@ class HealthCheck(Resource):
         except RedisError:
             redis_status = "unhealthy"
 
-        overall = "healthy" if redis_status == "healthy" else "degraded"
+        # Check workers
+        workers = Worker.all(connection=redis) if redis_status == "healthy" else []
+        worker_count = len(workers)
+        active_jobs = sum(1 for w in workers if w.get_current_job() is not None)
+        worker_status = "healthy" if worker_count > 0 else "no_workers"
+
+        if redis_status != "healthy":
+            overall = "degraded"
+        elif worker_count == 0:
+            overall = "no_workers"
+        else:
+            overall = "healthy"
 
         return {
             "status": overall,
@@ -33,5 +45,6 @@ class HealthCheck(Resource):
             "components": {
                 "redis": {"status": redis_status},
                 "queue": {"status": "healthy", "depth": len(q)},
+                "workers": {"status": worker_status, "count": worker_count, "active_jobs": active_jobs},
             },
         }
