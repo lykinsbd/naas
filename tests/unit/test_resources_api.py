@@ -483,3 +483,105 @@ class TestGetResults:
             )
 
         assert response.status_code == 403
+
+
+class TestCancelJob:
+    """Tests for DELETE /v1/jobs/{job_id}."""
+
+    def test_cancel_job_success(self, app, client):
+        """Test DELETE cancels a queued job."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        job_id = "55555555-5555-5555-5555-555555555555"
+        job = MagicMock()
+        job.get_status = lambda: "queued"
+        job.cancel = MagicMock()
+
+        app.config["q"].fetch_job.side_effect = lambda jid: job if jid == job_id else None
+
+        with patch("naas.resources.cancel_job.job_unlocker", return_value=True):
+            response = client.delete(
+                f"/v1/jobs/{job_id}",
+                headers={"Authorization": f"Basic {auth}"},
+            )
+
+        assert response.status_code == 204
+        job.cancel.assert_called_once()
+
+    def test_cancel_job_started(self, app, client):
+        """Test DELETE cancels a started job."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        job_id = "88888888-8888-8888-8888-888888888888"
+        job = MagicMock()
+        job.get_status = lambda: "started"
+        job.cancel = MagicMock()
+
+        app.config["q"].fetch_job.side_effect = lambda jid: job if jid == job_id else None
+
+        with patch("naas.resources.cancel_job.job_unlocker", return_value=True):
+            response = client.delete(
+                f"/v1/jobs/{job_id}",
+                headers={"Authorization": f"Basic {auth}"},
+            )
+
+        assert response.status_code == 204
+        job.cancel.assert_called_once()
+
+    def test_cancel_job_not_found(self, app, client):
+        """Test DELETE with non-existent job returns 404."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.resources.cancel_job.job_unlocker", return_value=True):
+            response = client.delete(
+                "/v1/jobs/00000000-0000-0000-0000-000000000000",
+                headers={"Authorization": f"Basic {auth}"},
+            )
+
+        assert response.status_code == 404
+        assert response.json["status"] == "not_found"
+
+    def test_cancel_job_already_finished(self, app, client):
+        """Test DELETE with finished job returns 409."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        job_id = "66666666-6666-6666-6666-666666666666"
+        job = MagicMock()
+        job.get_status = lambda: "finished"
+
+        app.config["q"].fetch_job.side_effect = lambda jid: job if jid == job_id else None
+
+        with patch("naas.resources.cancel_job.job_unlocker", return_value=True):
+            response = client.delete(
+                f"/v1/jobs/{job_id}",
+                headers={"Authorization": f"Basic {auth}"},
+            )
+
+        assert response.status_code == 409
+
+    def test_cancel_job_no_auth(self, client):
+        """Test DELETE without auth returns 401."""
+        response = client.delete("/v1/jobs/00000000-0000-0000-0000-000000000000")
+        assert response.status_code == 401
+
+    def test_cancel_job_wrong_user(self, app, client):
+        """Test DELETE with wrong user returns 403."""
+        auth = b64encode(b"wronguser:wrongpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        job_id = "77777777-7777-7777-7777-777777777777"
+        job = MagicMock()
+
+        app.config["q"].fetch_job.side_effect = lambda jid: job if jid == job_id else None
+
+        with patch("naas.resources.cancel_job.job_unlocker", return_value=False):
+            response = client.delete(
+                f"/v1/jobs/{job_id}",
+                headers={"Authorization": f"Basic {auth}"},
+            )
+
+        assert response.status_code == 403

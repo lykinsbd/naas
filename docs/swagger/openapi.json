@@ -490,6 +490,26 @@
         "tags": []
       }
     },
+    "/v1/jobs/{job_id}": {
+      "delete": {
+        "description": "Args:     job_id: UUID of the job to cancel.\n\nReturns:     Empty response with 204 status on success.     404 if job not found.     403 if wrong credentials.     409 if job already finished or failed.",
+        "operationId": "delete__v1_jobs_{job_id}",
+        "parameters": [
+          {
+            "description": "",
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {},
+        "summary": "Cancel a job by job_id.",
+        "tags": []
+      }
+    },
     "/v1/send_command": {
       "get": {
         "description": "",
