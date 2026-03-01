@@ -6,12 +6,14 @@ Library to abstract Netmiko functions for use by the NAAS API.
 """
 
 import logging
+import time
 from typing import TYPE_CHECKING
 
 import netmiko
 from paramiko import ssh_exception
 
 from naas.config import CIRCUIT_BREAKER_ENABLED
+from naas.library.audit import emit_audit_event
 from naas.library.auth import tacacs_auth_lockout
 from naas.library.circuit_breaker import with_circuit_breaker
 
@@ -74,6 +76,7 @@ def _netmiko_send_command_impl(
     verbose: bool = False,
     request_id: str = "",
 ) -> "tuple[dict | None, str | None]":
+    start_time = time.time()
     netmiko_device = {
         "device_type": device_type,
         "ip": ip,
@@ -100,16 +103,24 @@ def _netmiko_send_command_impl(
 
     except (TimeoutError, netmiko.NetMikoTimeoutException) as e:
         logger.debug("%s %s:Netmiko timed out connecting to device: %s", request_id, ip, e)
+        duration_ms = int((time.time() - start_time) * 1000)
+        emit_audit_event("job.completed", request_id=request_id, status="failed", duration_ms=duration_ms)
         raise  # Re-raise to trigger circuit breaker
     except netmiko.NetMikoAuthenticationException as e:
         logger.debug("%s %s:Netmiko authentication failure connecting to device: %s", request_id, ip, e)
         tacacs_auth_lockout(username=credentials.username, report_failure=True)
+        duration_ms = int((time.time() - start_time) * 1000)
+        emit_audit_event("job.completed", request_id=request_id, status="failed", duration_ms=duration_ms)
         return None, str(e)  # Don't trigger circuit breaker for auth failures
     except (ssh_exception.SSHException, ValueError) as e:
         logger.debug("%s %s:Netmiko cannot connect to device: %s", request_id, ip, e)
+        duration_ms = int((time.time() - start_time) * 1000)
+        emit_audit_event("job.completed", request_id=request_id, status="failed", duration_ms=duration_ms)
         raise  # Re-raise to trigger circuit breaker
 
     logger.debug("%s %s:Netmiko executed successfully.", request_id, ip)
+    duration_ms = int((time.time() - start_time) * 1000)
+    emit_audit_event("job.completed", request_id=request_id, status="finished", duration_ms=duration_ms)
     return net_output, None
 
 
@@ -173,6 +184,7 @@ def _netmiko_send_config_impl(
     verbose: bool = False,
     request_id: str = "",
 ) -> "tuple[dict | None, str | None]":
+    start_time = time.time()
     netmiko_device = {
         "device_type": device_type,
         "ip": ip,
@@ -219,14 +231,22 @@ def _netmiko_send_config_impl(
 
     except (TimeoutError, netmiko.NetMikoTimeoutException) as e:
         logger.debug("%s %s:Netmiko timed out connecting to device: %s", request_id, ip, e)
+        duration_ms = int((time.time() - start_time) * 1000)
+        emit_audit_event("job.completed", request_id=request_id, status="failed", duration_ms=duration_ms)
         raise  # Re-raise to trigger circuit breaker
     except netmiko.NetMikoAuthenticationException as e:
         logger.debug("%s %s:Netmiko authentication failure connecting to device: %s", request_id, ip, e)
         tacacs_auth_lockout(username=credentials.username, report_failure=True)
+        duration_ms = int((time.time() - start_time) * 1000)
+        emit_audit_event("job.completed", request_id=request_id, status="failed", duration_ms=duration_ms)
         return None, str(e)  # Don't trigger circuit breaker for auth failures
     except (ssh_exception.SSHException, ValueError) as e:
         logger.debug("%s %s:Netmiko cannot connect to device: %s", request_id, ip, e)
+        duration_ms = int((time.time() - start_time) * 1000)
+        emit_audit_event("job.completed", request_id=request_id, status="failed", duration_ms=duration_ms)
         raise  # Re-raise to trigger circuit breaker
 
     logger.debug("%s %s:Netmiko executed successfully.", request_id, ip)
+    duration_ms = int((time.time() - start_time) * 1000)
+    emit_audit_event("job.completed", request_id=request_id, status="finished", duration_ms=duration_ms)
     return net_output, None

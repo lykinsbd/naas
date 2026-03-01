@@ -6,6 +6,7 @@ from spectree import Response
 
 from naas import __base_response__
 from naas.config import JOB_TTL_FAILED, JOB_TTL_SUCCESS
+from naas.library.audit import emit_audit_event
 from naas.library.auth import device_lockout, job_locker
 from naas.library.decorators import valid_post
 from naas.library.errorhandlers import LockedOut
@@ -90,6 +91,17 @@ class SendCommand(Resource):
 
         # Stash the job_id in redis, with the user/pass hash so that only that user can retrieve results
         job_locker(salted_creds=user_hash, job_id=job_id)
+
+        # Emit audit event
+        emit_audit_event(
+            "job.submitted",
+            ip=ip_str,
+            platform=validated.platform,
+            port=validated.port,
+            command_count=len(validated.commands),
+            user_hash=user_hash,
+            request_id=job_id,
+        )
 
         # Return our payload containing job_id, a 202 Accepted, and the X-Request-ID header
         response = JobResponse(job_id=job_id, message="Job enqueued").model_dump()
