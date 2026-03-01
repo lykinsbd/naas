@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cisshgo
+  namespace: naas
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cisshgo
+  template:
+    metadata:
+      labels:
+        app: cisshgo
+    spec:
+      containers:
+        - name: cisshgo
+          image: ghcr.io/tbotnz/cisshgo:v0.2.0
+          args: ["-listeners", "1", "-startingPort", "10022"]
+          ports:
+            - containerPort: 10022
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "50m"
+            limits:
+              memory: "64Mi"
+              cpu: "100m"

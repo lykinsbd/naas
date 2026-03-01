@@ -112,18 +112,25 @@ jobs:
             -p '{"spec":{"template":{"spec":{"containers":[{"name":"naas-api","imagePullPolicy":"Never"}]}}}}'
           kubectl -n naas patch deployment naas-worker \
             -p '{"spec":{"template":{"spec":{"containers":[{"name":"naas-worker","imagePullPolicy":"Never"}]}}}}'
+          kubectl apply -f k8s/cisshgo/
 
       - name: Wait for rollouts
         run: |
           kubectl -n naas rollout status deployment/redis --timeout=60s
           kubectl -n naas rollout status deployment/naas-api --timeout=120s
           kubectl -n naas rollout status deployment/naas-worker --timeout=120s
+          kubectl -n naas rollout status deployment/cisshgo --timeout=60s
 
       - name: Smoke test healthcheck
         run: |
           kubectl -n naas port-forward svc/naas-api 8443:443 &
           sleep 3
           curl -k -f https://localhost:8443/healthcheck
+
+      - name: Run end-to-end job test
+        run: |
+          CISSHGO_IP=$(kubectl -n naas get svc cisshgo -o jsonpath='{.spec.clusterIP}')
+          NAAS_URL=https://localhost:8443 CISSHGO_HOST=${CISSHGO_IP} uv run python tests/k8s/test_e2e.py
 
       - name: Cleanup
         if: always()
