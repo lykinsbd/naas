@@ -12,10 +12,11 @@ from typing import TYPE_CHECKING
 import netmiko
 from paramiko import ssh_exception
 
-from naas.config import CIRCUIT_BREAKER_ENABLED
+from naas.config import CIRCUIT_BREAKER_ENABLED, CONNECTION_POOL_ENABLED, CONNECTION_POOL_KEEPALIVE
 from naas.library.audit import emit_audit_event
 from naas.library.auth import tacacs_auth_lockout
 from naas.library.circuit_breaker import with_circuit_breaker
+from naas.library.connection_pool import pool
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -91,15 +92,25 @@ def _netmiko_send_command_impl(
     }
 
     try:
-        logger.debug("%s %s:Establishing connection...", request_id, ip)
-        net_connect = netmiko.ConnectHandler(**netmiko_device)
+        net_connect = None
+
+        if CONNECTION_POOL_ENABLED:
+            net_connect = pool.get(ip, port, credentials.username, device_type)
+
+        if net_connect is None:
+            logger.debug("%s %s:Establishing connection...", request_id, ip)
+            netmiko_device["keepalive"] = CONNECTION_POOL_KEEPALIVE if CONNECTION_POOL_ENABLED else 0
+            net_connect = netmiko.ConnectHandler(**netmiko_device)
 
         net_output = {}
         for command in commands:
             logger.debug("%s %s:Sending %s", request_id, ip, command)
             net_output[command] = net_connect.send_command(command, delay_factor=delay_factor)
 
-        net_connect.disconnect()
+        if CONNECTION_POOL_ENABLED:
+            pool.release(ip, port, credentials.username, device_type, net_connect)
+        else:
+            net_connect.disconnect()
 
     except (TimeoutError, netmiko.NetMikoTimeoutException) as e:
         logger.debug("%s %s:Netmiko timed out connecting to device: %s", request_id, ip, e)

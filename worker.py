@@ -143,6 +143,9 @@ def worker_launch(
     def request_stop(signum, frame):
         logger.info("Received signal %s, requesting graceful shutdown", signum)
         w.request_stop(signum, frame)
+        from naas.library.connection_pool import pool
+
+        pool.drain()
 
     signal.signal(signal.SIGTERM, request_stop)
     signal.signal(signal.SIGINT, request_stop)
