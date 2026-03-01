@@ -5,6 +5,7 @@ from flask_restful import Resource
 from werkzeug.exceptions import Conflict, Forbidden
 
 from naas import __base_response__
+from naas.library.audit import emit_audit_event
 from naas.library.auth import Credentials, job_unlocker
 from naas.library.validation import Validate
 
@@ -51,4 +52,7 @@ class CancelJob(Resource):
             raise Conflict(f"Job {job_id} already {job_status}")
 
         job.cancel()
+
+        emit_audit_event("job.cancelled", request_id=job_id, cancelled_by_hash=creds.salted_hash())
+
         return "", 204
