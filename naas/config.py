@@ -36,6 +36,13 @@ CIRCUIT_BREAKER_TIMEOUT = int(os.environ.get("CIRCUIT_BREAKER_TIMEOUT", 300))  #
 # Graceful shutdown config (seconds)
 SHUTDOWN_TIMEOUT = int(os.environ.get("SHUTDOWN_TIMEOUT", 30))  # 30s
 
+# Connection pool config
+CONNECTION_POOL_ENABLED = os.environ.get("CONNECTION_POOL_ENABLED", "true").lower() == "true"
+CONNECTION_POOL_MAX_SIZE = int(os.environ.get("CONNECTION_POOL_MAX_SIZE", 10))
+CONNECTION_POOL_IDLE_TIMEOUT = int(os.environ.get("CONNECTION_POOL_IDLE_TIMEOUT", 300))  # 5 minutes
+CONNECTION_POOL_MAX_AGE = int(os.environ.get("CONNECTION_POOL_MAX_AGE", 3600))  # 1 hour
+CONNECTION_POOL_KEEPALIVE = int(os.environ.get("CONNECTION_POOL_KEEPALIVE", 60))  # seconds
+
 
 def app_configure(app):
     # Configure our environment
