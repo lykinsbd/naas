@@ -18,6 +18,7 @@ from pythonjsonlogger.json import JsonFormatter
 
 from naas.config import app_configure
 from naas.library.errorhandlers import api_error_generator
+from naas.resources.cancel_job import CancelJob
 from naas.resources.get_results import GetResults
 from naas.resources.healthcheck import HealthCheck
 from naas.resources.list_jobs import ListJobs
@@ -75,6 +76,7 @@ api.add_resource(SendCommand, "/v1/send_command")
 api.add_resource(SendConfig, "/v1/send_config")
 api.add_resource(GetResults, "/v1/send_command/<string:job_id>", "/v1/send_config/<string:job_id>")
 api.add_resource(ListJobs, "/v1/jobs")
+api.add_resource(CancelJob, "/v1/jobs/<string:job_id>")
 
 # Legacy unversioned routes (deprecated aliases — kept for backward compatibility)
 _LEGACY_PREFIXES = ("/send_command", "/send_config")
