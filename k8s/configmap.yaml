@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: naas-config
+  namespace: naas
+data:
+  APP_ENVIRONMENT: "production"
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+  LOG_LEVEL: "INFO"
+  CIRCUIT_BREAKER_ENABLED: "true"
+  CIRCUIT_BREAKER_THRESHOLD: "5"
+  CIRCUIT_BREAKER_TIMEOUT: "300"
+  # Number of RQ worker processes per pod. Scale horizontally via worker replicas
+  # rather than increasing this value — each process adds ~7MB memory overhead.
+  NAAS_WORKER_PROCESSES: "10"
