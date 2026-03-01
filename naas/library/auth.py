@@ -8,6 +8,7 @@ from flask import current_app
 from redis import Redis
 
 from naas.config import REDIS_HOST, REDIS_PASSWORD, REDIS_PORT
+from naas.library.audit import emit_audit_event
 
 
 def job_locker(salted_creds: str, job_id: str) -> None:
@@ -63,7 +64,15 @@ def _is_locked_out(redis_key: str, redis: Redis, report_failure: bool = False) -
     if report_failure:
         redis.zadd(redis_key, {str(uuid4()): datetime.now().timestamp()})
         redis.expire(redis_key, 600)
-    return redis.zcard(redis_key) >= 10  # type: ignore[operator]  # redis stubs type zcard as Awaitable[Any]|Any; sync client always returns int
+
+    failure_count: int = redis.zcard(redis_key)  # type: ignore[assignment]  # redis stubs type zcard as Awaitable[Any]|Any; sync client always returns int
+    is_locked = failure_count >= 10
+
+    if is_locked and redis_key.startswith("naas_failures_device_"):
+        ip = redis_key.replace("naas_failures_device_", "")
+        emit_audit_event("device.locked_out", ip=ip, failure_count=failure_count)
+
+    return is_locked
 
 
 def tacacs_auth_lockout(username: str, report_failure: bool = False) -> bool:
