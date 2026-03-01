@@ -98,25 +98,26 @@ jobs:
       - name: Apply manifests
         run: |
           kubectl apply -f k8s/namespace.yaml
-          kubectl apply -f k8s/configmap.yaml
-          kubectl apply -f k8s/redis/
-          kubectl apply -f k8s/api/
-          kubectl apply -f k8s/worker/
-
-      - name: Create secret
-        run: |
           kubectl -n naas create secret generic naas-secret \
             --from-literal=REDIS_PASSWORD=test-redis-pw
+          kubectl apply -f k8s/configmap.yaml
+          kubectl apply -f k8s/redis/
+          # Patch image and pullPolicy inline before applying
+          sed 's|ghcr.io/lykinsbd/naas:latest|naas:test|g' k8s/api/deployment.yaml \
+            | kubectl apply -f -
+          kubectl apply -f k8s/api/service.yaml
+          sed 's|ghcr.io/lykinsbd/naas:latest|naas:test|g' k8s/worker/deployment.yaml \
+            | kubectl apply -f -
+          kubectl -n naas patch deployment naas-api \
+            -p '{"spec":{"template":{"spec":{"containers":[{"name":"naas-api","imagePullPolicy":"Never"}]}}}}'
+          kubectl -n naas patch deployment naas-worker \
+            -p '{"spec":{"template":{"spec":{"containers":[{"name":"naas-worker","imagePullPolicy":"Never"}]}}}}'
 
-      - name: Swap image to local build
+      - name: Wait for rollouts
         run: |
-          kubectl -n naas set image deployment/naas-api naas-api=naas:test
-          kubectl -n naas set image deployment/naas-worker naas-worker=naas:test
-          kubectl -n naas patch deployment naas-api -p '{"spec":{"template":{"spec":{"containers":[{"name":"naas-api","imagePullPolicy":"Never"}]}}}}'
-          kubectl -n naas patch deployment naas-worker -p '{"spec":{"template":{"spec":{"containers":[{"name":"naas-worker","imagePullPolicy":"Never"}]}}}}'
-
-      - name: Wait for pods
-        run: kubectl -n naas wait --for=condition=ready pod --all --timeout=120s
+          kubectl -n naas rollout status deployment/redis --timeout=60s
+          kubectl -n naas rollout status deployment/naas-api --timeout=120s
+          kubectl -n naas rollout status deployment/naas-worker --timeout=120s
 
       - name: Smoke test healthcheck
         run: |
