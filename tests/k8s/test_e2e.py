@@ -4,7 +4,7 @@ k8s end-to-end integration test.
 Submits a send_command job targeting Cisshgo and asserts it completes successfully.
 
 Usage:
-    NAAS_URL=https://localhost:8443 python tests/k8s/test_e2e.py
+    NAAS_URL=https://localhost:8443 CISSHGO_HOST=10.0.0.1 python tests/k8s/test_e2e.py
 """
 
 import os
@@ -29,9 +29,13 @@ def wait_for_api(url: str, timeout: int = 30) -> None:
         try:
             r = requests.get(f"{url}/healthcheck", verify=False, timeout=2)
             if r.status_code == 200:
-                data = r.json()
-                if data.get("components", {}).get("workers", {}).get("count", 0) > 0:
-                    print(f"API ready: {data['status']}, workers: {data['components']['workers']['count']}")
+                data = cast(dict[str, object], r.json())
+                workers = cast(
+                    dict[str, object], cast(dict[str, object], data.get("components", {})).get("workers", {})
+                )
+                count = cast(int, workers.get("count", 0))
+                if count > 0:
+                    print(f"API ready: status={data['status']}, workers={count}")
                     return
         except requests.exceptions.RequestException:
             pass
@@ -64,7 +68,7 @@ def main() -> None:
 
     wait_for_api(NAAS_URL, timeout=60)
 
-    payload = {
+    payload: dict[str, object] = {
         "ip": CISSHGO_HOST,
         "platform": "cisco_ios",
         "port": CISSHGO_PORT,
