@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: naas-api
+  namespace: naas
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: naas-api
+  template:
+    metadata:
+      labels:
+        app: naas-api
+    spec:
+      containers:
+        - name: naas-api
+          image: ghcr.io/lykinsbd/naas:latest
+          ports:
+            - containerPort: 443
+          envFrom:
+            - configMapRef:
+                name: naas-config
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: naas-secret
+                  key: REDIS_PASSWORD
+            - name: NAAS_CERT
+              valueFrom:
+                secretKeyRef:
+                  name: naas-secret
+                  key: NAAS_CERT
+                  optional: true
+            - name: NAAS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: naas-secret
+                  key: NAAS_KEY
+                  optional: true
+            - name: NAAS_CA_BUNDLE
+              valueFrom:
+                secretKeyRef:
+                  name: naas-secret
+                  key: NAAS_CA_BUNDLE
+                  optional: true
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "768Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 443
+              scheme: HTTPS
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 443
+              scheme: HTTPS
+            initialDelaySeconds: 10
+            periodSeconds: 10
