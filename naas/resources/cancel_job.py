@@ -33,7 +33,9 @@ class CancelJob(Resource):
         v.has_auth()
 
         auth = request.authorization
-        if not auth or not auth.username or not auth.password:  # pragma: no cover
+        if (
+            not auth or not auth.username or not auth.password
+        ):  # pragma: no cover  # v.has_auth() above guarantees auth is present; guard exists for type narrowing
             raise Forbidden
 
         creds = Credentials(username=auth.username, password=auth.password)
