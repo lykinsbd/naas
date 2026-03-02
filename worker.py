@@ -139,6 +139,15 @@ def worker_launch(
     )
     w = Worker(queues=queues, name=name, connection=redis_conn)
 
+    # Fetch credential salt from Redis and configure the connection pool
+    from naas.library.connection_pool import pool
+
+    salt = redis_conn.get("naas_cred_salt")
+    if salt:
+        pool.set_salt(salt.decode())
+    else:
+        logger.warning("naas_cred_salt not found in Redis — connection pooling will be disabled until salt is set")
+
     # Setup signal handlers for graceful shutdown
     def request_stop(signum, frame):
         logger.info("Received signal %s, requesting graceful shutdown", signum)

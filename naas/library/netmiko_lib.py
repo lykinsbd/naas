@@ -95,7 +95,7 @@ def _netmiko_send_command_impl(
         net_connect = None
 
         if CONNECTION_POOL_ENABLED:
-            net_connect = pool.get(ip, port, credentials.username, device_type)
+            net_connect = pool.get(ip, port, credentials.username, credentials.password, device_type)
 
         if net_connect is None:
             logger.debug("%s %s:Establishing connection...", request_id, ip)
@@ -108,7 +108,7 @@ def _netmiko_send_command_impl(
             net_output[command] = net_connect.send_command(command, delay_factor=delay_factor)
 
         if CONNECTION_POOL_ENABLED:
-            pool.release(ip, port, credentials.username, device_type, net_connect)
+            pool.release(ip, port, credentials.username, credentials.password, device_type, net_connect)
         else:
             net_connect.disconnect()
 
