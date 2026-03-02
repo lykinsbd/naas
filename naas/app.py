@@ -18,6 +18,7 @@ from pythonjsonlogger.json import JsonFormatter
 
 from naas.config import app_configure
 from naas.library.errorhandlers import api_error_generator
+from naas.library.worker_cache import get_cached_workers
 from naas.resources.cancel_job import CancelJob
 from naas.resources.get_results import GetResults
 from naas.resources.healthcheck import HealthCheck
@@ -44,9 +45,7 @@ def _update_queue_metrics() -> None:
     if q is not None:
         _queue_depth.set(len(q))
     if redis is not None:
-        from rq import Worker
-
-        _workers_active.set(len(Worker.all(connection=redis)))
+        _workers_active.set(len(get_cached_workers(redis)))
 
 
 # Structured JSON logging

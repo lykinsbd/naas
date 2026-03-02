@@ -5,9 +5,9 @@ import time
 from flask import current_app
 from flask_restful import Resource
 from redis.exceptions import RedisError
-from rq import Worker
 
 from naas import __version__
+from naas.library.worker_cache import get_cached_workers
 
 _START_TIME = time.time()
 
@@ -26,7 +26,7 @@ class HealthCheck(Resource):
             redis_status = "unhealthy"
 
         # Check workers — count unique hostnames (pods/hosts), not individual processes
-        workers = Worker.all(connection=redis) if redis_status == "healthy" else []
+        workers = get_cached_workers(redis) if redis_status == "healthy" else []
         worker_count = len({w.hostname for w in workers})
         active_jobs = sum(1 for w in workers if w.get_current_job() is not None)
         worker_status = "healthy" if worker_count > 0 else "no_workers"
