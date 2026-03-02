@@ -39,9 +39,9 @@ $0 ~ "^# NAAS " base "(a|b|rc)[0-9]+ " {
 !skip { print }
 ' "${CHANGELOG}.backup" > "$CHANGELOG"
 
-# Verify the file is not empty and still has the header
-if ! grep -q "^# Changelog" "$CHANGELOG"; then
-    echo "ERROR: Changelog header missing after cleanup!"
+# Verify the file is not empty and still has the current version
+if ! grep -q "^# NAAS $VERSION" "$CHANGELOG"; then
+    echo "ERROR: Version entry missing after cleanup!"
     mv "${CHANGELOG}.backup" "$CHANGELOG"
     exit 1
 fi
