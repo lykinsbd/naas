@@ -106,6 +106,23 @@ persistence configured.
 To use an external Redis, update `REDIS_HOST` and `REDIS_PORT` in `k8s/configmap.yaml`
 and remove the `k8s/redis/` manifests.
 
+## Connection Pooling
+
+NAAS reuses SSH connections across sequential jobs to the same device, reducing VTY session
+overhead on network equipment. Pooling is enabled by default.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CONNECTION_POOL_ENABLED` | `true` | Set to `false` to disable pooling for all devices |
+| `CONNECTION_POOL_MAX_SIZE` | `10` | Max pooled connections per worker process |
+| `CONNECTION_POOL_IDLE_TIMEOUT` | `300` | Evict connections idle for this many seconds |
+| `CONNECTION_POOL_MAX_AGE` | `3600` | Evict connections older than this many seconds |
+| `CONNECTION_POOL_KEEPALIVE` | `60` | Paramiko SSH keepalive interval (seconds) |
+
+Disable pooling for specific environments where devices do not handle persistent SSH sessions
+well (e.g. older IOS, out-of-band management platforms). Per-device exclusions are tracked
+in [#187](https://github.com/lykinsbd/naas/issues/187).
+
 ## Scaling Workers
 
 Worker replicas are set to `2` by default. Increase `spec.replicas` in
