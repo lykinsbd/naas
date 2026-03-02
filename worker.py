@@ -7,11 +7,13 @@ Author: Brett Lykins (lykinsbd@gmail.com)
 Description: Handle launching of rq workers
 """
 
+import os
 import signal
 from argparse import ArgumentParser, Namespace
 from collections.abc import Sequence
 from logging import basicConfig, getLogger
 from multiprocessing import Process
+from pathlib import Path
 from socket import gethostname
 from time import sleep
 
@@ -61,6 +63,23 @@ def main() -> None:
         )
         processes.append(proc)
         proc.start()
+
+    # Main loop: write heartbeat file and monitor child processes
+    heartbeat_file = Path(os.environ.get("WORKER_HEARTBEAT_FILE", "/tmp/worker_heartbeat"))
+    _running = True
+
+    def _stop(signum, frame):
+        nonlocal _running
+        _running = False
+
+    signal.signal(signal.SIGTERM, _stop)
+    signal.signal(signal.SIGINT, _stop)
+
+    while _running and any(p.is_alive() for p in processes):
+        heartbeat_file.touch()
+        sleep(30)
+
+    heartbeat_file.unlink(missing_ok=True)
 
 
 def arg_parsing() -> Namespace:
