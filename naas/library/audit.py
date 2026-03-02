@@ -19,8 +19,14 @@ def emit_audit_event(event_type: str, **fields: str | int) -> None:
     Emit a structured audit event at INFO level.
 
     Args:
-        event_type: Type of audit event (e.g., "job.submitted").
-        **fields: Event-specific fields as defined in schema.
+        event_type: Type of audit event. Must be one of:
+            - ``job.submitted``: ip, platform, port, command_count, user_hash, request_id
+            - ``job.completed``: request_id, status, duration_ms
+            - ``job.cancelled``: request_id, cancelled_by_hash
+            - ``device.locked_out``: ip, failure_count
+            - ``circuit.opened``: ip
+            - ``circuit.closed``: ip
+        **fields: Event-specific fields as listed above.
 
     Raises:
         ValueError: If event_type is unknown or required fields are missing.

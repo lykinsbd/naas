@@ -149,3 +149,10 @@ parent process hangs, Kubernetes will restart the pod. Override the path via the
 The `/metrics` endpoint on the API pods exposes Prometheus metrics. Configure your
 Prometheus instance to scrape port `443` (HTTPS) with the appropriate TLS config, or
 use a `ServiceMonitor` if running the Prometheus Operator.
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `naas_http_requests_total` | Counter | Total HTTP requests by endpoint, method, and status code |
+| `naas_http_request_duration_seconds` | Histogram | Request latency by endpoint |
+| `naas_queue_depth` | Gauge | Number of jobs waiting in the RQ queue |
+| `naas_workers_active` | Gauge | Number of active RQ worker processes (cached, 10s TTL) |

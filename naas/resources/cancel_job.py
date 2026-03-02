@@ -23,8 +23,9 @@ class CancelJob(Resource):
 
         Returns:
             Empty response with 204 status on success.
+            400 if job_id is not a valid UUID.
+            403 if credentials do not match the job submitter.
             404 if job not found.
-            403 if wrong credentials.
             409 if job already finished or failed.
         """
         v = Validate()
