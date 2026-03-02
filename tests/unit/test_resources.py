@@ -44,9 +44,12 @@ class TestHealthCheck:
         """Healthcheck returns healthy status when workers are present."""
         from unittest.mock import MagicMock
 
+        import naas.library.worker_cache as wc
+
         mock_worker = MagicMock()
         mock_worker.get_current_job.return_value = None
-        monkeypatch.setattr("naas.resources.healthcheck.Worker.all", lambda connection: [mock_worker])
+        monkeypatch.setattr("naas.library.worker_cache.Worker.all", lambda connection: [mock_worker])
+        monkeypatch.setattr(wc, "_cache_ts", 0.0)
         response = client.get("/healthcheck")
         data = response.get_json()
         assert data["status"] == "healthy"
@@ -58,9 +61,12 @@ class TestHealthCheck:
         """Healthcheck counts active jobs on workers."""
         from unittest.mock import MagicMock
 
+        import naas.library.worker_cache as wc
+
         mock_worker = MagicMock()
         mock_worker.get_current_job.return_value = MagicMock()
-        monkeypatch.setattr("naas.resources.healthcheck.Worker.all", lambda connection: [mock_worker])
+        monkeypatch.setattr("naas.library.worker_cache.Worker.all", lambda connection: [mock_worker])
+        monkeypatch.setattr(wc, "_cache_ts", 0.0)
         response = client.get("/healthcheck")
         data = response.get_json()
         assert data["components"]["workers"]["active_jobs"] == 1
