@@ -4,6 +4,7 @@ Per-process SSH connection pool for reusing Netmiko connections across jobs.
 Reduces VTY session overhead on network devices.
 """
 
+import hashlib
 import logging
 import time
 from dataclasses import dataclass, field
@@ -32,35 +33,61 @@ class ConnectionPool:
     """
     Per-process pool of reusable Netmiko SSH connections.
 
-    Pool key: (ip, port, username, platform) — connections are only reused
-    when credentials match exactly. RQ workers are single-threaded so no
-    locking is required within a process.
+    Pool key: (ip, port, sha512(username:password+salt), platform) — credentials
+    must match exactly. The salt is fetched from Redis at worker startup via
+    set_salt() and matches the salt used by Credentials.salted_hash() in the API.
+
+    RQ workers are single-threaded so no locking is required within a process.
     """
 
     def __init__(self) -> None:
         self._pool: dict[tuple, _PoolEntry] = {}
+        self._salt: str | None = None
+
+    def set_salt(self, salt: str) -> None:
+        """
+        Set the credential salt used for pool key hashing.
+        Must be called at worker startup before any jobs run.
+
+        Args:
+            salt: The naas_cred_salt value from Redis.
+        """
+        self._salt = salt
+
+    def _cred_hash(self, username: str, password: str) -> str | None:
+        """Return SHA512 hash of username:password+salt, or None if salt not set."""
+        if self._salt is None:
+            return None
+        return hashlib.sha512(f"{username}:{password}{self._salt}".encode()).hexdigest()
 
     def get(
         self,
         ip: str,
         port: int,
         username: str,
+        password: str,
         platform: str,
     ) -> "netmiko.BaseConnection | None":
         """
         Return a live pooled connection for the given key, or None if unavailable.
-        Evicts stale/dead entries on access.
+        Evicts stale/dead entries on access. Returns None if salt not yet set.
 
         Args:
             ip: Device IP address
             port: SSH port
             username: Device username
+            password: Device password
             platform: Netmiko device_type
 
         Returns:
             A live BaseConnection, or None if no valid pooled connection exists.
         """
-        key = (ip, port, username, platform)
+        cred_hash = self._cred_hash(username, password)
+        if cred_hash is None:
+            logger.debug("Pool skipping: salt not set")
+            return None
+
+        key = (ip, port, cred_hash, platform)
         entry = self._pool.get(key)
         if entry is None:
             return None
@@ -88,20 +115,31 @@ class ConnectionPool:
         ip: str,
         port: int,
         username: str,
+        password: str,
         platform: str,
         connection: "netmiko.BaseConnection",
     ) -> None:
         """
         Return a connection to the pool after successful use.
-        Discards if pool is at capacity.
+        Discards if pool is at capacity or salt not set.
 
         Args:
             ip: Device IP address
             port: SSH port
             username: Device username
+            password: Device password
             platform: Netmiko device_type
             connection: The connection to return
         """
+        cred_hash = self._cred_hash(username, password)
+        if cred_hash is None:
+            logger.debug("Pool skipping release: salt not set")
+            try:
+                connection.disconnect()
+            except Exception:
+                pass
+            return
+
         if len(self._pool) >= CONNECTION_POOL_MAX_SIZE:
             logger.debug("Pool at capacity (%d), discarding connection to %s:%s", CONNECTION_POOL_MAX_SIZE, ip, port)
             try:
@@ -110,7 +148,7 @@ class ConnectionPool:
                 pass
             return
 
-        key = (ip, port, username, platform)
+        key = (ip, port, cred_hash, platform)
         entry = self._pool.get(key)
         if entry is not None:
             entry.last_used = time.monotonic()
