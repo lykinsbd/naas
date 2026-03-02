@@ -8,6 +8,11 @@ NAAS ships plain YAML manifests in `k8s/` for deploying to any Kubernetes cluste
 - `kubectl` configured for your cluster
 - A container image of NAAS (built and pushed to a registry your cluster can pull from)
 
+> The manifests in `main` reference the image tag for that release. The manifests in `develop`
+> use `latest`. For production deployments, always deploy from a tagged release branch and
+> verify the image tag in `k8s/api/deployment.yaml` and `k8s/worker/deployment.yaml` matches
+> the version you intend to run.
+
 ## Local Development with k3d
 
 [k3d](https://k3d.io) runs a lightweight k3s cluster inside Docker — no cloud account needed.
