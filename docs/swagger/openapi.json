@@ -492,7 +492,7 @@
     },
     "/v1/jobs/{job_id}": {
       "delete": {
-        "description": "Args:     job_id: UUID of the job to cancel.\n\nReturns:     Empty response with 204 status on success.     404 if job not found.     403 if wrong credentials.     409 if job already finished or failed.",
+        "description": "Args:     job_id: UUID of the job to cancel.\n\nReturns:     Empty response with 204 status on success.     400 if job_id is not a valid UUID.     403 if credentials do not match the job submitter.     404 if job not found.     409 if job already finished or failed.",
         "operationId": "delete__v1_jobs_{job_id}",
         "parameters": [
           {
