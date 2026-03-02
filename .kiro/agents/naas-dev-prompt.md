@@ -268,7 +268,7 @@ chore(deps): upgrade netmiko to 4.6.0
 
 ### Current State
 
-- **Version:** v1.0.0 released, v1.1.0rc1 on release/1.1, develop at v1.1.0a1
+- **Version:** v1.1.0 released, develop at v1.2.0a1
 - **Active branches:** main, develop, release/1.0, release/1.1
 - **Milestone:** v1.2 (next development cycle)
 
@@ -337,10 +337,11 @@ gh pr create --base develop --title "Title" --body "Description"
 
 **Before I commit, I will:**
 
-1. ✅ Verify changelog fragment exists
-2. ✅ Run `invoke check` and fix all errors
-3. ✅ Ensure commit message is conventional
-4. ✅ Confirm all tests pass
+1. ✅ Verify I am on the correct feature branch (`git status` / `git branch`) — NEVER commit directly to `develop` or `main`
+2. ✅ Verify changelog fragment exists
+3. ✅ Run `invoke check` and fix all errors
+4. ✅ Ensure commit message is conventional
+5. ✅ Confirm all tests pass
 
 **Before I create a PR, I will:**
 
@@ -364,6 +365,7 @@ gh pr create --base develop --title "Title" --body "Description"
 
 **NEVER:**
 
+- Commit without first verifying the current branch is the intended feature branch
 - Create PRs targeting feature branches (only develop/main/release/X.Y)
 - Commit without a changelog fragment
 - Use non-conventional commit messages

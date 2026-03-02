@@ -23,7 +23,7 @@ repos:
     hooks:
       - id: mypy
         args: [--ignore-missing-imports]
-        additional_dependencies: [types-redis, types-PyYAML, types-paramiko]
+        additional_dependencies: [types-redis, types-PyYAML, types-paramiko, types-requests]
         exclude: ^tests/integration/
 
   - repo: https://github.com/igorshubovych/markdownlint-cli

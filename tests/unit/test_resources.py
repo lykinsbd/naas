@@ -28,14 +28,48 @@ class TestHealthCheck:
         assert "components" in data
         assert "redis" in data["components"]
         assert "queue" in data["components"]
+        assert "workers" in data["components"]
 
-    def test_get_response_values(self, client):
-        """Healthcheck should return correct values when healthy."""
+    def test_get_response_values_no_workers(self, client):
+        """Healthcheck returns no_workers status when no RQ workers are running."""
+        response = client.get("/healthcheck")
+        data = response.get_json()
+        assert data["status"] == "no_workers"
+        assert data["version"] == __version__
+        assert data["components"]["redis"]["status"] == "healthy"
+        assert data["components"]["workers"]["status"] == "no_workers"
+        assert data["components"]["workers"]["count"] == 0
+
+    def test_get_response_values_with_workers(self, client, monkeypatch):
+        """Healthcheck returns healthy status when workers are present."""
+        from unittest.mock import MagicMock
+
+        import naas.library.worker_cache as wc
+
+        mock_worker = MagicMock()
+        mock_worker.get_current_job.return_value = None
+        monkeypatch.setattr("naas.library.worker_cache.Worker.all", lambda connection: [mock_worker])
+        monkeypatch.setattr(wc, "_cache_ts", 0.0)
         response = client.get("/healthcheck")
         data = response.get_json()
         assert data["status"] == "healthy"
-        assert data["version"] == __version__
-        assert data["components"]["redis"]["status"] == "healthy"
+        assert data["components"]["workers"]["status"] == "healthy"
+        assert data["components"]["workers"]["count"] == 1
+        assert data["components"]["workers"]["active_jobs"] == 0
+
+    def test_get_response_values_with_active_jobs(self, client, monkeypatch):
+        """Healthcheck counts active jobs on workers."""
+        from unittest.mock import MagicMock
+
+        import naas.library.worker_cache as wc
+
+        mock_worker = MagicMock()
+        mock_worker.get_current_job.return_value = MagicMock()
+        monkeypatch.setattr("naas.library.worker_cache.Worker.all", lambda connection: [mock_worker])
+        monkeypatch.setattr(wc, "_cache_ts", 0.0)
+        response = client.get("/healthcheck")
+        data = response.get_json()
+        assert data["components"]["workers"]["active_jobs"] == 1
         assert "depth" in data["components"]["queue"]
 
     def test_get_redis_unhealthy(self, app, client):

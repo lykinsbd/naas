@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: naas-worker
+  namespace: naas
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: naas-worker
+  template:
+    metadata:
+      labels:
+        app: naas-worker
+    spec:
+      containers:
+        - name: naas-worker
+          image: ghcr.io/lykinsbd/naas:1.2.0rc1
+          command:
+            - python
+            - worker.py
+            - --redis
+            - $(REDIS_HOST)
+            - --port
+            - $(REDIS_PORT)
+            - --auth_password
+            - $(REDIS_PASSWORD)
+            - $(NAAS_WORKER_PROCESSES)
+          envFrom:
+            - configMapRef:
+                name: naas-config
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: naas-secret
+                  key: REDIS_PASSWORD
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            exec:
+              command:
+                - find
+                - /tmp/worker_heartbeat
+                - -mmin
+                - "-2"
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            failureThreshold: 3

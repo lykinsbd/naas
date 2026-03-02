@@ -17,6 +17,7 @@ from naas.config import (
     REDIS_PASSWORD,
     REDIS_PORT,
 )
+from naas.library.audit import emit_audit_event
 from naas.library.auth import device_lockout
 
 if TYPE_CHECKING:
@@ -102,12 +103,23 @@ def _get_circuit_breaker(device_id: str) -> pybreaker.CircuitBreaker:
     """Get or create a circuit breaker for a specific device."""
     if device_id not in _circuit_breakers:
         storage = RedisCircuitBreakerStorage(f"device_{device_id}", _get_redis())
-        _circuit_breakers[device_id] = pybreaker.CircuitBreaker(
+        breaker = pybreaker.CircuitBreaker(
             fail_max=CIRCUIT_BREAKER_THRESHOLD,
             reset_timeout=CIRCUIT_BREAKER_TIMEOUT,
             name=f"device_{device_id}",
             state_storage=storage,
         )
+
+        class AuditListener(pybreaker.CircuitBreakerListener):
+            def state_change(self, cb, old_state, new_state):
+                if new_state.name == "open":
+                    emit_audit_event("circuit.opened", ip=device_id)
+                elif new_state.name == "closed" and old_state and old_state.name == "open":  # pragma: no cover
+                    emit_audit_event("circuit.closed", ip=device_id)
+
+        breaker.add_listener(AuditListener())
+
+        _circuit_breakers[device_id] = breaker
     return _circuit_breakers[device_id]
 
 

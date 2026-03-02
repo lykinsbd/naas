@@ -116,7 +116,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           uv lock
-          git add CHANGELOG.md uv.lock
+          # Pin k8s manifest image tags to the release version
+          sed -i "s|ghcr.io/lykinsbd/naas:.*|ghcr.io/lykinsbd/naas:${{ needs.check-version.outputs.version }}|g" \
+            k8s/api/deployment.yaml k8s/worker/deployment.yaml
+          git add CHANGELOG.md uv.lock k8s/api/deployment.yaml k8s/worker/deployment.yaml
           if [[ "${{ needs.check-version.outputs.is_prerelease }}" == "false" ]]; then
             # Only commit fragment deletions on final release
             git add changes/

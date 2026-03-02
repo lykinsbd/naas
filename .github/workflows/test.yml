@@ -78,10 +78,100 @@ jobs:
       - name: Run contract tests
         run: uv run pytest tests/contract -v --tb=short --no-cov
 
+  k8s-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.filter.outputs.k8s }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            k8s:
+              - 'k8s/**'
+              - 'Dockerfile'
+              - 'tests/k8s/**'
+              - '.github/workflows/test.yml'
+
+  k8s-tests:
+    runs-on: ubuntu-latest
+    needs: k8s-changes
+    if: |
+      needs.k8s-changes.outputs.changed == 'true' ||
+      github.base_ref == 'main' ||
+      startsWith(github.base_ref, 'release/')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.11
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Install k3d
+        run: curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+
+      - name: Create k3d cluster
+        run: k3d cluster create naas-test --wait
+
+      - name: Build NAAS image
+        run: docker build -t naas:test .
+
+      - name: Load image into k3d
+        run: k3d image import naas:test -c naas-test
+
+      - name: Apply manifests
+        run: |
+          kubectl apply -f k8s/namespace.yaml
+          kubectl -n naas create secret generic naas-secret \
+            --from-literal=REDIS_PASSWORD=test-redis-pw
+          kubectl apply -f k8s/configmap.yaml
+          kubectl apply -f k8s/redis/
+          # Patch image and pullPolicy inline before applying
+          sed 's|ghcr.io/lykinsbd/naas:latest|naas:test|g' k8s/api/deployment.yaml \
+            | kubectl apply -f -
+          kubectl apply -f k8s/api/service.yaml
+          sed 's|ghcr.io/lykinsbd/naas:latest|naas:test|g' k8s/worker/deployment.yaml \
+            | kubectl apply -f -
+          kubectl -n naas patch deployment naas-api \
+            -p '{"spec":{"template":{"spec":{"containers":[{"name":"naas-api","imagePullPolicy":"Never"}]}}}}'
+          kubectl -n naas patch deployment naas-worker \
+            -p '{"spec":{"template":{"spec":{"containers":[{"name":"naas-worker","imagePullPolicy":"Never"}]}}}}'
+          kubectl apply -f k8s/cisshgo/
+
+      - name: Wait for rollouts
+        run: |
+          kubectl -n naas rollout status deployment/redis --timeout=60s
+          kubectl -n naas rollout status deployment/naas-api --timeout=120s
+          kubectl -n naas rollout status deployment/naas-worker --timeout=120s
+          kubectl -n naas rollout status deployment/cisshgo --timeout=60s
+
+      - name: Smoke test healthcheck
+        run: |
+          kubectl -n naas port-forward svc/naas-api 8443:443 &
+          sleep 3
+          curl -k -f https://localhost:8443/healthcheck
+
+      - name: Run end-to-end job test
+        run: |
+          CISSHGO_IP=$(kubectl -n naas get svc cisshgo -o jsonpath='{.spec.clusterIP}')
+          NAAS_URL=https://localhost:8443 CISSHGO_HOST=${CISSHGO_IP} uv run python tests/k8s/test_e2e.py
+
+      - name: Cleanup
+        if: always()
+        run: k3d cluster delete naas-test
+
   tests-summary:
     name: Tests
     runs-on: ubuntu-latest
-    needs: [unit-tests, integration-tests, contract-tests]
+    needs: [unit-tests, integration-tests, contract-tests, k8s-changes, k8s-tests]
     if: always()
     steps:
       - name: Check test results
@@ -98,3 +188,8 @@ jobs:
             echo "Contract tests failed or were cancelled"
             exit 1
           fi
+          if [[ "${{ needs.k8s-tests.result }}" == "failure" || "${{ needs.k8s-tests.result }}" == "cancelled" ]]; then
+            echo "k8s tests failed or were cancelled"
+            exit 1
+          fi
+          # skipped is acceptable — means path filter did not match

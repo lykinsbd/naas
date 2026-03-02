@@ -58,7 +58,7 @@ class TestHealthcheck:
         assert "version" in data
         assert "uptime_seconds" in data
         assert "components" in data
-        assert data["status"] in ("healthy", "degraded")
+        assert data["status"] in ("healthy", "degraded", "no_workers")
         assert isinstance(data["version"], str)
 
 
