@@ -113,6 +113,11 @@ Worker replicas are set to `2` by default. Increase `spec.replicas` in
 handles one job at a time per process; the number of concurrent jobs equals the number
 of worker replicas.
 
+The worker process writes a heartbeat file to `/tmp/worker_heartbeat` every 30 seconds.
+The liveness probe checks this file was modified within the last 2 minutes — if the
+parent process hangs, Kubernetes will restart the pod. Override the path via the
+`WORKER_HEARTBEAT_FILE` environment variable if needed.
+
 ## Monitoring
 
 The `/metrics` endpoint on the API pods exposes Prometheus metrics. Configure your

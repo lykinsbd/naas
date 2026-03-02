@@ -42,3 +42,13 @@ spec:
             limits:
               memory: "512Mi"
               cpu: "500m"
+          livenessProbe:
+            exec:
+              command:
+                - find
+                - /tmp/worker_heartbeat
+                - -mmin
+                - "-2"
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            failureThreshold: 3
