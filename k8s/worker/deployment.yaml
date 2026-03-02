@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: naas-worker
-          image: ghcr.io/lykinsbd/naas:latest
+          image: ghcr.io/lykinsbd/naas:1.2.0rc1
           command:
             - python
             - worker.py

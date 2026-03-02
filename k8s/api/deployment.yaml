@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: naas-api
-          image: ghcr.io/lykinsbd/naas:latest
+          image: ghcr.io/lykinsbd/naas:1.2.0rc1
           ports:
             - containerPort: 443
           envFrom:
