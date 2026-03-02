@@ -73,8 +73,17 @@ via your cluster's ingress controller or a `LoadBalancer` service as appropriate
 environment.
 
 **With a custom certificate:** populate `NAAS_CERT`, `NAAS_KEY`, and optionally
-`NAAS_CA_BUNDLE` in `k8s/secret.yaml`. NAAS writes these to disk at startup for Gunicorn
-to use.
+`NAAS_CA_BUNDLE` in `k8s/secret.yaml`. These values must be the **raw PEM content**
+(not a file path), base64-encoded for the Kubernetes Secret.
+
+```bash
+# Encode a certificate file for use in secret.yaml
+cat cert.pem | base64 -w 0
+```
+
+The double-encoding works as follows: Kubernetes decodes the base64 value from the Secret
+and injects the raw PEM string as an environment variable. NAAS writes that string to disk
+at startup for Gunicorn to use.
 
 **Without a certificate:** NAAS generates a self-signed certificate at startup. Suitable
 for dev/internal use where clients can skip TLS verification or trust the self-signed cert.
