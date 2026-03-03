@@ -20,9 +20,13 @@ spec:
             runAsNonRoot: true
             runAsUser: 1000
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop:
                 - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
           command:
             - python
             - worker.py
@@ -59,3 +63,6 @@ spec:
             initialDelaySeconds: 60
             periodSeconds: 30
             failureThreshold: 3
+      volumes:
+        - name: tmp
+          emptyDir: {}

@@ -51,6 +51,9 @@ WORKDIR /app
 COPY naas/ /app/naas/
 COPY gunicorn.py worker.py /app/
 
+# Pre-compile Python bytecode so runtime writes to __pycache__ are not needed
+RUN python -m compileall -q /app/naas /app/gunicorn.py /app/worker.py
+
 # Set ownership and switch to non-root user
 RUN chown -R naas:naas /app
 USER naas
