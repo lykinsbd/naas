@@ -64,13 +64,26 @@ class TestNetmikoSendCommand:
         with patch("naas.library.netmiko_lib.pool.get", return_value=mock_conn):
             with patch("naas.library.netmiko_lib.pool.release") as mock_release:
                 with patch("naas.library.netmiko_lib.netmiko.ConnectHandler") as mock_handler:
-                    result, error = netmiko_send_command(
-                        "192.168.1.1", creds, "cisco_ios", ["show version"], MagicMock()
-                    )
+                    result, error = netmiko_send_command("192.168.1.1", creds, "cisco_ios", ["show version"])
 
                     assert error is None
                     mock_handler.assert_not_called()
                     mock_release.assert_called_once()
+
+    def test_pool_hit_bad_state_reconnects(self):
+        """Test that a pooled connection in bad state triggers reconnect."""
+        creds = Credentials(username="testuser", password="testpass")
+        mock_conn = MagicMock()
+        mock_conn.find_prompt.side_effect = Exception("stuck in sub-mode")
+
+        with patch("naas.library.netmiko_lib.pool.get", return_value=mock_conn):
+            with patch("naas.library.netmiko_lib.pool._evict"):
+                with patch("naas.library.netmiko_lib.pool.release"):
+                    with patch("naas.library.netmiko_lib.netmiko.ConnectHandler") as mock_handler:
+                        mock_handler.return_value.send_command.return_value = "output"
+                        result, error = netmiko_send_command("192.168.1.1", creds, "cisco_ios", ["show version"])
+                        assert error is None
+                        mock_handler.assert_called_once()
 
     def test_timeout_error(self):
         """Test timeout exception handling."""
@@ -239,6 +252,18 @@ class TestNetmikoSendConfig:
 
             assert result is None
             assert "Unknown SSH error" in error
+
+    def test_config_invalid_exception(self):
+        """Test that ConfigInvalidException is returned as error without raising."""
+        creds = Credentials(username="testuser", password="testpass")
+
+        with patch("naas.library.netmiko_lib.netmiko.ConnectHandler") as mock_handler:
+            mock_handler.return_value.send_config_set.side_effect = netmiko.ConfigInvalidException("% Invalid input")
+
+            result, error = netmiko_send_config("192.168.1.1", creds, "cisco_ios", ["bad command"])
+
+            assert result is None
+            assert "% Invalid input" in error
 
 
 class TestCircuitBreaker:
