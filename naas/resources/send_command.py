@@ -5,7 +5,7 @@ from flask_restful import Resource
 from spectree import Response
 
 from naas import __base_response__
-from naas.config import JOB_TTL_FAILED, JOB_TTL_SUCCESS
+from naas.config import JOB_TIMEOUT, JOB_TTL_FAILED, JOB_TTL_SUCCESS
 from naas.library.audit import emit_audit_event
 from naas.library.auth import device_lockout, job_locker
 from naas.library.decorators import valid_post
@@ -80,6 +80,7 @@ class SendCommand(Resource):
             delay_factor=validated.delay_factor,
             request_id=g.request_id,
             job_id=g.request_id,
+            job_timeout=JOB_TIMEOUT,
             result_ttl=JOB_TTL_SUCCESS,
             failure_ttl=JOB_TTL_FAILED,
         )
