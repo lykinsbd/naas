@@ -66,6 +66,13 @@ kubectl -n naas get svc
 All pods should reach `Running` status. The API readiness probe hits `/healthcheck` — pods
 will not become ready until Redis is up and responding.
 
+## Security Context
+
+Both the API and worker deployments run as UID 1000 (`naas` user, non-root) with all
+Linux capabilities dropped. The API retains `NET_BIND_SERVICE` to bind port 443 without
+root. TLS certificates are written to `/tmp/` at startup (world-writable, no special
+permissions required).
+
 ## TLS / Ingress
 
 The NAAS API listens on HTTPS (port 443). The `api` Service is `ClusterIP` — expose it

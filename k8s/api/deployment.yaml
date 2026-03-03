@@ -16,6 +16,15 @@ spec:
       containers:
         - name: naas-api
           image: ghcr.io/lykinsbd/naas:latest
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - NET_BIND_SERVICE
           ports:
             - containerPort: 443
           envFrom:
