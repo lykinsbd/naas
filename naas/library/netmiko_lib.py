@@ -18,6 +18,9 @@ from naas.library.auth import tacacs_auth_lockout
 from naas.library.circuit_breaker import _get_redis, with_circuit_breaker
 from naas.library.connection_pool import pool
 
+# Common error patterns across IOS, NX-OS, EOS, JunOS, and similar platforms
+_CONFIG_ERROR_PATTERN = r"(?i)(% invalid|% incomplete|% ambiguous|% error|error:|invalid input|syntax error)"
+
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
@@ -88,6 +91,7 @@ def _netmiko_send_command_impl(
         "ssh_config_file": "/app/naas/ssh_config",
         "allow_agent": False,
         "use_keys": False,
+        "fast_cli": True,
         "verbose": verbose,
     }
 
@@ -101,6 +105,15 @@ def _netmiko_send_command_impl(
             logger.debug("%s %s:Establishing connection...", request_id, ip)
             netmiko_device["keepalive"] = CONNECTION_POOL_KEEPALIVE if CONNECTION_POOL_ENABLED else 0
             net_connect = netmiko.ConnectHandler(**netmiko_device)
+        else:
+            # Verify pooled connection is at a clean prompt before use
+            try:
+                net_connect.find_prompt()
+            except Exception:
+                logger.debug("%s %s:Pooled connection in bad state, reconnecting", request_id, ip)
+                pool._evict((ip, port, pool._cred_hash(credentials.username, credentials.password), device_type))
+                netmiko_device["keepalive"] = CONNECTION_POOL_KEEPALIVE
+                net_connect = netmiko.ConnectHandler(**netmiko_device)
 
         net_output = {}
         for command in commands:
@@ -206,6 +219,7 @@ def _netmiko_send_config_impl(
         "ssh_config_file": "/app/naas/ssh_config",
         "allow_agent": False,
         "use_keys": False,
+        "fast_cli": True,
         "verbose": verbose,
     }
 
@@ -215,7 +229,9 @@ def _netmiko_send_config_impl(
 
         net_output = {}
         logger.debug("%s %s:Sending config_set: %s", request_id, ip, commands)
-        net_output["config_set_output"] = net_connect.send_config_set(commands, delay_factor=delay_factor)
+        net_output["config_set_output"] = net_connect.send_config_set(
+            commands, delay_factor=delay_factor, error_pattern=_CONFIG_ERROR_PATTERN
+        )
 
         if save_config:
             try:
@@ -240,6 +256,11 @@ def _netmiko_send_config_impl(
 
         net_connect.disconnect()
 
+    except netmiko.ConfigInvalidException as e:
+        logger.debug("%s %s:Config rejected by device: %s", request_id, ip, e)
+        duration_ms = int((time.time() - start_time) * 1000)
+        emit_audit_event("job.completed", request_id=request_id, status="failed", duration_ms=duration_ms)
+        return None, str(e)  # Config error — do not trigger circuit breaker
     except (TimeoutError, netmiko.NetMikoTimeoutException) as e:
         logger.debug("%s %s:Netmiko timed out connecting to device: %s", request_id, ip, e)
         duration_ms = int((time.time() - start_time) * 1000)
