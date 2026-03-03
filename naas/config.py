@@ -81,8 +81,10 @@ def app_configure(app):
     redis = Redis(host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD)
     app.config["redis"] = redis
 
-    # Create a random string to use as a Salt for the UN/PW hashes, stash it in redis
-    redis.set("naas_cred_salt", "".join(random.choice(string.ascii_lowercase) for _ in range(10)))
+    # Create a random string to use as a Salt for the UN/PW hashes, stash it in redis.
+    # Use setnx so the salt persists across API restarts — overwriting it would invalidate
+    # all connection pool keys and in-flight job auth checks.
+    redis.setnx("naas_cred_salt", "".join(random.choice(string.ascii_lowercase) for _ in range(10)))
 
     # Initialize an rq Queue and store it for later
     q = Queue("naas", connection=redis)
