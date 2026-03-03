@@ -80,6 +80,7 @@ def app_configure(app):
 
     # Initialize a Redis connection and store it for later
     redis = Redis(host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD)
+    redis.ping()  # Fail fast if Redis is unavailable at startup
     app.config["redis"] = redis
 
     # Create a random string to use as a Salt for the UN/PW hashes, stash it in redis.
