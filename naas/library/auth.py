@@ -7,7 +7,6 @@ from uuid import uuid4
 from flask import current_app
 from redis import Redis
 
-from naas.config import REDIS_HOST, REDIS_PASSWORD, REDIS_PORT
 from naas.library.audit import emit_audit_event
 
 
@@ -75,15 +74,13 @@ def _is_locked_out(redis_key: str, redis: Redis, report_failure: bool = False) -
     return is_locked
 
 
-def tacacs_auth_lockout(username: str, report_failure: bool = False) -> bool:
+def tacacs_auth_lockout(username: str, redis: Redis, report_failure: bool = False) -> bool:
     """Check (and optionally record) a TACACS auth failure for a user."""
-    redis = Redis(host=REDIS_HOST, port=int(REDIS_PORT), password=REDIS_PASSWORD)
     return _is_locked_out(f"naas_failures_{username}", redis, report_failure)
 
 
-def device_lockout(ip: str, report_failure: bool = False) -> bool:
+def device_lockout(ip: str, redis: Redis, report_failure: bool = False) -> bool:
     """Check (and optionally record) a connection failure for a device IP."""
-    redis = Redis(host=REDIS_HOST, port=int(REDIS_PORT), password=REDIS_PASSWORD)
     return _is_locked_out(f"naas_failures_device_{ip}", redis, report_failure)
 
 

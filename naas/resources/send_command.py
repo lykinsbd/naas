@@ -40,7 +40,7 @@ class SendCommand(Resource):
         validated: SendCommandRequest = request.context.json
         ip_str = str(validated.ip)
 
-        if device_lockout(ip=ip_str):
+        if device_lockout(ip=ip_str, redis=current_app.config["redis"]):
             current_app.logger.error("%s: Device %s is locked out", g.request_id, ip_str)
             raise LockedOut
 
