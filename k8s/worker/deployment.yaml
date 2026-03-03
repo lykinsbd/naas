@@ -16,6 +16,13 @@ spec:
       containers:
         - name: naas-worker
           image: ghcr.io/lykinsbd/naas:latest
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           command:
             - python
             - worker.py

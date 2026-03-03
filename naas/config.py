@@ -15,9 +15,9 @@ from redis import Redis
 from rq import Queue
 
 # Cert/Key File Locations
-CERT_KEY_FILE = "/app/key.pem"
-CERT_FILE = "/app/cert.crt"
-CERT_BUNDLE_FILE = "/app/bundle.crt"
+CERT_KEY_FILE = "/tmp/key.pem"
+CERT_FILE = "/tmp/cert.pem"
+CERT_BUNDLE_FILE = "/tmp/bundle.crt"
 
 # Redis config
 REDIS_HOST = os.environ.get("REDIS_HOST", "redis")

@@ -1,9 +1,9 @@
-from naas.library.selfsigned import generate_selfsigned_cert
 from os import environ
 
+from naas.library.selfsigned import generate_selfsigned_cert
 
 # Setup basic attributes of our web-server
-bind = f"0.0.0.0:443"
+bind = "0.0.0.0:443"
 chdir = "/app"
 workers = 8
 worker_class = "gthread"
@@ -46,9 +46,9 @@ NAAS_CERT = environ.get("NAAS_CERT", None)
 NAAS_KEY = environ.get("NAAS_KEY", None)
 NAAS_CA_BUNDLE = environ.get("NAAS_CA_BUNDLE", None)
 
-CERT_FILE = "/app/cert.pem"
-KEY_FILE = "/app/key.pem"
-CA_BUNDLE_FILE = "/app/ca_bundle.pem"
+CERT_FILE = "/tmp/cert.pem"
+KEY_FILE = "/tmp/key.pem"
+CA_BUNDLE_FILE: str | None = "/tmp/ca_bundle.pem"
 
 # If we were provided a cert/key/bundle, use those by printing into files for Gunicorn to ingest.
 if NAAS_CERT and NAAS_KEY and NAAS_CA_BUNDLE:
@@ -56,12 +56,16 @@ if NAAS_CERT and NAAS_KEY and NAAS_CA_BUNDLE:
         c.write(NAAS_CERT + "\n")
     with open(KEY_FILE, "w") as k:
         k.write(NAAS_KEY + "\n")
+    assert CA_BUNDLE_FILE is not None
     with open(CA_BUNDLE_FILE, "w") as bundle:
         bundle.write(NAAS_CA_BUNDLE + "\n")
 
 # Otherwise if we can't find a cert or key lets make something up and put _that_ into the files for Gunicorn
 else:
-    cert, key, = generate_selfsigned_cert("naas.local")
+    (
+        cert,
+        key,
+    ) = generate_selfsigned_cert("naas.local")
     with open(CERT_FILE, "w") as c:
         c.write(cert.decode())
     with open(KEY_FILE, "w") as k:
