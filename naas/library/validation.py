@@ -44,7 +44,7 @@ class Validate:
     def locked_out() -> None:
         """Validate if this user is locked out from accessing the API."""
         if request.authorization and request.authorization.username:
-            if tacacs_auth_lockout(username=request.authorization.username):
+            if tacacs_auth_lockout(username=request.authorization.username, redis=current_app.config["redis"]):
                 current_app.logger.error(f"{request.authorization.username} is currently locked out.")
                 raise LockedOut
 

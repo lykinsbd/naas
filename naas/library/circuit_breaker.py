@@ -138,11 +138,11 @@ def with_circuit_breaker(ip: str, request_id: str, fn: Callable[..., Any], *args
         return breaker.call(fn, *args, **kwargs)  # type: ignore[no-any-return]  # pybreaker.call() returns Any; no stubs available
     except pybreaker.CircuitBreakerError:
         logger.warning("%s %s:Circuit breaker open, rejecting connection attempt", request_id, ip)
-        device_lockout(ip=ip, report_failure=True)
+        device_lockout(ip=ip, redis=_get_redis(), report_failure=True)
         return None, f"Circuit breaker open for device {ip} - too many recent failures"
     except (TimeoutError, netmiko.NetMikoTimeoutException) as e:
-        device_lockout(ip=ip, report_failure=True)
+        device_lockout(ip=ip, redis=_get_redis(), report_failure=True)
         return None, str(e)
     except (ssh_exception.SSHException, ValueError) as e:
-        device_lockout(ip=ip, report_failure=True)
+        device_lockout(ip=ip, redis=_get_redis(), report_failure=True)
         return None, f"Unknown SSH error connecting to device {ip}: {str(e)}"
