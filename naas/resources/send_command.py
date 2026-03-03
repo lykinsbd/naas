@@ -91,7 +91,7 @@ class SendCommand(Resource):
         user_hash = g.credentials.salted_hash()
 
         # Stash the job_id in redis, with the user/pass hash so that only that user can retrieve results
-        job_locker(salted_creds=user_hash, job_id=job_id)
+        job_locker(salted_creds=user_hash, job=job)
 
         # Emit audit event
         emit_audit_event(

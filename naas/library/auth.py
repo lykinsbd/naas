@@ -2,6 +2,7 @@
 
 from datetime import datetime, timedelta
 from hashlib import sha512
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 from flask import current_app
@@ -9,18 +10,18 @@ from redis import Redis
 
 from naas.library.audit import emit_audit_event
 
+if TYPE_CHECKING:
+    from rq.job import Job
 
-def job_locker(salted_creds: str, job_id: str) -> None:
+
+def job_locker(salted_creds: str, job: "Job") -> None:
     """
     Stash the job ID under the SHA512 (salted) hash of the username/password, so only that user can retrieve it
     :param salted_creds: The pre-salted username/password combo
-    :param job_id:
+    :param job: The RQ Job object to lock
     :return:
     """
-
-    q = current_app.config["q"]
-    current_app.logger.debug("Locking job %s with %s", job_id, salted_creds)
-    job = q.fetch_job(job_id=job_id)
+    current_app.logger.debug("Locking job %s with %s", job.id, salted_creds)
     job.meta["hash"] = salted_creds
     job.save_meta()
 
