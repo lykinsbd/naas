@@ -1,1 +1,1 @@
-Fix contract test to accept no_workers healthcheck status
+Fix contract test to accept `no_workers` healthcheck status
