@@ -24,7 +24,7 @@ class TestListJobs:
             patch("naas.resources.list_jobs.FinishedJobRegistry") as mock_finished,
             patch("naas.resources.list_jobs.FailedJobRegistry") as mock_failed,
             patch("naas.resources.list_jobs.StartedJobRegistry") as mock_started,
-            patch("naas.resources.list_jobs.Job.fetch") as mock_job_fetch,
+            patch("naas.resources.list_jobs.Job.fetch_many") as mock_job_fetch,
         ):
             # Setup mock registries
             mock_finished_inst = MagicMock()
@@ -51,7 +51,7 @@ class TestListJobs:
             mock_job.get_status.return_value = "finished"
             mock_job.created_at = datetime(2026, 2, 23, 12, 0, 0)
             mock_job.ended_at = datetime(2026, 2, 23, 12, 0, 5)
-            mock_job_fetch.return_value = mock_job
+            mock_job_fetch.return_value = [mock_job]
 
             response = client.get("/v1/jobs", headers={"Authorization": f"Basic {auth}"})
 
@@ -68,7 +68,7 @@ class TestListJobs:
 
         with (
             patch("naas.resources.list_jobs.FinishedJobRegistry") as mock_finished,
-            patch("naas.resources.list_jobs.Job.fetch") as mock_job_fetch,
+            patch("naas.resources.list_jobs.Job.fetch_many") as mock_job_fetch,
         ):
             # Setup mock registry
             mock_finished_inst = MagicMock()
@@ -82,7 +82,7 @@ class TestListJobs:
             mock_job.get_status.return_value = "finished"
             mock_job.created_at = datetime(2026, 2, 23, 12, 0, 0)
             mock_job.ended_at = datetime(2026, 2, 23, 12, 0, 5)
-            mock_job_fetch.return_value = mock_job
+            mock_job_fetch.return_value = [mock_job]
 
             response = client.get("/v1/jobs?status=finished", headers={"Authorization": f"Basic {auth}"})
 
@@ -98,7 +98,7 @@ class TestListJobs:
             patch("naas.resources.list_jobs.FinishedJobRegistry") as mock_finished,
             patch("naas.resources.list_jobs.FailedJobRegistry") as mock_failed,
             patch("naas.resources.list_jobs.StartedJobRegistry") as mock_started,
-            patch("naas.resources.list_jobs.Job.fetch") as mock_job_fetch,
+            patch("naas.resources.list_jobs.Job.fetch_many") as mock_job_fetch,
         ):
             # Setup mock registries
             mock_finished_inst = MagicMock()
@@ -119,7 +119,7 @@ class TestListJobs:
             # Mock queue
             app.config["q"].get_job_ids = MagicMock(return_value=[])
 
-            mock_job_fetch.return_value = None
+            mock_job_fetch.return_value = [None]
 
             response = client.get("/v1/jobs?page=2&per_page=10", headers={"Authorization": f"Basic {auth}"})
 
@@ -152,7 +152,7 @@ class TestListJobs:
 
         with (
             patch("naas.resources.list_jobs.FailedJobRegistry") as mock_failed,
-            patch("naas.resources.list_jobs.Job.fetch") as mock_job_fetch,
+            patch("naas.resources.list_jobs.Job.fetch_many") as mock_job_fetch,
         ):
             # Setup mock registry
             mock_failed_inst = MagicMock()
@@ -166,7 +166,7 @@ class TestListJobs:
             mock_job.get_status.return_value = "failed"
             mock_job.created_at = datetime(2026, 2, 23, 12, 0, 0)
             mock_job.ended_at = datetime(2026, 2, 23, 12, 0, 5)
-            mock_job_fetch.return_value = mock_job
+            mock_job_fetch.return_value = [mock_job]
 
             response = client.get("/v1/jobs?status=failed", headers={"Authorization": f"Basic {auth}"})
 
@@ -180,7 +180,7 @@ class TestListJobs:
 
         with (
             patch("naas.resources.list_jobs.StartedJobRegistry") as mock_started,
-            patch("naas.resources.list_jobs.Job.fetch") as mock_job_fetch,
+            patch("naas.resources.list_jobs.Job.fetch_many") as mock_job_fetch,
         ):
             # Setup mock registry
             mock_started_inst = MagicMock()
@@ -194,7 +194,7 @@ class TestListJobs:
             mock_job.get_status.return_value = "started"
             mock_job.created_at = datetime(2026, 2, 23, 12, 0, 0)
             mock_job.ended_at = None
-            mock_job_fetch.return_value = mock_job
+            mock_job_fetch.return_value = [mock_job]
 
             response = client.get("/v1/jobs?status=started", headers={"Authorization": f"Basic {auth}"})
 
@@ -206,7 +206,7 @@ class TestListJobs:
         """Test GET with queued status filter."""
         auth = b64encode(b"testuser:testpass").decode()
 
-        with patch("naas.resources.list_jobs.Job.fetch") as mock_job_fetch:
+        with patch("naas.resources.list_jobs.Job.fetch_many") as mock_job_fetch:
             # Mock queue
             app.config["q"].__len__ = MagicMock(return_value=4)
             app.config["q"].get_job_ids = MagicMock(return_value=["job1"])
@@ -217,7 +217,7 @@ class TestListJobs:
             mock_job.get_status.return_value = "queued"
             mock_job.created_at = datetime(2026, 2, 23, 12, 0, 0)
             mock_job.ended_at = None
-            mock_job_fetch.return_value = mock_job
+            mock_job_fetch.return_value = [mock_job]
 
             response = client.get("/v1/jobs?status=queued", headers={"Authorization": f"Basic {auth}"})
 
@@ -233,7 +233,7 @@ class TestListJobs:
             patch("naas.resources.list_jobs.FinishedJobRegistry") as mock_finished,
             patch("naas.resources.list_jobs.FailedJobRegistry") as mock_failed,
             patch("naas.resources.list_jobs.StartedJobRegistry") as mock_started,
-            patch("naas.resources.list_jobs.Job.fetch") as mock_job_fetch,
+            patch("naas.resources.list_jobs.Job.fetch_many") as mock_job_fetch,
         ):
             mock_finished_inst = MagicMock()
             mock_finished_inst.count = 1
@@ -258,7 +258,7 @@ class TestListJobs:
             mock_job.get_status.return_value = "finished"
             mock_job.created_at = datetime(2026, 2, 23, 12, 0, 0)
             mock_job.ended_at = datetime(2026, 2, 23, 12, 0, 5)
-            mock_job_fetch.return_value = mock_job
+            mock_job_fetch.return_value = [mock_job]
 
             # per_page=1 means finished fills the page; failed registry should not be fetched
             response = client.get("/v1/jobs?per_page=1", headers={"Authorization": f"Basic {auth}"})
@@ -275,7 +275,7 @@ class TestListJobs:
             patch("naas.resources.list_jobs.FinishedJobRegistry") as mock_finished,
             patch("naas.resources.list_jobs.FailedJobRegistry") as mock_failed,
             patch("naas.resources.list_jobs.StartedJobRegistry") as mock_started,
-            patch("naas.resources.list_jobs.Job.fetch") as mock_job_fetch,
+            patch("naas.resources.list_jobs.Job.fetch_many") as mock_job_fetch,
         ):
             mock_finished_inst = MagicMock()
             mock_finished_inst.count = 1  # page 2 skips this entirely
@@ -301,7 +301,7 @@ class TestListJobs:
             mock_job.get_status.return_value = "queued"
             mock_job.created_at = datetime(2026, 2, 23, 12, 0, 0)
             mock_job.ended_at = None
-            mock_job_fetch.return_value = mock_job
+            mock_job_fetch.return_value = [mock_job]
 
             response = client.get("/v1/jobs?page=2&per_page=1", headers={"Authorization": f"Basic {auth}"})
 
