@@ -12,12 +12,18 @@ def cleanup_changelog(version: str, changelog_path: Path) -> None:
     Args:
         version: Current version (e.g., "1.3.0rc1")
         changelog_path: Path to CHANGELOG.md
+
+    Raises:
+        ValueError: If path doesn't end with CHANGELOG.md or version format is invalid
     """
+    # Validate inputs
+    if not str(changelog_path).endswith("CHANGELOG.md"):
+        raise ValueError(f"Invalid changelog path: {changelog_path}")
+
     # Extract base version (e.g., "1.3.0" from "1.3.0rc1")
     base_version_match = re.match(r"^(\d+\.\d+\.\d+)", version)
     if not base_version_match:
-        print(f"ERROR: Invalid version format: {version}")
-        sys.exit(1)
+        raise ValueError(f"Invalid version format: {version}")
 
     base_version = base_version_match.group(1)
     print(f"Cleaning up old pre-release entries for version {base_version} (keeping {version})")
@@ -32,7 +38,7 @@ def cleanup_changelog(version: str, changelog_path: Path) -> None:
 
     # Process lines
     output_lines = []
-    skip = False
+    should_skip_section = False
     in_releases = False
 
     # Regex for release headers
@@ -51,7 +57,7 @@ def cleanup_changelog(version: str, changelog_path: Path) -> None:
             final_release_match = re.match(r"^# NAAS (\d+\.\d+\.\d+) ", line)
             if final_release_match:
                 in_releases = True
-                skip = False  # Never skip final releases
+                should_skip_section = False  # Never skip final releases
                 output_lines.append(line)
                 continue
 
@@ -63,28 +69,28 @@ def cleanup_changelog(version: str, changelog_path: Path) -> None:
             if found_version.startswith(base_version) and re.search(r"(a|b|rc)\d+$", found_version):
                 if found_version == version:
                     # Keep current version
-                    skip = False
+                    should_skip_section = False
                 else:
                     # Skip older pre-releases
-                    skip = True
+                    should_skip_section = True
                     continue
             else:
                 # Different version, stop skipping
-                skip = False
+                should_skip_section = False
 
         # Output non-skipped lines
-        if in_releases and not skip:
+        if in_releases and not should_skip_section:
             output_lines.append(line)
 
     # Write result
-    changelog_path.write_text("".join(output_lines))
+    result_content = "".join(output_lines)
+    changelog_path.write_text(result_content)
 
     # Verify
-    result_content = changelog_path.read_text()
     if f"# NAAS {version}" not in result_content:
         print("ERROR: Version entry missing after cleanup!")
         backup_path.rename(changelog_path)
-        sys.exit(1)
+        raise RuntimeError("Changelog too short after cleanup")
 
     if len(result_content.splitlines()) < 5:
         print("ERROR: Changelog too short after cleanup!")

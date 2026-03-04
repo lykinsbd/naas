@@ -126,7 +126,7 @@ def test_cleanup_restores_on_error(sample_changelog):
     original_content = sample_changelog.read_text()
 
     # Try to clean up with a version that doesn't exist
-    with pytest.raises(SystemExit):
+    with pytest.raises(RuntimeError):
         cleanup_changelog("1.4.0rc1", sample_changelog)
 
     # Original should be restored
@@ -228,3 +228,18 @@ def test_cleanup_preserves_other_versions(tmp_path):
     assert "v1.2.0 feature" in content
     assert "# NAAS 1.1.0" in content
     assert "v1.1.0 feature" in content
+
+
+def test_cleanup_validates_path(sample_changelog):
+    """Test that cleanup validates changelog path."""
+    invalid_path = sample_changelog.parent / "invalid.txt"
+    invalid_path.write_text("content")
+
+    with pytest.raises(ValueError, match="Invalid changelog path"):
+        cleanup_changelog("1.3.0", invalid_path)
+
+
+def test_cleanup_validates_version(sample_changelog):
+    """Test that cleanup validates version format."""
+    with pytest.raises(ValueError, match="Invalid version format"):
+        cleanup_changelog("invalid", sample_changelog)
