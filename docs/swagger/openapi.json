@@ -72,6 +72,19 @@
             "title": "Commands",
             "type": "array"
           },
+          "expect_string": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Regex pattern to match in device output (overrides prompt detection)",
+            "title": "Expect String"
+          },
           "ip": {
             "description": "Device IP address",
             "format": "ipvanyaddress",

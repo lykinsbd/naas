@@ -78,6 +78,7 @@ class SendCommand(Resource):
             credentials=g.credentials,
             commands=validated.commands,
             read_timeout=validated.read_timeout,
+            expect_string=validated.expect_string,
             request_id=g.request_id,
             job_id=g.request_id,
             job_timeout=JOB_TIMEOUT,

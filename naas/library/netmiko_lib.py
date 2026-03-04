@@ -37,6 +37,7 @@ def netmiko_send_command(
     commands: "Sequence[str]",
     port: int = 22,
     read_timeout: float = 30.0,
+    expect_string: str | None = None,
     verbose: bool = False,
     request_id: str = "",
 ) -> "tuple[dict | None, str | None]":
@@ -49,6 +50,7 @@ def netmiko_send_command(
     :param device_type: What Netmiko device type are we connecting to?
     :param port: What TCP Port are we connecting to?
     :param read_timeout: Read timeout in seconds for device responses
+    :param expect_string: Regex pattern to match in device output (overrides prompt detection)
     :param verbose: Turn on Netmiko verbose logging
     :param request_id: Correlation ID from the originating API request for end-to-end log tracing
     :return: A Tuple of a dict of the results (if any) and a string describing the error (if any)
@@ -64,10 +66,13 @@ def netmiko_send_command(
             commands,
             port,
             read_timeout,
+            expect_string,
             verbose,
             request_id,
         )
-    return _netmiko_send_command_impl(ip, credentials, device_type, commands, port, read_timeout, verbose, request_id)
+    return _netmiko_send_command_impl(
+        ip, credentials, device_type, commands, port, read_timeout, expect_string, verbose, request_id
+    )
 
 
 def _netmiko_send_command_impl(
@@ -77,6 +82,7 @@ def _netmiko_send_command_impl(
     commands: "Sequence[str]",
     port: int = 22,
     read_timeout: float = 30.0,
+    expect_string: str | None = None,
     verbose: bool = False,
     request_id: str = "",
 ) -> "tuple[dict | None, str | None]":
@@ -118,7 +124,10 @@ def _netmiko_send_command_impl(
         net_output = {}
         for command in commands:
             logger.debug("%s %s:Sending %s", request_id, ip, command)
-            net_output[command] = net_connect.send_command(command, read_timeout=read_timeout)
+            kwargs: dict[str, float | str] = {"read_timeout": read_timeout}
+            if expect_string is not None:
+                kwargs["expect_string"] = expect_string
+            net_output[command] = net_connect.send_command(command, **kwargs)
 
         if CONNECTION_POOL_ENABLED:
             pool.release(ip, port, credentials.username, credentials.password, device_type, net_connect)
