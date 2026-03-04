@@ -181,12 +181,16 @@ Write for end users, not developers. Use present tense. Be specific about the be
 develop (1.1.0a1) → release/1.1 (1.1.0b1 → rc1 → 1.1.0) → main (1.1.0)
 ```
 
-1. Create PR from `develop` → `release/1.1` to sync
-2. Bump version on `release/1.1`, create PR, merge → CI creates pre-release tag
-3. Repeat for RC as needed
-4. Bump to final version, merge to `release/1.1`, then PR `release/1.1` → `main`
-5. After merge to `main`, CI creates full release tag and deletes changelog fragments
-6. Create PR `main` → `develop`, bump develop to next alpha
+1. **Create `release/X.Y` branch from `develop`**
+2. **Bump version** to `X.Y.0b1` (beta) in `pyproject.toml`, commit, push
+3. **CI builds changelog** automatically via `release.yml` when version bump is pushed to `main`
+4. **Test the beta** — fix bugs via PRs to `release/X.Y`
+5. **Bump to RC** (`X.Y.0rc1`) if needed, repeat testing
+6. **Bump to final** (`X.Y.0`), push to `release/X.Y`
+7. **PR `release/X.Y` → `main`** — CI creates release tag and builds final changelog
+8. **Sync back**: PR `main` → `develop`, bump develop to next alpha (`X.Y+1.0a1`)
+
+**IMPORTANT:** Never run `towncrier build` manually — the CI pipeline handles changelog generation.
 
 ### After release
 
