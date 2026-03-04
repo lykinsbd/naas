@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: naas-api
-          image: ghcr.io/lykinsbd/naas:latest
+          image: ghcr.io/lykinsbd/naas:1.3.0b1
           securityContext:
             runAsNonRoot: true
             runAsUser: 1000
