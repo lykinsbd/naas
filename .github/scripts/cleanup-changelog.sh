@@ -13,8 +13,20 @@ echo "Cleaning up old pre-release entries for version $BASE_VERSION (keeping $VE
 cp "$CHANGELOG" "${CHANGELOG}.backup"
 
 # Remove all pre-release entries for this version EXCEPT the current one
+# Preserve everything before the first release entry (header, towncrier marker)
 awk -v base="$BASE_VERSION" -v current="$VERSION" '
-BEGIN { skip = 0 }
+BEGIN { skip = 0; in_releases = 0 }
+
+# Preserve header until we hit the first release
+!in_releases && $0 !~ /^# NAAS [0-9]+\.[0-9]+\.[0-9]+/ {
+    print
+    next
+}
+
+# Mark that we are now in the releases section
+/^# NAAS [0-9]+\.[0-9]+\.[0-9]+/ {
+    in_releases = 1
+}
 
 # Match pre-release headers for this version
 $0 ~ "^# NAAS " base "(a|b|rc)[0-9]+ " {
@@ -31,12 +43,12 @@ $0 ~ "^# NAAS " base "(a|b|rc)[0-9]+ " {
 }
 
 # Stop skipping when we hit any other release header
-/^# NAAS [0-9]+\.[0-9]+\.[0-9]+/ {
+in_releases && /^# NAAS [0-9]+\.[0-9]+\.[0-9]+/ {
     skip = 0
 }
 
 # Print lines that aren'\''t being skipped
-!skip { print }
+in_releases && !skip { print }
 ' "${CHANGELOG}.backup" > "$CHANGELOG"
 
 # Verify the file is not empty and still has the current version
