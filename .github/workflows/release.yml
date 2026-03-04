@@ -103,12 +103,12 @@ jobs:
             # Pre-release: build changelog but keep fragments
             uv run towncrier build --version ${{ needs.check-version.outputs.version }} --keep
             # Clean up old pre-releases but keep current one
-            .github/scripts/cleanup-changelog.sh ${{ needs.check-version.outputs.version }} CHANGELOG.md
+            python3 .github/scripts/cleanup_changelog.py ${{ needs.check-version.outputs.version }} CHANGELOG.md
           else
             # Final release: build changelog and delete fragments
             uv run towncrier build --version ${{ needs.check-version.outputs.version }} --yes
             # Clean up all pre-release entries for this version
-            .github/scripts/cleanup-changelog.sh ${{ needs.check-version.outputs.version }} CHANGELOG.md
+            python3 .github/scripts/cleanup_changelog.py ${{ needs.check-version.outputs.version }} CHANGELOG.md
           fi
 
       - name: Commit changelog
