@@ -17,6 +17,7 @@ dependencies = [
     "flask-restful>=0.3.8",
     "gunicorn>=20.0.4",
     "netmiko>=3.0.0",
+    "ntc-templates>=9.0.0",
     "paramiko>=2.7.1",
     "prometheus-flask-exporter>=0.23.2",
     "pybreaker>=1.4.1",

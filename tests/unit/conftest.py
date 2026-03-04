@@ -10,3 +10,4 @@ def mock_device_lockout(monkeypatch):
     monkeypatch.setattr("naas.library.circuit_breaker.device_lockout", lambda **kwargs: False)
     monkeypatch.setattr("naas.resources.send_command.device_lockout", lambda **kwargs: False)
     monkeypatch.setattr("naas.resources.send_config.device_lockout", lambda **kwargs: False)
+    monkeypatch.setattr("naas.resources.send_command_structured.device_lockout", lambda **kwargs: False)
