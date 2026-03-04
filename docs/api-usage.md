@@ -2,6 +2,10 @@
 
 Detailed examples for common NAAS API operations.
 
+!!! warning "Breaking change in v1.3"
+    The `delay_factor` parameter was replaced with `read_timeout` (float, seconds).
+    Migrate by converting: `delay_factor=2` → `read_timeout=60.0` (approximate).
+
 ## Contents
 
 - [Authentication](#authentication)

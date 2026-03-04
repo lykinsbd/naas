@@ -72,13 +72,6 @@
             "title": "Commands",
             "type": "array"
           },
-          "delay_factor": {
-            "default": 1,
-            "description": "Netmiko delay factor",
-            "minimum": 1,
-            "title": "Delay Factor",
-            "type": "integer"
-          },
           "ip": {
             "description": "Device IP address",
             "format": "ipvanyaddress",
@@ -98,6 +91,13 @@
             "minimum": 1,
             "title": "Port",
             "type": "integer"
+          },
+          "read_timeout": {
+            "default": 30.0,
+            "description": "Read timeout in seconds for device responses",
+            "minimum": 1.0,
+            "title": "Read Timeout",
+            "type": "number"
           }
         },
         "required": [
@@ -150,13 +150,6 @@
             "description": "Configuration commands",
             "title": "Config"
           },
-          "delay_factor": {
-            "default": 1,
-            "description": "Netmiko delay factor",
-            "minimum": 1,
-            "title": "Delay Factor",
-            "type": "integer"
-          },
           "ip": {
             "description": "Device IP address",
             "format": "ipvanyaddress",
@@ -176,6 +169,13 @@
             "minimum": 1,
             "title": "Port",
             "type": "integer"
+          },
+          "read_timeout": {
+            "default": 30.0,
+            "description": "Read timeout in seconds for device responses",
+            "minimum": 1.0,
+            "title": "Read Timeout",
+            "type": "number"
           },
           "save_config": {
             "default": false,

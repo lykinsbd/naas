@@ -321,10 +321,13 @@ Common issues and solutions for NAAS deployment and operation.
    {
      "ip": "192.168.1.1",
      "platform": "cisco_ios",
-     "delay_factor": 2,
+     "read_timeout": 60.0,
      "commands": ["show version"]
    }
    ```
+
+   **Note:** Prior to v1.3, this parameter was `delay_factor` (integer multiplier).
+   Migrate by converting: `delay_factor=2` → `read_timeout=60.0` (approximate).
 
 3. Scale workers for parallel execution:
 
