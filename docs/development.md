@@ -234,37 +234,41 @@ git push
 
 Repeat testing. Can create multiple RCs (`rc2`, `rc3`, etc.).
 
-#### 5. Bump to final version
+#### 5. Merge RC to main
 
-When ready for production release:
-
-```bash
-# Edit pyproject.toml: version = "1.3.0rc1" → "1.3.0"
-sed -i 's/version = "1.3.0rc1"/version = "1.3.0"/' pyproject.toml
-uv lock
-git add pyproject.toml uv.lock
-git commit -m "chore(release): bump version to 1.3.0"
-git push
-```
-
-**What happens:** CI detects final version (no suffix), runs `release.yml`:
-
-- Builds changelog via `towncrier build --yes` (deletes fragments)
-- Updates k8s manifests with release tag
-- Creates `v1.3.0` tag
-- Publishes full release to GitHub
-
-#### 6. Merge to main
+When RC testing is complete:
 
 ```bash
 gh pr create \
   --base main \
   --head release/1.3 \
   --title "Release v1.3.0" \
-  --body "Release v1.3.0 from release/1.3 branch"
+  --body "Release v1.3.0 from release/1.3 branch (currently at rc1)"
 ```
 
-**Review and merge** — this makes the release official.
+**Review and merge** — brings RC to main.
+
+#### 6. Bump to final version on main
+
+After the PR is merged:
+
+```bash
+git checkout main
+git pull
+# Edit pyproject.toml: version = "1.3.0rc1" → "1.3.0"
+sed -i 's/version = "1.3.0rc1"/version = "1.3.0"/' pyproject.toml
+uv lock
+git add pyproject.toml uv.lock
+git commit -m "chore: bump version to 1.3.0"
+git push
+```
+
+**What happens:** CI detects final version on `main`, runs `release.yml`:
+
+- Builds changelog via `towncrier build --yes` (deletes fragments)
+- Updates k8s manifests with release tag
+- Creates `v1.3.0` tag
+- Publishes full release to GitHub
 
 #### 7. Sync back to develop
 
