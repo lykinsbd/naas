@@ -270,21 +270,11 @@ git push
 - Creates `v1.3.0` tag
 - Publishes full release to GitHub
 
-#### 7. Sync back to develop
+#### 7. Sync back to develop (automated)
 
-After merge to `main`:
+After the final release tag is created, CI automatically creates a PR from `main` → `develop`.
 
-```bash
-git checkout main
-git pull
-gh pr create \
-  --base develop \
-  --head main \
-  --title "chore: sync v1.3.0 release back to develop" \
-  --body "Sync release v1.3.0 changes from main back to develop"
-```
-
-**Review and merge** — brings release changes back to develop.
+**Review and merge** the auto-created PR — brings release changes back to develop.
 
 #### 8. Bump develop to next alpha
 

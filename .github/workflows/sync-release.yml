@@ -1,0 +1,43 @@
+name: Sync Release to Develop
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync-to-develop:
+    runs-on: ubuntu-latest
+    # Only run for final releases (not pre-releases like v1.3.0b1, v1.3.0rc1)
+    if: "!contains(github.ref_name, 'b') && !contains(github.ref_name, 'rc')"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Create PR to develop
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+
+          # Check if PR already exists
+          EXISTING_PR=$(gh pr list --base develop --head main --json number --jq '.[0].number')
+
+          if [ -n "$EXISTING_PR" ]; then
+            echo "PR #$EXISTING_PR already exists, skipping"
+            exit 0
+          fi
+
+          # Create PR
+          gh pr create \
+            --base develop \
+            --head main \
+            --title "chore: sync v${VERSION} release back to develop" \
+            --body "Automated PR to sync release v${VERSION} from main back to develop. After merging, remember to bump develop to the next alpha version." \
+            --label "release"
