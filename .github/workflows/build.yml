@@ -30,6 +30,17 @@ jobs:
         run: |
           docker run --rm naas:test python -c "import naas; print('Import successful')"
 
+      - name: Save image as artifact
+        run: |
+          docker save naas:test | gzip > naas-image.tar.gz
+
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: naas-docker-image
+          path: naas-image.tar.gz
+          retention-days: 1
+
   build-summary:
     name: Docker Build
     runs-on: ubuntu-latest
