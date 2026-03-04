@@ -170,31 +170,187 @@ Write for end users, not developers. Use present tense. Be specific about the be
 
 ### Version format
 
-- `1.1.0a1` — Alpha (develop only, no release)
-- `1.1.0b1` — Beta (pre-release on `release/1.1`)
-- `1.1.0rc1` — Release candidate (pre-release on `release/1.1`)
-- `1.1.0` — Final release (on `main`)
+- `1.3.0a1` — Alpha (develop only, never released)
+- `1.3.0b1` — Beta (pre-release on `release/1.3`)
+- `1.3.0rc1` — Release candidate (pre-release on `release/1.3`)
+- `1.3.0` — Final release (on `main`)
 
-### Flow
+### Branch flow
 
 ```text
-develop (1.1.0a1) → release/1.1 (1.1.0b1 → rc1 → 1.1.0) → main (1.1.0)
+develop (1.3.0a1) → release/1.3 (1.3.0b1 → rc1 → 1.3.0) → main (1.3.0) → develop (1.4.0a1)
 ```
 
-1. **Create `release/X.Y` branch from `develop`**
-2. **Bump version** to `X.Y.0b1` (beta) in `pyproject.toml`, commit, push
-3. **CI builds changelog** automatically via `release.yml` when version bump is pushed to `main`
-4. **Test the beta** — fix bugs via PRs to `release/X.Y`
-5. **Bump to RC** (`X.Y.0rc1`) if needed, repeat testing
-6. **Bump to final** (`X.Y.0`), push to `release/X.Y`
-7. **PR `release/X.Y` → `main`** — CI creates release tag and builds final changelog
-8. **Sync back**: PR `main` → `develop`, bump develop to next alpha (`X.Y+1.0a1`)
+### Step-by-step release process
 
-**IMPORTANT:** Never run `towncrier build` manually — the CI pipeline handles changelog generation.
+#### 1. Create release branch
 
-### After release
+```bash
+git checkout develop
+git pull
+git checkout -b release/1.3
+```
 
-Sync `main` back to `develop` and bump to the next alpha version (`1.2.0a1`).
+**Base:** Always branch from `develop`
+**Naming:** `release/X.Y` (no patch version)
+
+#### 2. Bump to beta
+
+```bash
+# Edit pyproject.toml: version = "1.3.0a1" → "1.3.0b1"
+sed -i 's/version = "1.3.0a1"/version = "1.3.0b1"/' pyproject.toml
+uv lock
+git add pyproject.toml uv.lock
+git commit -m "chore(release): bump version to 1.3.0b1"
+git push -u origin release/1.3
+```
+
+**What happens:** CI detects version bump on `release/*` branch, runs `release.yml`:
+
+- Builds changelog via `towncrier build --keep` (keeps fragments for RC)
+- Creates `v1.3.0b1` tag
+- Publishes pre-release to GitHub
+
+**⚠️ NEVER run `towncrier build` manually — CI handles this**
+
+#### 3. Test the beta
+
+- Deploy beta to test environment
+- Run integration tests
+- Fix bugs via PRs to `release/1.3` (not `develop`)
+
+#### 4. Bump to RC (optional)
+
+If beta needs fixes before final release:
+
+```bash
+# Edit pyproject.toml: version = "1.3.0b1" → "1.3.0rc1"
+sed -i 's/version = "1.3.0b1"/version = "1.3.0rc1"/' pyproject.toml
+uv lock
+git add pyproject.toml uv.lock
+git commit -m "chore(release): bump version to 1.3.0rc1"
+git push
+```
+
+Repeat testing. Can create multiple RCs (`rc2`, `rc3`, etc.).
+
+#### 5. Bump to final version
+
+When ready for production release:
+
+```bash
+# Edit pyproject.toml: version = "1.3.0rc1" → "1.3.0"
+sed -i 's/version = "1.3.0rc1"/version = "1.3.0"/' pyproject.toml
+uv lock
+git add pyproject.toml uv.lock
+git commit -m "chore(release): bump version to 1.3.0"
+git push
+```
+
+**What happens:** CI detects final version (no suffix), runs `release.yml`:
+
+- Builds changelog via `towncrier build --yes` (deletes fragments)
+- Updates k8s manifests with release tag
+- Creates `v1.3.0` tag
+- Publishes full release to GitHub
+
+#### 6. Merge to main
+
+```bash
+gh pr create \
+  --base main \
+  --head release/1.3 \
+  --title "Release v1.3.0" \
+  --body "Release v1.3.0 from release/1.3 branch"
+```
+
+**Review and merge** — this makes the release official.
+
+#### 7. Sync back to develop
+
+After merge to `main`:
+
+```bash
+git checkout main
+git pull
+gh pr create \
+  --base develop \
+  --head main \
+  --title "chore: sync v1.3.0 release back to develop" \
+  --body "Sync release v1.3.0 changes from main back to develop"
+```
+
+**Review and merge** — brings release changes back to develop.
+
+#### 8. Bump develop to next alpha
+
+After sync PR is merged:
+
+```bash
+git checkout develop
+git pull
+# Edit pyproject.toml: version = "1.3.0" → "1.4.0a1"
+sed -i 's/version = "1.3.0"/version = "1.4.0a1"/' pyproject.toml
+uv lock
+git add pyproject.toml uv.lock
+git commit -m "chore: bump develop to v1.4.0a1"
+git push
+```
+
+**Done!** The `release/1.3` branch stays forever for hotfixes.
+
+### Hotfix process (patch releases)
+
+For bugs in production (e.g., v1.3.0 → v1.3.1):
+
+```bash
+# Branch from release/1.3, NOT from main
+git checkout release/1.3
+git pull
+git checkout -b hotfix/issue-description
+
+# Make fixes, commit
+git add .
+git commit -m "fix: description"
+
+# PR to release/1.3
+gh pr create --base release/1.3 --head hotfix/issue-description
+
+# After merge, bump patch version on release/1.3
+git checkout release/1.3
+git pull
+sed -i 's/version = "1.3.0"/version = "1.3.1"/' pyproject.toml
+uv lock
+git add pyproject.toml uv.lock
+git commit -m "chore(release): bump version to 1.3.1"
+git push
+
+# CI creates v1.3.1 tag, then PR release/1.3 → main → develop
+```
+
+### Common mistakes to avoid
+
+| ❌ Don't | ✅ Do |
+|---|---|
+| Run `towncrier build` manually | Let CI build changelog |
+| Bump version on `develop` before release | Only bump on `release/X.Y` |
+| Create release branch from `main` | Always branch from `develop` |
+| Forget to sync `main` → `develop` | Always sync after release |
+| Forget to bump `develop` to next alpha | Bump immediately after sync |
+| Branch hotfixes from `main` | Branch from `release/X.Y` |
+| Delete `release/X.Y` branches | Keep them forever |
+
+### Version bump locations
+
+**Only edit:** `pyproject.toml` (single source of truth)
+**Auto-updated:** `uv.lock` (via `uv lock`)
+**Never edit:** `CHANGELOG.md` (CI generates this)
+
+### When CI builds changelog
+
+- **Pre-release** (beta/rc): `towncrier build --keep` (keeps fragments)
+- **Final release**: `towncrier build --yes` (deletes fragments)
+- **Trigger**: Push to `release/*` or `main` with version bump in `pyproject.toml`
 
 ## Dependency Management
 
