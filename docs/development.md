@@ -272,24 +272,12 @@ git push
 
 #### 7. Sync back to develop (automated)
 
-After the final release tag is created, CI automatically creates a PR from `main` → `develop`.
+After the final release tag is created, CI automatically:
 
-**Review and merge** the auto-created PR — brings release changes back to develop.
+1. Creates PR from `main` → `develop`
+2. Bumps `develop` to next alpha version (e.g., `1.3.0` → `1.4.0a1`)
 
-#### 8. Bump develop to next alpha
-
-After sync PR is merged:
-
-```bash
-git checkout develop
-git pull
-# Edit pyproject.toml: version = "1.3.0" → "1.4.0a1"
-sed -i 's/version = "1.3.0"/version = "1.4.0a1"/' pyproject.toml
-uv lock
-git add pyproject.toml uv.lock
-git commit -m "chore: bump develop to v1.4.0a1"
-git push
-```
+**Review and merge** the auto-created PR — that's it!
 
 **Done!** The `release/1.3` branch stays forever for hotfixes.
 

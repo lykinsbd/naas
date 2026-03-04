@@ -39,5 +39,39 @@ jobs:
             --base develop \
             --head main \
             --title "chore: sync v${VERSION} release back to develop" \
-            --body "Automated PR to sync release v${VERSION} from main back to develop. After merging, remember to bump develop to the next alpha version." \
+            --body "Automated PR to sync release v${VERSION} from main back to develop." \
             --label "release"
+
+  bump-develop:
+    runs-on: ubuntu-latest
+    needs: sync-to-develop
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: develop
+          fetch-depth: 0
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Bump develop to next alpha
+        run: |
+          # Extract current version from tag
+          VERSION="${GITHUB_REF_NAME#v}"
+
+          # Calculate next minor version
+          MAJOR=$(echo $VERSION | cut -d. -f1)
+          MINOR=$(echo $VERSION | cut -d. -f2)
+          NEXT_MINOR=$((MINOR + 1))
+          NEXT_VERSION="${MAJOR}.${NEXT_MINOR}.0a1"
+
+          # Update pyproject.toml
+          sed -i "s/version = \".*\"/version = \"${NEXT_VERSION}\"/" pyproject.toml
+          uv lock
+
+          # Commit and push
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add pyproject.toml uv.lock
+          git commit -m "chore: bump develop to v${NEXT_VERSION}"
+          git push
