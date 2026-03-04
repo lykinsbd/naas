@@ -492,3 +492,84 @@ If you're still experiencing issues:
 - [Security Best Practices](security.md) - Secure your deployment
 - [API Usage Examples](api-usage.md) - Learn the API
 - [Quick Start Guide](quickstart.md) - Get started with NAAS
+
+## Connection Pooling Issues
+
+### Stale Connections
+
+**Symptom:** Commands fail with "Connection closed" or timeout errors after device reboot.
+
+**Cause:** Pooled connection became stale when device rebooted.
+
+**Solution:** NAAS automatically detects and reconnects. If issues persist, disable pooling:
+
+```yaml
+CONNECTION_POOL_ENABLED: "false"
+```
+
+### High Memory Usage
+
+**Symptom:** Worker containers consuming excessive memory.
+
+**Cause:** Too many pooled connections.
+
+**Solution:** Reduce pool size:
+
+```yaml
+CONNECTION_POOL_MAX_SIZE: "5"  # Default is 10
+```
+
+## Structured Output Issues
+
+### No Template Found
+
+**Symptom:** `/v1/send_command_structured` returns raw string instead of list[dict].
+
+**Cause:** No TextFSM template exists for the (platform, command) combination.
+
+**Solution:** Supply a custom template:
+
+```json
+{
+  "ip": "192.168.1.1",
+  "platform": "cisco_ios",
+  "commands": ["show custom"],
+  "textfsm_template": "Value FIELD (\\S+)\\n\\nStart\\n  ^${FIELD} -> Record"
+}
+```
+
+Or check [ntc-templates](https://github.com/networktocode/ntc-templates/tree/master/ntc_templates/templates) for available templates.
+
+### Parsing Errors
+
+**Symptom:** Structured output returns empty list or missing fields.
+
+**Cause:** Template doesn't match actual device output format.
+
+**Solution:** Test template with [TextFSM online tool](https://textfsm.nornir.tech/) or supply corrected custom template.
+
+## Platform Autodetect Issues
+
+### Autodetect Fails
+
+**Symptom:** `platform: "autodetect"` returns error "Platform autodetect failed".
+
+**Cause:** Device doesn't respond to SSHDetect probes, or connection fails.
+
+**Solution:** Use explicit platform instead:
+
+```json
+{
+  "ip": "192.168.1.1",
+  "platform": "cisco_ios",
+  "commands": ["show version"]
+}
+```
+
+### Wrong Platform Detected
+
+**Symptom:** Autodetect returns incorrect platform type.
+
+**Cause:** Device responds ambiguously to SSHDetect probes.
+
+**Solution:** Use explicit platform. Autodetect is best-effort and not 100% accurate.

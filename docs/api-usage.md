@@ -94,6 +94,30 @@ curl -k -X POST https://localhost:8443/v1/send_command \
   }'
 ```
 
+### With Custom Prompt Matching
+
+Use `expect_string` to override automatic prompt detection with a regex pattern:
+
+```bash
+curl -k -X POST https://localhost:8443/v1/send_command \
+  -u "admin:password" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "ip": "192.168.1.1",
+    "platform": "cisco_ios",
+    "commands": ["show version"],
+    "expect_string": "router.*#"
+  }'
+```
+
+**Use cases:**
+
+- Non-standard prompts that Netmiko doesn't detect
+- Commands that change the prompt temporarily
+- Devices with custom prompt formats
+
+**Note:** This is an advanced feature. Most users should rely on automatic prompt detection.
+
 ### Supported Platforms
 
 NAAS supports all [Netmiko platforms](https://github.com/ktbyers/netmiko/blob/develop/PLATFORMS.md):

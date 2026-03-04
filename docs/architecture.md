@@ -35,27 +35,45 @@ graph TD
     Redis["Redis<br/>(job queue + results)"]
     Worker["RQ Worker<br/>(one or more)"]
     Device["Network Devices<br/>(Cisco, Arista, Juniper, ...)"]
+    Metrics["Prometheus<br/>(metrics scraping)"]
 
     Client -->|HTTPS| API
     API -->|enqueue / fetch| Redis
     Worker -->|dequeue / store| Redis
     Worker -->|SSH via Netmiko| Device
+    Worker -->|connection pool| Device
+    Metrics -->|scrape /metrics| API
+    API -->|audit events| Redis
 ```
 
 ### NAAS API
 
 The Flask application handles authentication, request validation, job enqueueing, and result retrieval. It is stateless — all state lives in Redis. Multiple API instances can run behind a load balancer.
 
+**New in v1.3:**
+
+- Exposes Prometheus metrics at `/metrics`
+- Emits structured audit events for compliance
+- Supports job cancellation via DELETE endpoint
+
 ### Redis
 
-Redis serves two roles:
+Redis serves multiple roles:
 
 - **Job queue** — RQ uses Redis sorted sets to hold pending jobs
 - **Result store** — completed job output is stored in Redis with a configurable TTL
+- **Circuit breaker state** — per-device failure counts shared across workers
+- **Connection pool metadata** — tracks pooled SSH connections per worker
 
 ### RQ Worker
 
 Workers are separate processes that dequeue jobs and execute them. Each worker handles one job at a time. Scale horizontally by running more worker containers.
+
+**New in v1.3:**
+
+- Maintains persistent SSH connection pool (configurable)
+- Shares circuit breaker state across all workers
+- Emits structured audit events
 
 Workers also hold circuit breaker state in Redis, so all workers share the same per-device failure counts.
 
