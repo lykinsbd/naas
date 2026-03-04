@@ -14,7 +14,33 @@ from naas.library.auth import Credentials
 naas.library.circuit_breaker._redis_client = FakeStrictRedis()
 
 from naas.library.circuit_breaker import RedisCircuitBreakerStorage  # noqa: E402,I001
-from naas.library.netmiko_lib import netmiko_send_command, netmiko_send_config  # noqa: E402,I001
+from naas.library.netmiko_lib import _autodetect_platform, netmiko_send_command, netmiko_send_config  # noqa: E402,I001
+
+
+class TestAutodetectPlatform:
+    """Tests for _autodetect_platform function."""
+
+    def test_autodetect_success(self):
+        """Test successful platform detection."""
+        with patch("naas.library.netmiko_lib.netmiko.SSHDetect") as mock_detect:
+            mock_guesser = MagicMock()
+            mock_guesser.autodetect.return_value = "cisco_nxos"
+            mock_detect.return_value = mock_guesser
+
+            platform, error = _autodetect_platform("192.168.1.1", 22, "user", "pass", "enable", "req-123")
+
+            assert platform == "cisco_nxos"
+            assert error is None
+
+    def test_autodetect_failure(self):
+        """Test platform detection failure."""
+        with patch("naas.library.netmiko_lib.netmiko.SSHDetect") as mock_detect:
+            mock_detect.side_effect = Exception("Connection failed")
+
+            platform, error = _autodetect_platform("192.168.1.1", 22, "user", "pass", "enable", "req-123")
+
+            assert platform is None
+            assert "Platform autodetect failed" in error
 
 
 class TestNetmikoSendCommand:
@@ -103,6 +129,33 @@ class TestNetmikoSendCommand:
                 mock_conn.send_command.assert_called_once_with(
                     "ping 8.8.8.8", read_timeout=30.0, expect_string=r"Success rate"
                 )
+
+    def test_autodetect_success(self):
+        """Test platform autodetect success path."""
+        creds = Credentials(username="testuser", password="testpass")
+
+        with patch("naas.library.netmiko_lib._autodetect_platform", return_value=("cisco_ios", None)):
+            with patch("naas.library.netmiko_lib.netmiko.ConnectHandler") as mock_handler:
+                mock_conn = MagicMock()
+                mock_conn.send_command.return_value = "output"
+                mock_handler.return_value = mock_conn
+
+                result, error = netmiko_send_command("192.168.1.1", creds, "autodetect", ["show version"])
+
+                assert error is None
+                assert result["_detected_platform"] == "cisco_ios"
+                # Verify ConnectHandler was called with detected platform
+                assert mock_handler.call_args[1]["device_type"] == "cisco_ios"
+
+    def test_autodetect_failure(self):
+        """Test platform autodetect failure path."""
+        creds = Credentials(username="testuser", password="testpass")
+
+        with patch("naas.library.netmiko_lib._autodetect_platform", return_value=(None, "Detection failed")):
+            result, error = netmiko_send_command("192.168.1.1", creds, "autodetect", ["show version"])
+
+            assert result is None
+            assert "Detection failed" in error
 
     def test_timeout_error(self):
         """Test timeout exception handling."""

@@ -429,6 +429,34 @@ class TestGetResults:
         assert response.json["results"] == "command output"
         assert response.json["error"] is None
 
+    def test_get_results_with_detected_platform(self, app, client):
+        """Test GET with autodetect returns detected_platform."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        job_id = "33333333-3333-3333-3333-333333333333"
+
+        job = MagicMock()
+        job.get_status = lambda: "finished"
+        job.result = ({"show version": "output", "_detected_platform": "cisco_nxos"}, None)
+
+        def fetch_side_effect(job_id_param):
+            if job_id_param == job_id:
+                return job
+            return None
+
+        app.config["q"].fetch_job.side_effect = fetch_side_effect
+
+        with patch("naas.resources.get_results.job_unlocker", return_value=True):
+            response = client.get(
+                f"/v1/send_command/{job_id}",
+                headers={"Authorization": f"Basic {auth}"},
+            )
+
+        assert response.status_code == 200
+        assert response.json["detected_platform"] == "cisco_nxos"
+        assert "_detected_platform" not in response.json["results"]
+
     def test_get_results_no_auth(self, client):
         """Test GET without auth returns 401."""
         response = client.get("/v1/send_command/00000000-0000-0000-0000-000000000000")

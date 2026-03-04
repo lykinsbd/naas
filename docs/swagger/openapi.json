@@ -93,7 +93,7 @@
           },
           "platform": {
             "default": "cisco_ios",
-            "description": "Netmiko device type",
+            "description": "Netmiko device type (use 'autodetect' for SSHDetect)",
             "title": "Platform",
             "type": "string"
           },
@@ -171,7 +171,7 @@
           },
           "platform": {
             "default": "cisco_ios",
-            "description": "Netmiko device type",
+            "description": "Netmiko device type (use 'autodetect' for SSHDetect)",
             "title": "Platform",
             "type": "string"
           },

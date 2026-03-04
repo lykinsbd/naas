@@ -21,6 +21,34 @@ from naas.library.connection_pool import pool
 # Common error patterns across IOS, NX-OS, EOS, JunOS, and similar platforms
 _CONFIG_ERROR_PATTERN = r"(?i)(% invalid|% incomplete|% ambiguous|% error|error:|invalid input|syntax error)"
 
+
+def _autodetect_platform(
+    ip: str, port: int, username: str, password: str, enable: str, request_id: str
+) -> tuple[str | None, str | None]:
+    """
+    Use SSHDetect to fingerprint device platform.
+
+    Returns:
+        (detected_platform, error_string) — one will be None
+    """
+    try:
+        logger.debug("%s %s:Running SSHDetect...", request_id, ip)
+        guesser = netmiko.SSHDetect(
+            device_type="autodetect",
+            ip=ip,
+            port=port,
+            username=username,
+            password=password,
+            secret=enable,
+        )
+        best_match = guesser.autodetect()
+        logger.debug("%s %s:Detected platform: %s", request_id, ip, best_match)
+        return best_match, None
+    except Exception as e:
+        logger.debug("%s %s:SSHDetect failed: %s", request_id, ip, e)
+        return None, f"Platform autodetect failed: {str(e)}"
+
+
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
@@ -87,6 +115,23 @@ def _netmiko_send_command_impl(
     request_id: str = "",
 ) -> "tuple[dict | None, str | None]":
     start_time = time.time()
+
+    # Handle platform autodetect
+    detected_platform = None
+    if device_type == "autodetect":
+        device_type_result, error = _autodetect_platform(
+            ip, port, credentials.username, credentials.password, credentials.enable, request_id
+        )
+        if error is not None:
+            duration_ms = int((time.time() - start_time) * 1000)
+            emit_audit_event("job.completed", request_id=request_id, status="failed", duration_ms=duration_ms)
+            return None, error
+        device_type = device_type_result  # type: ignore[assignment]  # autodetect guarantees non-None on success
+        detected_platform = device_type
+
+    # Skip pool for autodetect — can't pool without knowing platform upfront
+    use_pool = CONNECTION_POOL_ENABLED and detected_platform is None
+
     netmiko_device = {
         "device_type": device_type,
         "ip": ip,
@@ -104,12 +149,12 @@ def _netmiko_send_command_impl(
     try:
         net_connect = None
 
-        if CONNECTION_POOL_ENABLED:
+        if use_pool:
             net_connect = pool.get(ip, port, credentials.username, credentials.password, device_type)
 
         if net_connect is None:
             logger.debug("%s %s:Establishing connection...", request_id, ip)
-            netmiko_device["keepalive"] = CONNECTION_POOL_KEEPALIVE if CONNECTION_POOL_ENABLED else 0
+            netmiko_device["keepalive"] = CONNECTION_POOL_KEEPALIVE if use_pool else 0
             net_connect = netmiko.ConnectHandler(**netmiko_device)
         else:
             # Verify pooled connection is at a clean prompt before use
@@ -129,7 +174,7 @@ def _netmiko_send_command_impl(
                 kwargs["expect_string"] = expect_string
             net_output[command] = net_connect.send_command(command, **kwargs)
 
-        if CONNECTION_POOL_ENABLED:
+        if use_pool:
             pool.release(ip, port, credentials.username, credentials.password, device_type, net_connect)
         else:
             net_connect.disconnect()
@@ -154,6 +199,11 @@ def _netmiko_send_command_impl(
     logger.debug("%s %s:Netmiko executed successfully.", request_id, ip)
     duration_ms = int((time.time() - start_time) * 1000)
     emit_audit_event("job.completed", request_id=request_id, status="finished", duration_ms=duration_ms)
+
+    # Include detected_platform in results if autodetect was used
+    if detected_platform is not None:
+        net_output["_detected_platform"] = detected_platform
+
     return net_output, None
 
 
