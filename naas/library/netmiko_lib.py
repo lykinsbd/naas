@@ -36,7 +36,7 @@ def netmiko_send_command(
     device_type: str,
     commands: "Sequence[str]",
     port: int = 22,
-    delay_factor: int = 1,
+    read_timeout: float = 30.0,
     verbose: bool = False,
     request_id: str = "",
 ) -> "tuple[dict | None, str | None]":
@@ -48,7 +48,7 @@ def netmiko_send_command(
     :param commands: List of the commands to issue to the device
     :param device_type: What Netmiko device type are we connecting to?
     :param port: What TCP Port are we connecting to?
-    :param delay_factor: Netmiko delay factor, default of 1, higher is slower but more reliable on laggy links
+    :param read_timeout: Read timeout in seconds for device responses
     :param verbose: Turn on Netmiko verbose logging
     :param request_id: Correlation ID from the originating API request for end-to-end log tracing
     :return: A Tuple of a dict of the results (if any) and a string describing the error (if any)
@@ -63,11 +63,11 @@ def netmiko_send_command(
             device_type,
             commands,
             port,
-            delay_factor,
+            read_timeout,
             verbose,
             request_id,
         )
-    return _netmiko_send_command_impl(ip, credentials, device_type, commands, port, delay_factor, verbose, request_id)
+    return _netmiko_send_command_impl(ip, credentials, device_type, commands, port, read_timeout, verbose, request_id)
 
 
 def _netmiko_send_command_impl(
@@ -76,7 +76,7 @@ def _netmiko_send_command_impl(
     device_type: str,
     commands: "Sequence[str]",
     port: int = 22,
-    delay_factor: int = 1,
+    read_timeout: float = 30.0,
     verbose: bool = False,
     request_id: str = "",
 ) -> "tuple[dict | None, str | None]":
@@ -118,7 +118,7 @@ def _netmiko_send_command_impl(
         net_output = {}
         for command in commands:
             logger.debug("%s %s:Sending %s", request_id, ip, command)
-            net_output[command] = net_connect.send_command(command, delay_factor=delay_factor)
+            net_output[command] = net_connect.send_command(command, read_timeout=read_timeout)
 
         if CONNECTION_POOL_ENABLED:
             pool.release(ip, port, credentials.username, credentials.password, device_type, net_connect)
@@ -156,7 +156,7 @@ def netmiko_send_config(
     port: int = 22,
     save_config: bool = False,
     commit: bool = False,
-    delay_factor: int = 1,
+    read_timeout: float = 30.0,
     verbose: bool = False,
     request_id: str = "",
 ) -> "tuple[dict | None, str | None]":
@@ -170,7 +170,7 @@ def netmiko_send_config(
     :param port: What TCP Port are we connecting to?
     :param save_config: Do you want to save this configuration upon insertion?  Default: False, don't save the config
     :param commit: Do you want to commit this candidate configuration to the running config?  Default: False
-    :param delay_factor: Netmiko delay factor, default of 1, higher is slower but more reliable on laggy links
+    :param read_timeout: Read timeout in seconds for device responses
     :param verbose: Turn on Netmiko verbose logging
     :param request_id: Correlation ID from the originating API request for end-to-end log tracing
     :return: A Tuple of a dict of the results (if any) and a string describing the error (if any)
@@ -187,12 +187,12 @@ def netmiko_send_config(
             port,
             save_config,
             commit,
-            delay_factor,
+            read_timeout,
             verbose,
             request_id,
         )
     return _netmiko_send_config_impl(
-        ip, credentials, device_type, commands, port, save_config, commit, delay_factor, verbose, request_id
+        ip, credentials, device_type, commands, port, save_config, commit, read_timeout, verbose, request_id
     )
 
 
@@ -204,7 +204,7 @@ def _netmiko_send_config_impl(
     port: int = 22,
     save_config: bool = False,
     commit: bool = False,
-    delay_factor: int = 1,
+    read_timeout: float = 30.0,
     verbose: bool = False,
     request_id: str = "",
 ) -> "tuple[dict | None, str | None]":
@@ -230,7 +230,7 @@ def _netmiko_send_config_impl(
         net_output = {}
         logger.debug("%s %s:Sending config_set: %s", request_id, ip, commands)
         net_output["config_set_output"] = net_connect.send_config_set(
-            commands, delay_factor=delay_factor, error_pattern=_CONFIG_ERROR_PATTERN
+            commands, read_timeout=read_timeout, error_pattern=_CONFIG_ERROR_PATTERN
         )
 
         if save_config:

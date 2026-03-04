@@ -41,7 +41,7 @@ class SendCommandRequest(BaseModel):
     commands: list[str] = Field(..., min_length=1, description="Commands to execute")
     port: int = Field(default=22, ge=1, le=65535, description="SSH port")
     platform: str = Field(default="cisco_ios", description="Netmiko device type")
-    delay_factor: int = Field(default=1, ge=1, description="Netmiko delay factor")
+    read_timeout: float = Field(default=30.0, ge=1.0, description="Read timeout in seconds for device responses")
 
     @model_validator(mode="before")
     @classmethod
@@ -80,7 +80,7 @@ class SendConfigRequest(BaseModel):
     commands: list[str] | None = Field(default=None, min_length=1, description="Configuration commands (alias)")
     port: int = Field(default=22, ge=1, le=65535, description="SSH port")
     platform: str = Field(default="cisco_ios", description="Netmiko device type")
-    delay_factor: int = Field(default=1, ge=1, description="Netmiko delay factor")
+    read_timeout: float = Field(default=30.0, ge=1.0, description="Read timeout in seconds for device responses")
     save_config: bool = Field(default=False, description="Save configuration after applying")
     commit: bool = Field(default=False, description="Commit configuration (Juniper)")
 

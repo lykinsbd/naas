@@ -77,7 +77,7 @@ class SendCommand(Resource):
             device_type=validated.platform,
             credentials=g.credentials,
             commands=validated.commands,
-            delay_factor=validated.delay_factor,
+            read_timeout=validated.read_timeout,
             request_id=g.request_id,
             job_id=g.request_id,
             job_timeout=JOB_TIMEOUT,

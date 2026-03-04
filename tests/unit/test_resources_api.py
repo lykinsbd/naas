@@ -36,7 +36,7 @@ class TestSendCommand:
                     "port": 22,
                     "platform": "cisco_ios",
                     "commands": ["show version"],
-                    "delay_factor": 1,
+                    "read_timeout": 30.0,
                 },
                 headers={"Authorization": f"Basic {auth}"},
             )
@@ -216,7 +216,7 @@ class TestSendCommand:
                     "port": 22,
                     "platform": "cisco_ios",
                     "commands": ["show version"],
-                    "delay_factor": 1,
+                    "read_timeout": 30.0,
                 },
                 headers={"Authorization": f"Basic {auth}", "X-Request-ID": custom_id},
             )
@@ -260,7 +260,7 @@ class TestSendConfig:
                     "port": 22,
                     "platform": "cisco_ios",
                     "commands": ["interface gi0/1", "description test"],
-                    "delay_factor": 1,
+                    "read_timeout": 30.0,
                     "save_config": False,
                     "commit": False,
                 },
