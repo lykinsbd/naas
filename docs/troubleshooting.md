@@ -347,6 +347,26 @@ Common issues and solutions for NAAS deployment and operation.
    The `expect_string` is a regex matched against device output. Useful for commands that
    don't return to a standard prompt or have interactive elements.
 
+### Unknown or Heterogeneous Device Types
+
+**Symptom**: Managing devices with unknown or mixed platforms
+
+**Solution**: Use `platform: "autodetect"` to fingerprint devices via SSHDetect:
+
+   ```json
+   {
+     "ip": "192.168.1.1",
+     "platform": "autodetect",
+     "commands": ["show version"]
+   }
+   ```
+
+   The detected platform is returned in the job result as `detected_platform`. Note:
+
+- Adds a second SSH connection overhead (fingerprinting + actual commands)
+- Not compatible with connection pooling
+- Best for discovery workflows, not production automation against known devices
+
 3. Scale workers for parallel execution:
 
    ```bash
