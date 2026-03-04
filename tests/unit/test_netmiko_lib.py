@@ -3,6 +3,7 @@
 from unittest.mock import ANY, MagicMock, patch
 
 import netmiko
+import pytest
 from fakeredis import FakeStrictRedis
 from paramiko import ssh_exception
 
@@ -14,7 +15,12 @@ from naas.library.auth import Credentials
 naas.library.circuit_breaker._redis_client = FakeStrictRedis()
 
 from naas.library.circuit_breaker import RedisCircuitBreakerStorage  # noqa: E402,I001
-from naas.library.netmiko_lib import _autodetect_platform, netmiko_send_command, netmiko_send_config  # noqa: E402,I001
+from naas.library.netmiko_lib import (  # noqa: E402,I001
+    _autodetect_platform,
+    netmiko_send_command,
+    netmiko_send_command_structured,
+    netmiko_send_config,
+)
 
 
 class TestAutodetectPlatform:
@@ -200,6 +206,84 @@ class TestNetmikoSendCommand:
                 assert result is None
                 assert "Unknown SSH error" in error
                 assert "192.168.1.1" in error
+
+
+class TestNetmikoSendCommandStructured:
+    """Tests for netmiko_send_command_structured function."""
+
+    def test_structured_with_textfsm(self):
+        """Test structured command with TextFSM parsing."""
+        creds = Credentials(username="testuser", password="testpass")
+
+        with patch("naas.library.netmiko_lib.netmiko.ConnectHandler") as mock_handler:
+            mock_conn = MagicMock()
+            mock_conn.send_command.return_value = [{"hostname": "router1", "version": "15.0"}]
+            mock_handler.return_value = mock_conn
+
+            result, error = netmiko_send_command_structured("192.168.1.1", creds, "cisco_ios", ["show version"])
+
+            assert error is None
+            assert result["show version"] == [{"hostname": "router1", "version": "15.0"}]
+            mock_conn.send_command.assert_called_once()
+            call_kwargs = mock_conn.send_command.call_args[1]
+            assert call_kwargs["use_textfsm"] is True
+
+    def test_structured_with_custom_template(self):
+        """Test structured command with custom TextFSM template."""
+        creds = Credentials(username="testuser", password="testpass")
+        template = "Value TEST (\\S+)\\n\\nStart\\n  ^${TEST}"
+
+        with patch("naas.library.netmiko_lib.netmiko.ConnectHandler") as mock_handler:
+            mock_conn = MagicMock()
+            mock_conn.send_command.return_value = [{"test": "value"}]
+            mock_handler.return_value = mock_conn
+
+            result, error = netmiko_send_command_structured(
+                "192.168.1.1", creds, "cisco_ios", ["show custom"], textfsm_template=template
+            )
+
+            assert error is None
+            call_kwargs = mock_conn.send_command.call_args[1]
+            assert call_kwargs["textfsm_template"] == template
+
+    def test_structured_timeout_error(self):
+        """Test structured command timeout handling."""
+        creds = Credentials(username="testuser", password="testpass")
+
+        with patch("naas.library.netmiko_lib.CIRCUIT_BREAKER_ENABLED", False):
+            with patch("naas.library.netmiko_lib.netmiko.ConnectHandler") as mock_handler:
+                mock_handler.side_effect = netmiko.NetMikoTimeoutException("Timeout")
+
+                with pytest.raises(netmiko.NetMikoTimeoutException):
+                    netmiko_send_command_structured("192.168.1.1", creds, "cisco_ios", ["show version"])
+
+    def test_structured_auth_failure(self):
+        """Test structured command auth failure handling."""
+        creds = Credentials(username="testuser", password="testpass")
+
+        with patch("naas.library.netmiko_lib.netmiko.ConnectHandler") as mock_handler:
+            mock_handler.side_effect = netmiko.NetMikoAuthenticationException("Auth failed")
+            with patch("naas.library.netmiko_lib.tacacs_auth_lockout") as mock_lockout:
+                result, error = netmiko_send_command_structured("192.168.1.1", creds, "cisco_ios", ["show version"])
+
+                assert result is None
+                assert "Auth failed" in error
+                mock_lockout.assert_called_once()
+
+    def test_structured_with_autodetect(self):
+        """Test structured command with platform autodetect."""
+        creds = Credentials(username="testuser", password="testpass")
+
+        with patch("naas.library.netmiko_lib._autodetect_platform", return_value=("cisco_nxos", None)):
+            with patch("naas.library.netmiko_lib.netmiko.ConnectHandler") as mock_handler:
+                mock_conn = MagicMock()
+                mock_conn.send_command.return_value = [{"hostname": "switch1"}]
+                mock_handler.return_value = mock_conn
+
+                result, error = netmiko_send_command_structured("192.168.1.1", creds, "autodetect", ["show version"])
+
+                assert error is None
+                assert result["_detected_platform"] == "cisco_nxos"
 
 
 class TestNetmikoSendConfig:

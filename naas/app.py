@@ -24,6 +24,7 @@ from naas.resources.get_results import GetResults
 from naas.resources.healthcheck import HealthCheck
 from naas.resources.list_jobs import ListJobs
 from naas.resources.send_command import SendCommand
+from naas.resources.send_command_structured import SendCommandStructured
 from naas.resources.send_config import SendConfig
 from naas.spec import spec
 
@@ -72,8 +73,14 @@ api = Api(app, errors=api_errors, catch_all_404s=True)
 # Versioned routes (canonical)
 api.add_resource(HealthCheck, "/", "/healthcheck", "/v1/healthcheck")
 api.add_resource(SendCommand, "/v1/send_command")
+api.add_resource(SendCommandStructured, "/v1/send_command_structured")
 api.add_resource(SendConfig, "/v1/send_config")
-api.add_resource(GetResults, "/v1/send_command/<string:job_id>", "/v1/send_config/<string:job_id>")
+api.add_resource(
+    GetResults,
+    "/v1/send_command/<string:job_id>",
+    "/v1/send_config/<string:job_id>",
+    "/v1/send_command_structured/<string:job_id>",
+)
 api.add_resource(ListJobs, "/v1/jobs")
 api.add_resource(CancelJob, "/v1/jobs/<string:job_id>")
 

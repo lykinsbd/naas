@@ -66,6 +66,7 @@ nav:
       - Architecture: architecture.md
   - User Guide:
       - API Usage: api-usage.md
+      - Structured Output: structured-output.md
       - Observability: observability.md
       - Reliability: reliability.md
       - Security: security.md

@@ -95,11 +95,13 @@ def netmiko_send_command(
             port,
             read_timeout,
             expect_string,
+            False,  # use_textfsm
+            None,  # textfsm_template
             verbose,
             request_id,
         )
     return _netmiko_send_command_impl(
-        ip, credentials, device_type, commands, port, read_timeout, expect_string, verbose, request_id
+        ip, credentials, device_type, commands, port, read_timeout, expect_string, False, None, verbose, request_id
     )
 
 
@@ -111,6 +113,8 @@ def _netmiko_send_command_impl(
     port: int = 22,
     read_timeout: float = 30.0,
     expect_string: str | None = None,
+    use_textfsm: bool = False,
+    textfsm_template: str | None = None,
     verbose: bool = False,
     request_id: str = "",
 ) -> "tuple[dict | None, str | None]":
@@ -129,8 +133,8 @@ def _netmiko_send_command_impl(
         device_type = device_type_result  # type: ignore[assignment]  # autodetect guarantees non-None on success
         detected_platform = device_type
 
-    # Skip pool for autodetect — can't pool without knowing platform upfront
-    use_pool = CONNECTION_POOL_ENABLED and detected_platform is None
+    # Skip pool for autodetect or TextFSM (template state makes pooling unreliable)
+    use_pool = CONNECTION_POOL_ENABLED and detected_platform is None and not use_textfsm
 
     netmiko_device = {
         "device_type": device_type,
@@ -169,9 +173,13 @@ def _netmiko_send_command_impl(
         net_output = {}
         for command in commands:
             logger.debug("%s %s:Sending %s", request_id, ip, command)
-            kwargs: dict[str, float | str] = {"read_timeout": read_timeout}
+            kwargs: dict[str, float | str | bool] = {"read_timeout": read_timeout}
             if expect_string is not None:
                 kwargs["expect_string"] = expect_string
+            if use_textfsm:
+                kwargs["use_textfsm"] = True
+                if textfsm_template is not None:
+                    kwargs["textfsm_template"] = textfsm_template
             net_output[command] = net_connect.send_command(command, **kwargs)
 
         if use_pool:
@@ -205,6 +213,44 @@ def _netmiko_send_command_impl(
         net_output["_detected_platform"] = detected_platform
 
     return net_output, None
+
+
+def netmiko_send_command_structured(
+    ip: str,
+    credentials: "Credentials",
+    device_type: str,
+    commands: "Sequence[str]",
+    port: int = 22,
+    read_timeout: float = 30.0,
+    textfsm_template: str | None = None,
+    verbose: bool = False,
+    request_id: str = "",
+) -> "tuple[dict | None, str | None]":
+    """
+    Send commands with TextFSM parsing for structured output.
+
+    Thin wrapper around _netmiko_send_command_impl with use_textfsm=True.
+    """
+    if CIRCUIT_BREAKER_ENABLED:
+        return with_circuit_breaker(  # type: ignore[no-any-return]
+            ip,
+            request_id,
+            _netmiko_send_command_impl,
+            ip,
+            credentials,
+            device_type,
+            commands,
+            port,
+            read_timeout,
+            None,  # expect_string
+            True,  # use_textfsm
+            textfsm_template,
+            verbose,
+            request_id,
+        )
+    return _netmiko_send_command_impl(
+        ip, credentials, device_type, commands, port, read_timeout, None, True, textfsm_template, verbose, request_id
+    )
 
 
 def netmiko_send_config(
