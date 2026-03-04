@@ -44,7 +44,7 @@ def _autodetect_platform(
         best_match = guesser.autodetect()
         logger.debug("%s %s:Detected platform: %s", request_id, ip, best_match)
         return best_match, None
-    except Exception as e:
+    except (netmiko.NetMikoTimeoutException, netmiko.NetMikoAuthenticationException, ssh_exception.SSHException) as e:
         logger.debug("%s %s:SSHDetect failed: %s", request_id, ip, e)
         return None, f"Platform autodetect failed: {str(e)}"
 
@@ -130,7 +130,10 @@ def _netmiko_send_command_impl(
             duration_ms = int((time.time() - start_time) * 1000)
             emit_audit_event("job.completed", request_id=request_id, status="failed", duration_ms=duration_ms)
             return None, error
-        device_type = device_type_result  # type: ignore[assignment]  # autodetect guarantees non-None on success
+        if device_type_result is None:
+            # Should never happen - error check above ensures this
+            raise RuntimeError("Autodetect succeeded but returned None platform")
+        device_type = device_type_result
         detected_platform = device_type
 
     # Skip pool for autodetect or TextFSM (template state makes pooling unreliable)

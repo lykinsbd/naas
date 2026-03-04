@@ -41,7 +41,7 @@ class TestAutodetectPlatform:
     def test_autodetect_failure(self):
         """Test platform detection failure."""
         with patch("naas.library.netmiko_lib.netmiko.SSHDetect") as mock_detect:
-            mock_detect.side_effect = Exception("Connection failed")
+            mock_detect.side_effect = netmiko.NetMikoTimeoutException("Connection failed")
 
             platform, error = _autodetect_platform("192.168.1.1", 22, "user", "pass", "enable", "req-123")
 
