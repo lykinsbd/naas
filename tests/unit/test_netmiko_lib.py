@@ -85,6 +85,25 @@ class TestNetmikoSendCommand:
                         assert error is None
                         mock_handler.assert_called_once()
 
+    def test_expect_string(self):
+        """Test that expect_string is passed to send_command."""
+        creds = Credentials(username="testuser", password="testpass")
+
+        with patch("naas.library.netmiko_lib.pool.get", return_value=None):
+            with patch("naas.library.netmiko_lib.netmiko.ConnectHandler") as mock_handler:
+                mock_conn = MagicMock()
+                mock_conn.send_command.return_value = "output"
+                mock_handler.return_value = mock_conn
+
+                result, error = netmiko_send_command(
+                    "192.168.1.1", creds, "cisco_ios", ["ping 8.8.8.8"], expect_string=r"Success rate"
+                )
+
+                assert error is None
+                mock_conn.send_command.assert_called_once_with(
+                    "ping 8.8.8.8", read_timeout=30.0, expect_string=r"Success rate"
+                )
+
     def test_timeout_error(self):
         """Test timeout exception handling."""
         creds = Credentials(username="testuser", password="testpass")

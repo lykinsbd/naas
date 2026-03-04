@@ -329,6 +329,24 @@ Common issues and solutions for NAAS deployment and operation.
    **Note:** Prior to v1.3, this parameter was `delay_factor` (integer multiplier).
    Migrate by converting: `delay_factor=2` → `read_timeout=60.0` (approximate).
 
+### Commands That Don't Return to Standard Prompt
+
+**Symptom**: Jobs hang or timeout on commands like `ping`, `traceroute`, or interactive prompts
+
+**Solution**: Use `expect_string` to match the expected output pattern instead of relying on prompt detection:
+
+   ```json
+   {
+     "ip": "192.168.1.1",
+     "platform": "cisco_ios",
+     "expect_string": "Success rate",
+     "commands": ["ping 8.8.8.8"]
+   }
+   ```
+
+   The `expect_string` is a regex matched against device output. Useful for commands that
+   don't return to a standard prompt or have interactive elements.
+
 3. Scale workers for parallel execution:
 
    ```bash

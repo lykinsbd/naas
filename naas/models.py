@@ -42,6 +42,9 @@ class SendCommandRequest(BaseModel):
     port: int = Field(default=22, ge=1, le=65535, description="SSH port")
     platform: str = Field(default="cisco_ios", description="Netmiko device type")
     read_timeout: float = Field(default=30.0, ge=1.0, description="Read timeout in seconds for device responses")
+    expect_string: str | None = Field(
+        default=None, description="Regex pattern to match in device output (overrides prompt detection)"
+    )
 
     @model_validator(mode="before")
     @classmethod
