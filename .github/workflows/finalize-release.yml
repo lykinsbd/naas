@@ -1,0 +1,66 @@
+name: Finalize Release
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  finalize-release:
+    runs-on: ubuntu-latest
+    # Only run if PR was merged (not just closed) and came from a release branch
+    if: |
+      github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.head.ref, 'release/')
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Check if version is pre-release
+        id: check
+        run: |
+          VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+          echo "current_version=$VERSION" >> $GITHUB_OUTPUT
+
+          # Check if version has pre-release suffix (b, rc, a)
+          if [[ "$VERSION" =~ (a|b|rc)[0-9]+$ ]]; then
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+            # Extract final version (remove suffix)
+            FINAL_VERSION=$(echo "$VERSION" | sed -E 's/(a|b|rc)[0-9]+$//')
+            echo "final_version=$FINAL_VERSION" >> $GITHUB_OUTPUT
+          else
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Bump to final version
+        if: steps.check.outputs.is_prerelease == 'true'
+        run: |
+          FINAL_VERSION="${{ steps.check.outputs.final_version }}"
+          echo "Bumping from ${{ steps.check.outputs.current_version }} to $FINAL_VERSION"
+
+          # Update pyproject.toml
+          sed -i "s/version = \".*\"/version = \"${FINAL_VERSION}\"/" pyproject.toml
+          uv lock
+
+          # Commit and push
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add pyproject.toml uv.lock
+          git commit -m "chore: bump version to ${FINAL_VERSION}"
+          git push
+
+          echo "✅ Version bumped to ${FINAL_VERSION} - release.yml will now create the tag"
+
+      - name: Skip if already final
+        if: steps.check.outputs.is_prerelease == 'false'
+        run: |
+          echo "Version ${{ steps.check.outputs.current_version }} is already final, skipping bump"

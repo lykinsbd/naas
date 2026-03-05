@@ -243,32 +243,24 @@ gh pr create \
   --base main \
   --head release/1.3 \
   --title "Release v1.3.0" \
-  --body "Release v1.3.0 from release/1.3 branch (currently at rc1)"
+  --body "Release v1.3.0 from release/1.3 branch (currently at rc2)"
 ```
 
-**Review and merge** — brings RC to main.
+**Review and merge** — CI automatically detects the RC version and bumps to final `1.3.0` on main.
 
-#### 6. Bump to final version on main
+#### 6. Automated final release (after PR merge)
 
-After the PR is merged:
+After the PR is merged, CI automatically:
 
-```bash
-git checkout main
-git pull
-# Edit pyproject.toml: version = "1.3.0rc1" → "1.3.0"
-sed -i 's/version = "1.3.0rc1"/version = "1.3.0"/' pyproject.toml
-uv lock
-git add pyproject.toml uv.lock
-git commit -m "chore: bump version to 1.3.0"
-git push
-```
+1. Detects version is a pre-release (e.g., `1.3.0rc2`)
+2. Bumps to final version (`1.3.0`) on `main`
+3. Triggers `release.yml` which:
+   - Builds changelog via `towncrier build --yes` (deletes fragments)
+   - Updates k8s manifests with release tag
+   - Creates `v1.3.0` tag
+   - Publishes full release to GitHub
 
-**What happens:** CI detects final version on `main`, runs `release.yml`:
-
-- Builds changelog via `towncrier build --yes` (deletes fragments)
-- Updates k8s manifests with release tag
-- Creates `v1.3.0` tag
-- Publishes full release to GitHub
+**No manual version bump needed!**
 
 #### 7. Sync back to develop (automated)
 
@@ -279,7 +271,18 @@ After the final release tag is created, CI automatically:
 
 **Review and merge** the auto-created PR — that's it!
 
-**Done!** The `release/1.3` branch stays forever for hotfixes.
+**Done!** The entire release is now automated. The `release/1.3` branch stays forever for hotfixes.
+
+### Summary: Fully Automated Release
+
+1. **You do:** Create `release/X.Y`, bump to beta, push
+2. **CI does:** Tag beta, build changelog
+3. **You do:** Test, bump to RC if needed
+4. **You do:** PR `release/X.Y` → `main`, merge
+5. **CI does:** Bump to final, tag release, build changelog, sync to develop, bump develop to next alpha
+
+**Manual steps:** Create branch, bump versions, create PR, review/merge
+**Automated:** Everything else (tagging, changelog, sync, version bumps)
 
 ### Hotfix process (patch releases)
 
