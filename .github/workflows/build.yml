@@ -116,8 +116,20 @@ jobs:
       - name: Wait for rollouts
         run: |
           kubectl -n naas rollout status deployment/redis --timeout=60s
-          kubectl -n naas rollout status deployment/naas-api --timeout=180s
-          kubectl -n naas rollout status deployment/naas-worker --timeout=180s
+          kubectl -n naas rollout status deployment/naas-api --timeout=180s || {
+            echo "API deployment failed, debugging..."
+            kubectl -n naas get pods
+            kubectl -n naas describe deployment naas-api
+            kubectl -n naas logs -l app=naas-api --tail=50
+            exit 1
+          }
+          kubectl -n naas rollout status deployment/naas-worker --timeout=180s || {
+            echo "Worker deployment failed, debugging..."
+            kubectl -n naas get pods
+            kubectl -n naas describe deployment naas-worker
+            kubectl -n naas logs -l app=naas-worker --tail=50
+            exit 1
+          }
           kubectl -n naas rollout status deployment/cisshgo --timeout=60s
 
       - name: Smoke test healthcheck
