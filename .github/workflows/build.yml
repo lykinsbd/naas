@@ -102,10 +102,10 @@ jobs:
           kubectl apply -f k8s/configmap.yaml
           kubectl apply -f k8s/redis/
           # Patch image and pullPolicy inline before applying
-          sed 's|ghcr.io/lykinsbd/naas:latest|naas:test|g' k8s/api/deployment.yaml \
+          sed 's|ghcr.io/lykinsbd/naas:.*|naas:test|g' k8s/api/deployment.yaml \
             | kubectl apply -f -
           kubectl apply -f k8s/api/service.yaml
-          sed 's|ghcr.io/lykinsbd/naas:latest|naas:test|g' k8s/worker/deployment.yaml \
+          sed 's|ghcr.io/lykinsbd/naas:.*|naas:test|g' k8s/worker/deployment.yaml \
             | kubectl apply -f -
           kubectl -n naas patch deployment naas-api \
             -p '{"spec":{"template":{"spec":{"containers":[{"name":"naas-api","imagePullPolicy":"Never"}]}}}}'
@@ -116,8 +116,20 @@ jobs:
       - name: Wait for rollouts
         run: |
           kubectl -n naas rollout status deployment/redis --timeout=60s
-          kubectl -n naas rollout status deployment/naas-api --timeout=120s
-          kubectl -n naas rollout status deployment/naas-worker --timeout=120s
+          kubectl -n naas rollout status deployment/naas-api --timeout=180s || {
+            echo "API deployment failed, debugging..."
+            kubectl -n naas get pods
+            kubectl -n naas describe deployment naas-api
+            kubectl -n naas logs -l app=naas-api --tail=50
+            exit 1
+          }
+          kubectl -n naas rollout status deployment/naas-worker --timeout=180s || {
+            echo "Worker deployment failed, debugging..."
+            kubectl -n naas get pods
+            kubectl -n naas describe deployment naas-worker
+            kubectl -n naas logs -l app=naas-worker --tail=50
+            exit 1
+          }
           kubectl -n naas rollout status deployment/cisshgo --timeout=60s
 
       - name: Smoke test healthcheck

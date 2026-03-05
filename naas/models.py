@@ -10,7 +10,16 @@ logger = logging.getLogger(__name__)
 
 
 def _handle_device_type(data: dict[str, Any]) -> dict[str, Any]:
-    """Map deprecated device_type to platform with warning."""
+    """
+    Map deprecated device_type parameter to platform with warning.
+
+    Args:
+        data: Request data dictionary that may contain device_type
+
+    Returns:
+        Modified data dictionary with device_type mapped to platform
+    """
+    data = data.copy()  # Avoid mutating caller's dict
     if "device_type" in data:
         logger.warning(
             "Parameter 'device_type' is deprecated, use 'platform' instead. "

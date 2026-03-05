@@ -11,8 +11,10 @@ Detailed examples for common NAAS API operations.
 - [Authentication](#authentication)
 - [Send Command](#send-command)
 - [Send Configuration](#send-configuration)
+- [Job Cancellation](#job-cancellation)
 - [Job Status and Results](#job-status-and-results)
 - [List Jobs](#list-jobs)
+- [Connection Pooling](#connection-pooling)
 - [Python Examples](#python-examples)
 - [Error Handling](#error-handling)
 
@@ -92,6 +94,30 @@ curl -k -X POST https://localhost:8443/v1/send_command \
   }'
 ```
 
+### With Custom Prompt Matching
+
+Use `expect_string` to override automatic prompt detection with a regex pattern:
+
+```bash
+curl -k -X POST https://localhost:8443/v1/send_command \
+  -u "admin:password" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "ip": "192.168.1.1",
+    "platform": "cisco_ios",
+    "commands": ["show version"],
+    "expect_string": "router.*#"
+  }'
+```
+
+**Use cases:**
+
+- Non-standard prompts that Netmiko doesn't detect
+- Commands that change the prompt temporarily
+- Devices with custom prompt formats
+
+**Note:** This is an advanced feature. Most users should rely on automatic prompt detection.
+
 ### Supported Platforms
 
 NAAS supports all [Netmiko platforms](https://github.com/ktbyers/netmiko/blob/develop/PLATFORMS.md):
@@ -164,6 +190,49 @@ curl -k -X POST https://localhost:8443/v1/send_config \
     "commit": true
   }'
 ```
+
+## Job Cancellation
+
+Cancel running or queued jobs using DELETE.
+
+### Cancel a Job
+
+```bash
+curl -k -X DELETE https://localhost:8443/v1/send_command/{job_id} \
+  -u "admin:password"
+```
+
+**Response codes:**
+
+- `204 No Content` - Job cancelled successfully
+- `404 Not Found` - Job ID doesn't exist
+- `409 Conflict` - Job already finished (cannot cancel)
+
+### Example
+
+```bash
+# Submit a job
+JOB_ID=$(curl -k -X POST https://localhost:8443/v1/send_command \
+  -u "admin:password" \
+  -H "Content-Type: application/json" \
+  -d '{"ip": "192.168.1.1", "platform": "cisco_ios", "commands": ["show version"]}' \
+  | jq -r '.job_id')
+
+# Cancel it
+curl -k -X DELETE https://localhost:8443/v1/send_command/$JOB_ID \
+  -u "admin:password"
+```
+
+**Use cases:**
+
+- Cancel long-running commands that are no longer needed
+- Clean up queued jobs during maintenance
+- Stop jobs targeting unreachable devices
+
+**Limitations:**
+
+- Cannot cancel jobs that have already completed
+- Cancellation is best-effort (job may complete before cancellation)
 
 ## Job Status and Results
 
@@ -270,6 +339,48 @@ Response:
   }
 }
 ```
+
+## Connection Pooling
+
+NAAS automatically reuses SSH connections to improve performance and reduce load on network devices.
+
+### How It Works
+
+- **Persistent connections**: SSH sessions are kept alive between requests
+- **Per-worker pools**: Each worker maintains its own connection pool
+- **Automatic cleanup**: Idle connections are closed after timeout
+- **Credential isolation**: Connections are keyed by (IP, port, username, password hash)
+
+### Performance Benefits
+
+- **Faster response times**: Eliminates SSH handshake overhead (~1-2 seconds per request)
+- **Reduced device load**: Fewer VTY sessions consumed on network devices
+- **Better throughput**: Handle more requests per second
+
+### When Pooling is Disabled
+
+Connection pooling is automatically disabled for:
+
+- **Platform autodetect** (`platform: "autodetect"`) - requires clean connection state
+- **Structured commands** (`/v1/send_command_structured`) - TextFSM state makes pooling unreliable
+
+### Configuration
+
+Set via environment variables (see [Kubernetes deployment](kubernetes.md#configuration)):
+
+```yaml
+CONNECTION_POOL_ENABLED: "true"  # Enable pooling (default)
+CONNECTION_POOL_MAX_SIZE: "10"   # Max connections per worker (default)
+CONNECTION_POOL_TTL: "300"       # Idle timeout in seconds (default)
+```
+
+### Troubleshooting
+
+**Stale connections**: If devices are rebooted, pooled connections may become stale. NAAS detects this and automatically reconnects.
+
+**Credential changes**: Changing a user's password invalidates pooled connections. New requests will establish fresh connections.
+
+**High memory usage**: Reduce `CONNECTION_POOL_MAX_SIZE` if workers consume too much memory.
 
 ## Python Examples
 
