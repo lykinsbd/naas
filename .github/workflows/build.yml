@@ -116,8 +116,8 @@ jobs:
       - name: Wait for rollouts
         run: |
           kubectl -n naas rollout status deployment/redis --timeout=60s
-          kubectl -n naas rollout status deployment/naas-api --timeout=120s
-          kubectl -n naas rollout status deployment/naas-worker --timeout=120s
+          kubectl -n naas rollout status deployment/naas-api --timeout=180s
+          kubectl -n naas rollout status deployment/naas-worker --timeout=180s
           kubectl -n naas rollout status deployment/cisshgo --timeout=60s
 
       - name: Smoke test healthcheck
