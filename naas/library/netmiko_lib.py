@@ -130,7 +130,7 @@ def _netmiko_send_command_impl(
             duration_ms = int((time.time() - start_time) * 1000)
             emit_audit_event("job.completed", request_id=request_id, status="failed", duration_ms=duration_ms)
             return None, error
-        if device_type_result is None:
+        if device_type_result is None:  # pragma: no cover
             # Should never happen - error check above ensures this
             raise RuntimeError("Autodetect succeeded but returned None platform")
         device_type = device_type_result
