@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   finalize-release:
@@ -41,24 +42,36 @@ jobs:
             echo "is_prerelease=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Bump to final version
+      - name: Create PR to bump to final version
         if: steps.check.outputs.is_prerelease == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           FINAL_VERSION="${{ steps.check.outputs.final_version }}"
-          echo "Bumping from ${{ steps.check.outputs.current_version }} to $FINAL_VERSION"
+          echo "Creating PR to bump from ${{ steps.check.outputs.current_version }} to $FINAL_VERSION"
+
+          # Create a branch for the version bump
+          git checkout -b release/finalize-$FINAL_VERSION
 
           # Update pyproject.toml
           sed -i "s/version = \".*\"/version = \"${FINAL_VERSION}\"/" pyproject.toml
           uv lock
 
-          # Commit and push
+          # Commit
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add pyproject.toml uv.lock
           git commit -m "chore: bump version to ${FINAL_VERSION}"
-          git push
+          git push -u origin release/finalize-$FINAL_VERSION
 
-          echo "✅ Version bumped to ${FINAL_VERSION} - release.yml will now create the tag"
+          # Create PR to main
+          gh pr create \
+            --base main \
+            --head release/finalize-$FINAL_VERSION \
+            --title "chore: bump version to ${FINAL_VERSION}" \
+            --body "Automated version bump to finalize release ${FINAL_VERSION}. After merging this PR, the release workflow will create the final release tag."
+
+          echo "✅ Created PR to bump version to ${FINAL_VERSION}"
 
       - name: Skip if already final
         if: steps.check.outputs.is_prerelease == 'false'

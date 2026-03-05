@@ -39,8 +39,7 @@ jobs:
             --base develop \
             --head main \
             --title "chore: sync v${VERSION} release back to develop" \
-            --body "Automated PR to sync release v${VERSION} from main back to develop." \
-            --label "release"
+            --body "Automated PR to sync release v${VERSION} from main back to develop. After merging, manually bump develop to the next alpha version."
 
   bump-develop:
     runs-on: ubuntu-latest
