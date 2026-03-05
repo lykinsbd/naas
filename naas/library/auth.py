@@ -2,26 +2,26 @@
 
 from datetime import datetime, timedelta
 from hashlib import sha512
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 from flask import current_app
 from redis import Redis
 
-from naas.config import REDIS_HOST, REDIS_PASSWORD, REDIS_PORT
 from naas.library.audit import emit_audit_event
 
+if TYPE_CHECKING:
+    from rq.job import Job
 
-def job_locker(salted_creds: str, job_id: str) -> None:
+
+def job_locker(salted_creds: str, job: "Job") -> None:
     """
     Stash the job ID under the SHA512 (salted) hash of the username/password, so only that user can retrieve it
     :param salted_creds: The pre-salted username/password combo
-    :param job_id:
+    :param job: The RQ Job object to lock
     :return:
     """
-
-    q = current_app.config["q"]
-    current_app.logger.debug("Locking job %s with %s", job_id, salted_creds)
-    job = q.fetch_job(job_id=job_id)
+    current_app.logger.debug("Locking job %s with %s", job.id, salted_creds)
     job.meta["hash"] = salted_creds
     job.save_meta()
 
@@ -75,15 +75,13 @@ def _is_locked_out(redis_key: str, redis: Redis, report_failure: bool = False) -
     return is_locked
 
 
-def tacacs_auth_lockout(username: str, report_failure: bool = False) -> bool:
+def tacacs_auth_lockout(username: str, redis: Redis, report_failure: bool = False) -> bool:
     """Check (and optionally record) a TACACS auth failure for a user."""
-    redis = Redis(host=REDIS_HOST, port=int(REDIS_PORT), password=REDIS_PASSWORD)
     return _is_locked_out(f"naas_failures_{username}", redis, report_failure)
 
 
-def device_lockout(ip: str, report_failure: bool = False) -> bool:
+def device_lockout(ip: str, redis: Redis, report_failure: bool = False) -> bool:
     """Check (and optionally record) a connection failure for a device IP."""
-    redis = Redis(host=REDIS_HOST, port=int(REDIS_PORT), password=REDIS_PASSWORD)
     return _is_locked_out(f"naas_failures_device_{ip}", redis, report_failure)
 
 

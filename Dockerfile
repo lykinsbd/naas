@@ -34,10 +34,11 @@ LABEL name="NAAS API Image" \
       license="MIT" \
       version="1.0.0a1"
 
-# Install curl for healthchecks
+# Install curl for healthchecks, create non-root user
 RUN apt-get update && \
     apt-get install -y --no-install-recommends curl && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* && \
+    useradd -r -u 1000 -s /sbin/nologin naas
 
 # Copy installed packages from builder
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
@@ -49,6 +50,13 @@ WORKDIR /app
 # Copy application code
 COPY naas/ /app/naas/
 COPY gunicorn.py worker.py /app/
+
+# Pre-compile Python bytecode so runtime writes to __pycache__ are not needed
+RUN python -m compileall -q /app/naas /app/gunicorn.py /app/worker.py
+
+# Set ownership and switch to non-root user
+RUN chown -R naas:naas /app
+USER naas
 
 # Export version as environment variable
 ENV API_VER="1.0.0a1"

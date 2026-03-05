@@ -8,29 +8,29 @@ class TestLockout:
 
     def test_no_failures_not_locked(self, fake_redis, monkeypatch):
         monkeypatch.setattr("naas.library.auth.Redis", lambda **kwargs: fake_redis)
-        assert tacacs_auth_lockout(username="testuser") is False
+        assert tacacs_auth_lockout(username="testuser", redis=fake_redis) is False
 
     def test_first_failure_not_locked(self, fake_redis, monkeypatch):
         monkeypatch.setattr("naas.library.auth.Redis", lambda **kwargs: fake_redis)
-        assert tacacs_auth_lockout(username="testuser", report_failure=True) is False
+        assert tacacs_auth_lockout(username="testuser", redis=fake_redis, report_failure=True) is False
 
     def test_nine_failures_not_locked(self, fake_redis, monkeypatch):
         monkeypatch.setattr("naas.library.auth.Redis", lambda **kwargs: fake_redis)
         for _ in range(9):
-            tacacs_auth_lockout(username="testuser", report_failure=True)
-        assert tacacs_auth_lockout(username="testuser") is False
+            tacacs_auth_lockout(username="testuser", redis=fake_redis, report_failure=True)
+        assert tacacs_auth_lockout(username="testuser", redis=fake_redis) is False
 
     def test_tenth_failure_triggers_lockout(self, fake_redis, monkeypatch):
         monkeypatch.setattr("naas.library.auth.Redis", lambda **kwargs: fake_redis)
         for _ in range(9):
-            tacacs_auth_lockout(username="testuser", report_failure=True)
-        assert tacacs_auth_lockout(username="testuser", report_failure=True) is True
+            tacacs_auth_lockout(username="testuser", redis=fake_redis, report_failure=True)
+        assert tacacs_auth_lockout(username="testuser", redis=fake_redis, report_failure=True) is True
 
     def test_lockout_persists(self, fake_redis, monkeypatch):
         monkeypatch.setattr("naas.library.auth.Redis", lambda **kwargs: fake_redis)
         for _ in range(10):
-            tacacs_auth_lockout(username="testuser", report_failure=True)
-        assert tacacs_auth_lockout(username="testuser") is True
+            tacacs_auth_lockout(username="testuser", redis=fake_redis, report_failure=True)
+        assert tacacs_auth_lockout(username="testuser", redis=fake_redis) is True
 
     def test_old_failures_expire(self, fake_redis, monkeypatch):
         """Failures outside the 10-minute window are pruned and don't count."""
@@ -40,7 +40,7 @@ class TestLockout:
         old_ts = (datetime.now() - timedelta(minutes=30)).timestamp()
         for i in range(9):
             fake_redis.zadd("naas_failures_testuser", {f"old-{i}": old_ts})
-        assert tacacs_auth_lockout(username="testuser") is False
+        assert tacacs_auth_lockout(username="testuser", redis=fake_redis) is False
 
     def test_old_failures_plus_new_not_locked(self, fake_redis, monkeypatch):
         monkeypatch.setattr("naas.library.auth.Redis", lambda **kwargs: fake_redis)
@@ -49,24 +49,24 @@ class TestLockout:
         old_ts = (datetime.now() - timedelta(minutes=30)).timestamp()
         for i in range(9):
             fake_redis.zadd("naas_failures_testuser", {f"old-{i}": old_ts})
-        assert tacacs_auth_lockout(username="testuser", report_failure=True) is False
+        assert tacacs_auth_lockout(username="testuser", redis=fake_redis, report_failure=True) is False
 
     def test_device_lockout_no_failures(self, fake_redis, monkeypatch):
         monkeypatch.setattr("naas.library.auth.Redis", lambda **kwargs: fake_redis)
-        assert device_lockout(ip="192.0.2.1") is False
+        assert device_lockout(ip="192.0.2.1", redis=fake_redis) is False
 
     def test_device_lockout_triggers_at_ten(self, fake_redis, monkeypatch):
         monkeypatch.setattr("naas.library.auth.Redis", lambda **kwargs: fake_redis)
         for _ in range(9):
-            device_lockout(ip="192.0.2.1", report_failure=True)
-        assert device_lockout(ip="192.0.2.1", report_failure=True) is True
+            device_lockout(ip="192.0.2.1", redis=fake_redis, report_failure=True)
+        assert device_lockout(ip="192.0.2.1", redis=fake_redis, report_failure=True) is True
 
     def test_device_lockout_independent_of_user_lockout(self, fake_redis, monkeypatch):
         """Device and user lockouts use separate keys."""
         monkeypatch.setattr("naas.library.auth.Redis", lambda **kwargs: fake_redis)
         for _ in range(10):
-            tacacs_auth_lockout(username="testuser", report_failure=True)
-        assert device_lockout(ip="192.0.2.1") is False
+            tacacs_auth_lockout(username="testuser", redis=fake_redis, report_failure=True)
+        assert device_lockout(ip="192.0.2.1", redis=fake_redis) is False
 
 
 class TestJobUnlocker:

@@ -1,5 +1,7 @@
 """Unit tests for validation functions."""
 
+from unittest.mock import MagicMock
+
 import pytest
 from flask import Flask
 from werkzeug.exceptions import BadRequest
@@ -14,6 +16,7 @@ def validation_app():
     app = Flask(__name__)
     app.config["TESTING"] = True
     app.config["q"] = None  # Mock queue
+    app.config["redis"] = MagicMock()
     return app
 
 

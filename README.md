@@ -37,12 +37,25 @@ curl -k -X POST https://localhost:8443/v1/send_command \
 
 ## Key Features
 
+### v1.3 (Latest)
+
+- ✨ **TextFSM structured output** - Parse command output into typed data structures
+- 🔍 **Platform autodetect** - Automatic device type detection via SSHDetect
+- ⚡ **Connection pooling** - Persistent SSH connections for better performance
+- 📊 **Prometheus metrics** - Monitor performance and health at `/metrics`
+- 🛑 **Job cancellation** - Cancel running jobs via DELETE endpoint
+- 📝 **Audit events** - Structured logging for compliance and troubleshooting
+
+### Core Features
+
 - ✅ RESTful API with async job processing
 - 🔒 HTTPS with TLS and HTTP Basic Auth
-- 🐳 Docker Compose deployment included
+- 🐳 Docker Compose and Kubernetes deployment
 - 📊 Redis-backed job queue (RQ)
 - 🚀 Horizontal scaling support
 - 🔌 All [Netmiko platforms](https://github.com/ktbyers/netmiko/blob/develop/PLATFORMS.md) supported
+- 🔐 Circuit breaker pattern for failing devices
+- 🎯 100% test coverage
 
 ## Documentation
 

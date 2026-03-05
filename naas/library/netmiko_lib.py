@@ -15,8 +15,39 @@ from paramiko import ssh_exception
 from naas.config import CIRCUIT_BREAKER_ENABLED, CONNECTION_POOL_ENABLED, CONNECTION_POOL_KEEPALIVE
 from naas.library.audit import emit_audit_event
 from naas.library.auth import tacacs_auth_lockout
-from naas.library.circuit_breaker import with_circuit_breaker
+from naas.library.circuit_breaker import _get_redis, with_circuit_breaker
 from naas.library.connection_pool import pool
+
+# Common error patterns across IOS, NX-OS, EOS, JunOS, and similar platforms
+_CONFIG_ERROR_PATTERN = r"(?i)(% invalid|% incomplete|% ambiguous|% error|error:|invalid input|syntax error)"
+
+
+def _autodetect_platform(
+    ip: str, port: int, username: str, password: str, enable: str, request_id: str
+) -> tuple[str | None, str | None]:
+    """
+    Use SSHDetect to fingerprint device platform.
+
+    Returns:
+        (detected_platform, error_string) — one will be None
+    """
+    try:
+        logger.debug("%s %s:Running SSHDetect...", request_id, ip)
+        guesser = netmiko.SSHDetect(
+            device_type="autodetect",
+            ip=ip,
+            port=port,
+            username=username,
+            password=password,
+            secret=enable,
+        )
+        best_match = guesser.autodetect()
+        logger.debug("%s %s:Detected platform: %s", request_id, ip, best_match)
+        return best_match, None
+    except (netmiko.NetMikoTimeoutException, netmiko.NetMikoAuthenticationException, ssh_exception.SSHException) as e:
+        logger.debug("%s %s:SSHDetect failed: %s", request_id, ip, e)
+        return None, f"Platform autodetect failed: {str(e)}"
+
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -33,7 +64,8 @@ def netmiko_send_command(
     device_type: str,
     commands: "Sequence[str]",
     port: int = 22,
-    delay_factor: int = 1,
+    read_timeout: float = 30.0,
+    expect_string: str | None = None,
     verbose: bool = False,
     request_id: str = "",
 ) -> "tuple[dict | None, str | None]":
@@ -45,7 +77,8 @@ def netmiko_send_command(
     :param commands: List of the commands to issue to the device
     :param device_type: What Netmiko device type are we connecting to?
     :param port: What TCP Port are we connecting to?
-    :param delay_factor: Netmiko delay factor, default of 1, higher is slower but more reliable on laggy links
+    :param read_timeout: Read timeout in seconds for device responses
+    :param expect_string: Regex pattern to match in device output (overrides prompt detection)
     :param verbose: Turn on Netmiko verbose logging
     :param request_id: Correlation ID from the originating API request for end-to-end log tracing
     :return: A Tuple of a dict of the results (if any) and a string describing the error (if any)
@@ -60,11 +93,16 @@ def netmiko_send_command(
             device_type,
             commands,
             port,
-            delay_factor,
+            read_timeout,
+            expect_string,
+            False,  # use_textfsm
+            None,  # textfsm_template
             verbose,
             request_id,
         )
-    return _netmiko_send_command_impl(ip, credentials, device_type, commands, port, delay_factor, verbose, request_id)
+    return _netmiko_send_command_impl(
+        ip, credentials, device_type, commands, port, read_timeout, expect_string, False, None, verbose, request_id
+    )
 
 
 def _netmiko_send_command_impl(
@@ -73,11 +111,34 @@ def _netmiko_send_command_impl(
     device_type: str,
     commands: "Sequence[str]",
     port: int = 22,
-    delay_factor: int = 1,
+    read_timeout: float = 30.0,
+    expect_string: str | None = None,
+    use_textfsm: bool = False,
+    textfsm_template: str | None = None,
     verbose: bool = False,
     request_id: str = "",
 ) -> "tuple[dict | None, str | None]":
     start_time = time.time()
+
+    # Handle platform autodetect
+    detected_platform = None
+    if device_type == "autodetect":
+        device_type_result, error = _autodetect_platform(
+            ip, port, credentials.username, credentials.password, credentials.enable, request_id
+        )
+        if error is not None:
+            duration_ms = int((time.time() - start_time) * 1000)
+            emit_audit_event("job.completed", request_id=request_id, status="failed", duration_ms=duration_ms)
+            return None, error
+        if device_type_result is None:  # pragma: no cover
+            # Should never happen - error check above ensures this
+            raise RuntimeError("Autodetect succeeded but returned None platform")
+        device_type = device_type_result
+        detected_platform = device_type
+
+    # Skip pool for autodetect or TextFSM (template state makes pooling unreliable)
+    use_pool = CONNECTION_POOL_ENABLED and detected_platform is None and not use_textfsm
+
     netmiko_device = {
         "device_type": device_type,
         "ip": ip,
@@ -88,26 +149,43 @@ def _netmiko_send_command_impl(
         "ssh_config_file": "/app/naas/ssh_config",
         "allow_agent": False,
         "use_keys": False,
+        "fast_cli": True,
         "verbose": verbose,
     }
 
     try:
         net_connect = None
 
-        if CONNECTION_POOL_ENABLED:
+        if use_pool:
             net_connect = pool.get(ip, port, credentials.username, credentials.password, device_type)
 
         if net_connect is None:
             logger.debug("%s %s:Establishing connection...", request_id, ip)
-            netmiko_device["keepalive"] = CONNECTION_POOL_KEEPALIVE if CONNECTION_POOL_ENABLED else 0
+            netmiko_device["keepalive"] = CONNECTION_POOL_KEEPALIVE if use_pool else 0
             net_connect = netmiko.ConnectHandler(**netmiko_device)
+        else:
+            # Verify pooled connection is at a clean prompt before use
+            try:
+                net_connect.find_prompt()
+            except Exception:
+                logger.debug("%s %s:Pooled connection in bad state, reconnecting", request_id, ip)
+                pool._evict((ip, port, pool._cred_hash(credentials.username, credentials.password), device_type))
+                netmiko_device["keepalive"] = CONNECTION_POOL_KEEPALIVE
+                net_connect = netmiko.ConnectHandler(**netmiko_device)
 
         net_output = {}
         for command in commands:
             logger.debug("%s %s:Sending %s", request_id, ip, command)
-            net_output[command] = net_connect.send_command(command, delay_factor=delay_factor)
+            kwargs: dict[str, float | str | bool] = {"read_timeout": read_timeout}
+            if expect_string is not None:
+                kwargs["expect_string"] = expect_string
+            if use_textfsm:
+                kwargs["use_textfsm"] = True
+                if textfsm_template is not None:
+                    kwargs["textfsm_template"] = textfsm_template
+            net_output[command] = net_connect.send_command(command, **kwargs)
 
-        if CONNECTION_POOL_ENABLED:
+        if use_pool:
             pool.release(ip, port, credentials.username, credentials.password, device_type, net_connect)
         else:
             net_connect.disconnect()
@@ -119,7 +197,7 @@ def _netmiko_send_command_impl(
         raise  # Re-raise to trigger circuit breaker
     except netmiko.NetMikoAuthenticationException as e:
         logger.debug("%s %s:Netmiko authentication failure connecting to device: %s", request_id, ip, e)
-        tacacs_auth_lockout(username=credentials.username, report_failure=True)
+        tacacs_auth_lockout(username=credentials.username, redis=_get_redis(), report_failure=True)
         duration_ms = int((time.time() - start_time) * 1000)
         emit_audit_event("job.completed", request_id=request_id, status="failed", duration_ms=duration_ms)
         return None, str(e)  # Don't trigger circuit breaker for auth failures
@@ -132,7 +210,50 @@ def _netmiko_send_command_impl(
     logger.debug("%s %s:Netmiko executed successfully.", request_id, ip)
     duration_ms = int((time.time() - start_time) * 1000)
     emit_audit_event("job.completed", request_id=request_id, status="finished", duration_ms=duration_ms)
+
+    # Include detected_platform in results if autodetect was used
+    if detected_platform is not None:
+        net_output["_detected_platform"] = detected_platform
+
     return net_output, None
+
+
+def netmiko_send_command_structured(
+    ip: str,
+    credentials: "Credentials",
+    device_type: str,
+    commands: "Sequence[str]",
+    port: int = 22,
+    read_timeout: float = 30.0,
+    textfsm_template: str | None = None,
+    verbose: bool = False,
+    request_id: str = "",
+) -> "tuple[dict | None, str | None]":
+    """
+    Send commands with TextFSM parsing for structured output.
+
+    Thin wrapper around _netmiko_send_command_impl with use_textfsm=True.
+    """
+    if CIRCUIT_BREAKER_ENABLED:
+        return with_circuit_breaker(  # type: ignore[no-any-return]
+            ip,
+            request_id,
+            _netmiko_send_command_impl,
+            ip,
+            credentials,
+            device_type,
+            commands,
+            port,
+            read_timeout,
+            None,  # expect_string
+            True,  # use_textfsm
+            textfsm_template,
+            verbose,
+            request_id,
+        )
+    return _netmiko_send_command_impl(
+        ip, credentials, device_type, commands, port, read_timeout, None, True, textfsm_template, verbose, request_id
+    )
 
 
 def netmiko_send_config(
@@ -143,7 +264,7 @@ def netmiko_send_config(
     port: int = 22,
     save_config: bool = False,
     commit: bool = False,
-    delay_factor: int = 1,
+    read_timeout: float = 30.0,
     verbose: bool = False,
     request_id: str = "",
 ) -> "tuple[dict | None, str | None]":
@@ -157,7 +278,7 @@ def netmiko_send_config(
     :param port: What TCP Port are we connecting to?
     :param save_config: Do you want to save this configuration upon insertion?  Default: False, don't save the config
     :param commit: Do you want to commit this candidate configuration to the running config?  Default: False
-    :param delay_factor: Netmiko delay factor, default of 1, higher is slower but more reliable on laggy links
+    :param read_timeout: Read timeout in seconds for device responses
     :param verbose: Turn on Netmiko verbose logging
     :param request_id: Correlation ID from the originating API request for end-to-end log tracing
     :return: A Tuple of a dict of the results (if any) and a string describing the error (if any)
@@ -174,12 +295,12 @@ def netmiko_send_config(
             port,
             save_config,
             commit,
-            delay_factor,
+            read_timeout,
             verbose,
             request_id,
         )
     return _netmiko_send_config_impl(
-        ip, credentials, device_type, commands, port, save_config, commit, delay_factor, verbose, request_id
+        ip, credentials, device_type, commands, port, save_config, commit, read_timeout, verbose, request_id
     )
 
 
@@ -191,7 +312,7 @@ def _netmiko_send_config_impl(
     port: int = 22,
     save_config: bool = False,
     commit: bool = False,
-    delay_factor: int = 1,
+    read_timeout: float = 30.0,
     verbose: bool = False,
     request_id: str = "",
 ) -> "tuple[dict | None, str | None]":
@@ -206,6 +327,7 @@ def _netmiko_send_config_impl(
         "ssh_config_file": "/app/naas/ssh_config",
         "allow_agent": False,
         "use_keys": False,
+        "fast_cli": True,
         "verbose": verbose,
     }
 
@@ -215,7 +337,9 @@ def _netmiko_send_config_impl(
 
         net_output = {}
         logger.debug("%s %s:Sending config_set: %s", request_id, ip, commands)
-        net_output["config_set_output"] = net_connect.send_config_set(commands, delay_factor=delay_factor)
+        net_output["config_set_output"] = net_connect.send_config_set(
+            commands, read_timeout=read_timeout, error_pattern=_CONFIG_ERROR_PATTERN
+        )
 
         if save_config:
             try:
@@ -240,6 +364,11 @@ def _netmiko_send_config_impl(
 
         net_connect.disconnect()
 
+    except netmiko.ConfigInvalidException as e:
+        logger.debug("%s %s:Config rejected by device: %s", request_id, ip, e)
+        duration_ms = int((time.time() - start_time) * 1000)
+        emit_audit_event("job.completed", request_id=request_id, status="failed", duration_ms=duration_ms)
+        return None, str(e)  # Config error — do not trigger circuit breaker
     except (TimeoutError, netmiko.NetMikoTimeoutException) as e:
         logger.debug("%s %s:Netmiko timed out connecting to device: %s", request_id, ip, e)
         duration_ms = int((time.time() - start_time) * 1000)
@@ -247,7 +376,7 @@ def _netmiko_send_config_impl(
         raise  # Re-raise to trigger circuit breaker
     except netmiko.NetMikoAuthenticationException as e:
         logger.debug("%s %s:Netmiko authentication failure connecting to device: %s", request_id, ip, e)
-        tacacs_auth_lockout(username=credentials.username, report_failure=True)
+        tacacs_auth_lockout(username=credentials.username, redis=_get_redis(), report_failure=True)
         duration_ms = int((time.time() - start_time) * 1000)
         emit_audit_event("job.completed", request_id=request_id, status="failed", duration_ms=duration_ms)
         return None, str(e)  # Don't trigger circuit breaker for auth failures

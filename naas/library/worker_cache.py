@@ -4,6 +4,10 @@ import time
 
 from rq import Worker
 
+# Module-level cache — one per process. This is correct for the current deployment
+# (single gunicorn worker process per API pod). If gunicorn is ever configured with
+# multiple worker processes (workers > 1), each process will have its own independent
+# cache with no coordination. Keep gunicorn workers=1 or move to a shared cache.
 _cache: list = []
 _cache_ts: float = 0.0
 _TTL = 10.0  # seconds

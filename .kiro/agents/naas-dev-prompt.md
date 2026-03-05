@@ -268,9 +268,9 @@ chore(deps): upgrade netmiko to 4.6.0
 
 ### Current State
 
-- **Version:** v1.1.0 released, develop at v1.2.0a1
-- **Active branches:** main, develop, release/1.0, release/1.1
-- **Milestone:** v1.2 (next development cycle)
+- **Version:** v1.2.0 released, develop at v1.3.0a1
+- **Active branches:** main, develop, release/1.0, release/1.1, release/1.2
+- **Milestone:** v1.3 (next development cycle)
 
 ### Key Technologies
 

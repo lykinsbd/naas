@@ -93,19 +93,17 @@ class ListJobs(Resource):
                 remaining_take -= len(chunk)
                 remaining_skip = 0
 
-        # Fetch job details
-        jobs = []
-        for job_id in job_ids:
-            job = Job.fetch(job_id, connection=redis_conn)
-            if job:
-                jobs.append(
-                    {
-                        "job_id": job.id,
-                        "status": job.get_status(),
-                        "created_at": job.created_at.isoformat() if job.created_at else None,
-                        "ended_at": job.ended_at.isoformat() if job.ended_at else None,
-                    }
-                )
+        # Fetch job details in a single pipeline call
+        jobs = [
+            {
+                "job_id": job.id,
+                "status": job.get_status(),
+                "created_at": job.created_at.isoformat() if job.created_at else None,
+                "ended_at": job.ended_at.isoformat() if job.ended_at else None,
+            }
+            for job in Job.fetch_many(job_ids, connection=redis_conn)
+            if job is not None
+        ]
 
         # Calculate pagination
         total_pages = (total_count + query.per_page - 1) // query.per_page if total_count > 0 else 0

@@ -52,8 +52,12 @@ class GetResults(Resource):
 
         if job_status == "finished":
             results = job.result
-            r["results"] = results[0]
+            result_dict = results[0]
+            r["results"] = result_dict
             r["error"] = results[1]
+            # Extract detected_platform if present
+            if result_dict and "_detected_platform" in result_dict:
+                r["detected_platform"] = result_dict.pop("_detected_platform")
         elif job_status == "failed":
             r["error"] = str(job.exc_info).strip() if job.exc_info else "Job failed"
 

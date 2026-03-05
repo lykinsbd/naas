@@ -72,12 +72,18 @@
             "title": "Commands",
             "type": "array"
           },
-          "delay_factor": {
-            "default": 1,
-            "description": "Netmiko delay factor",
-            "minimum": 1,
-            "title": "Delay Factor",
-            "type": "integer"
+          "expect_string": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Regex pattern to match in device output (overrides prompt detection)",
+            "title": "Expect String"
           },
           "ip": {
             "description": "Device IP address",
@@ -87,7 +93,7 @@
           },
           "platform": {
             "default": "cisco_ios",
-            "description": "Netmiko device type",
+            "description": "Netmiko device type (use 'autodetect' for SSHDetect)",
             "title": "Platform",
             "type": "string"
           },
@@ -98,6 +104,13 @@
             "minimum": 1,
             "title": "Port",
             "type": "integer"
+          },
+          "read_timeout": {
+            "default": 30.0,
+            "description": "Read timeout in seconds for device responses",
+            "minimum": 1.0,
+            "title": "Read Timeout",
+            "type": "number"
           }
         },
         "required": [
@@ -105,6 +118,66 @@
           "commands"
         ],
         "title": "SendCommandRequest",
+        "type": "object"
+      },
+      "SendCommandStructuredRequest.c5eb086": {
+        "description": "Request model for structured send_command with TextFSM parsing.\n\nReturns parsed output as list[dict] per command. Falls back to raw string\nif no template is found.",
+        "properties": {
+          "commands": {
+            "description": "Commands to execute",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Commands",
+            "type": "array"
+          },
+          "ip": {
+            "description": "Device IP address",
+            "format": "ipvanyaddress",
+            "title": "Ip",
+            "type": "string"
+          },
+          "platform": {
+            "default": "cisco_ios",
+            "description": "Netmiko device type (use 'autodetect' for SSHDetect)",
+            "title": "Platform",
+            "type": "string"
+          },
+          "port": {
+            "default": 22,
+            "description": "SSH port",
+            "maximum": 65535,
+            "minimum": 1,
+            "title": "Port",
+            "type": "integer"
+          },
+          "read_timeout": {
+            "default": 30.0,
+            "description": "Read timeout in seconds for device responses",
+            "minimum": 1.0,
+            "title": "Read Timeout",
+            "type": "number"
+          },
+          "textfsm_template": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Custom TextFSM template (uses ntc-templates if not provided)",
+            "title": "Textfsm Template"
+          }
+        },
+        "required": [
+          "ip",
+          "commands"
+        ],
+        "title": "SendCommandStructuredRequest",
         "type": "object"
       },
       "SendConfigRequest.c5eb086": {
@@ -150,13 +223,6 @@
             "description": "Configuration commands",
             "title": "Config"
           },
-          "delay_factor": {
-            "default": 1,
-            "description": "Netmiko delay factor",
-            "minimum": 1,
-            "title": "Delay Factor",
-            "type": "integer"
-          },
           "ip": {
             "description": "Device IP address",
             "format": "ipvanyaddress",
@@ -165,7 +231,7 @@
           },
           "platform": {
             "default": "cisco_ios",
-            "description": "Netmiko device type",
+            "description": "Netmiko device type (use 'autodetect' for SSHDetect)",
             "title": "Platform",
             "type": "string"
           },
@@ -176,6 +242,13 @@
             "minimum": 1,
             "title": "Port",
             "type": "integer"
+          },
+          "read_timeout": {
+            "default": 30.0,
+            "description": "Read timeout in seconds for device responses",
+            "minimum": 1.0,
+            "title": "Read Timeout",
+            "type": "number"
           },
           "save_config": {
             "default": false,
@@ -563,6 +636,75 @@
       "get": {
         "description": "",
         "operationId": "get__v1_send_command_{job_id}",
+        "parameters": [
+          {
+            "description": "",
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {},
+        "summary": "Given the requested job_id, return status and/or any results if finished. :param job_id: :return: A dict of job status and/or results if finished.",
+        "tags": []
+      }
+    },
+    "/v1/send_command_structured": {
+      "get": {
+        "description": "",
+        "operationId": "get__v1_send_command_structured",
+        "parameters": [],
+        "responses": {},
+        "summary": "get <GET>",
+        "tags": []
+      },
+      "post": {
+        "description": "Returns parsed list[dict] per command (or raw string if no template found). Uses ntc-templates by default, or custom template if provided.\n\nRequires:     ip: str     commands: Sequence[str] Optional:     port: int - Default 22     platform: str - Default cisco_ios (use \"autodetect\" for SSHDetect)     read_timeout: float - Default 30.0 seconds     textfsm_template: str - Custom TextFSM template (uses ntc-templates if omitted)\n\nSecured by Basic Auth, which is then passed to the network device. :return: A dict of the job ID, a 202 response code, and the job_id as the X-Request-ID header",
+        "operationId": "post__v1_send_command_structured",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendCommandStructuredRequest.c5eb086"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobResponse.c5eb086"
+                }
+              }
+            },
+            "description": "Accepted"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError.6a07bef"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "Enqueue a send_command job with TextFSM parsing for structured output.",
+        "tags": []
+      }
+    },
+    "/v1/send_command_structured/{job_id}": {
+      "get": {
+        "description": "",
+        "operationId": "get__v1_send_command_structured_{job_id}",
         "parameters": [
           {
             "description": "",

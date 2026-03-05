@@ -5,7 +5,7 @@ from flask_restful import Resource
 from spectree import Response
 
 from naas import __base_response__
-from naas.config import JOB_TTL_FAILED, JOB_TTL_SUCCESS
+from naas.config import JOB_TIMEOUT, JOB_TTL_FAILED, JOB_TTL_SUCCESS
 from naas.library.audit import emit_audit_event
 from naas.library.auth import device_lockout, job_locker
 from naas.library.decorators import valid_post
@@ -42,7 +42,7 @@ class SendConfig(Resource):
         validated: SendConfigRequest = request.context.json
         ip_str = str(validated.ip)
 
-        if device_lockout(ip=ip_str):
+        if device_lockout(ip=ip_str, redis=current_app.config["redis"]):
             current_app.logger.error("%s: Device %s is locked out", g.request_id, ip_str)
             raise LockedOut
 
@@ -81,9 +81,10 @@ class SendConfig(Resource):
             commands=validated.config,
             save_config=validated.save_config,
             commit=validated.commit,
-            delay_factor=validated.delay_factor,
+            read_timeout=validated.read_timeout,
             request_id=g.request_id,
             job_id=g.request_id,
+            job_timeout=JOB_TIMEOUT,
             result_ttl=JOB_TTL_SUCCESS,
             failure_ttl=JOB_TTL_FAILED,
         )
@@ -94,7 +95,7 @@ class SendConfig(Resource):
         user_hash = g.credentials.salted_hash()
 
         # Stash the job_id in redis, with the user/pass hash so that only that user can retrieve results
-        job_locker(salted_creds=user_hash, job_id=job_id)
+        job_locker(salted_creds=user_hash, job=job)
 
         # Emit audit event
         emit_audit_event(

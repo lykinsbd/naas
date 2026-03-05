@@ -1,4 +1,4 @@
-name: Docker Build
+name: Build and K8s Tests
 
 on:
   push:
@@ -30,15 +30,137 @@ jobs:
         run: |
           docker run --rm naas:test python -c "import naas; print('Import successful')"
 
-  build-summary:
-    name: Docker Build
+      - name: Save image as artifact
+        run: |
+          docker save naas:test | gzip > naas-image.tar.gz
+
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: naas-docker-image
+          path: naas-image.tar.gz
+          retention-days: 1
+
+  k8s-changes:
     runs-on: ubuntu-latest
-    needs: [build]
+    outputs:
+      changed: ${{ steps.filter.outputs.k8s }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            k8s:
+              - 'k8s/**'
+              - 'Dockerfile'
+              - 'tests/k8s/**'
+              - '.github/workflows/test.yml'
+
+  k8s-tests:
+    runs-on: ubuntu-latest
+    needs: [build, k8s-changes]
+    if: |
+      needs.k8s-changes.outputs.changed == 'true' ||
+      github.ref == 'refs/heads/main' ||
+      startsWith(github.ref, 'refs/heads/release/')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.11
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Install k3d
+        run: curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+
+      - name: Create k3d cluster
+        run: k3d cluster create naas-test --wait
+
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: naas-docker-image
+
+      - name: Load image into k3d
+        run: |
+          docker load < naas-image.tar.gz
+          k3d image import naas:test -c naas-test
+
+      - name: Apply manifests
+        run: |
+          kubectl apply -f k8s/namespace.yaml
+          kubectl -n naas create secret generic naas-secret \
+            --from-literal=REDIS_PASSWORD=test-redis-pw
+          kubectl apply -f k8s/configmap.yaml
+          kubectl apply -f k8s/redis/
+          # Patch image and pullPolicy inline before applying
+          sed 's|ghcr.io/lykinsbd/naas:.*|naas:test|g' k8s/api/deployment.yaml \
+            | kubectl apply -f -
+          kubectl apply -f k8s/api/service.yaml
+          sed 's|ghcr.io/lykinsbd/naas:.*|naas:test|g' k8s/worker/deployment.yaml \
+            | kubectl apply -f -
+          kubectl -n naas patch deployment naas-api \
+            -p '{"spec":{"template":{"spec":{"containers":[{"name":"naas-api","imagePullPolicy":"Never"}]}}}}'
+          kubectl -n naas patch deployment naas-worker \
+            -p '{"spec":{"template":{"spec":{"containers":[{"name":"naas-worker","imagePullPolicy":"Never"}]}}}}'
+          kubectl apply -f k8s/cisshgo/
+
+      - name: Wait for rollouts
+        run: |
+          kubectl -n naas rollout status deployment/redis --timeout=60s
+          kubectl -n naas rollout status deployment/naas-api --timeout=180s || {
+            echo "API deployment failed, debugging..."
+            kubectl -n naas get pods
+            kubectl -n naas describe deployment naas-api
+            kubectl -n naas logs -l app=naas-api --tail=50
+            exit 1
+          }
+          kubectl -n naas rollout status deployment/naas-worker --timeout=180s || {
+            echo "Worker deployment failed, debugging..."
+            kubectl -n naas get pods
+            kubectl -n naas describe deployment naas-worker
+            kubectl -n naas logs -l app=naas-worker --tail=50
+            exit 1
+          }
+          kubectl -n naas rollout status deployment/cisshgo --timeout=60s
+
+      - name: Smoke test healthcheck
+        run: |
+          kubectl -n naas port-forward svc/naas-api 8443:443 &
+          sleep 3
+          curl -k -f https://localhost:8443/healthcheck
+
+      - name: Run end-to-end job test
+        run: |
+          CISSHGO_IP=$(kubectl -n naas get svc cisshgo -o jsonpath='{.spec.clusterIP}')
+          NAAS_URL=https://localhost:8443 CISSHGO_HOST=${CISSHGO_IP} uv run python tests/k8s/test_e2e.py
+
+      - name: Cleanup
+        if: always()
+        run: k3d cluster delete naas-test
+
+  build-and-k8s-summary:
+    name: Build and K8s Tests
+    runs-on: ubuntu-latest
+    needs: [build, k8s-tests]
     if: always()
     steps:
-      - name: Check build results
+      - name: Check results
         run: |
           if [[ "${{ needs.build.result }}" == "failure" || "${{ needs.build.result }}" == "cancelled" ]]; then
             echo "Build failed or was cancelled"
             exit 1
           fi
+          if [[ "${{ needs.k8s-tests.result }}" == "failure" || "${{ needs.k8s-tests.result }}" == "cancelled" ]]; then
+            echo "K8s tests failed or were cancelled"
+            exit 1
+          fi
+          # skipped is acceptable for k8s-tests (path filter didn't match)

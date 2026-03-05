@@ -15,9 +15,9 @@ from redis import Redis
 from rq import Queue
 
 # Cert/Key File Locations
-CERT_KEY_FILE = "/app/key.pem"
-CERT_FILE = "/app/cert.crt"
-CERT_BUNDLE_FILE = "/app/bundle.crt"
+CERT_KEY_FILE = "/tmp/key.pem"
+CERT_FILE = "/tmp/cert.pem"
+CERT_BUNDLE_FILE = "/tmp/bundle.crt"
 
 # Redis config
 REDIS_HOST = os.environ.get("REDIS_HOST", "redis")
@@ -27,6 +27,7 @@ REDIS_PASSWORD = os.environ.get("REDIS_PASSWORD", "mah_redis_pw")
 # Job TTL config (seconds)
 JOB_TTL_SUCCESS = int(os.environ.get("JOB_TTL_SUCCESS", 86400))  # 24h
 JOB_TTL_FAILED = int(os.environ.get("JOB_TTL_FAILED", 604800))  # 7 days
+JOB_TIMEOUT = int(os.environ.get("JOB_TIMEOUT", 120))  # 2 minutes; covers delay_factor=1 + buffer
 
 # Circuit breaker config
 CIRCUIT_BREAKER_ENABLED = os.environ.get("CIRCUIT_BREAKER_ENABLED", "true").lower() == "true"
@@ -79,10 +80,13 @@ def app_configure(app):
 
     # Initialize a Redis connection and store it for later
     redis = Redis(host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD)
+    redis.ping()  # Fail fast if Redis is unavailable at startup
     app.config["redis"] = redis
 
-    # Create a random string to use as a Salt for the UN/PW hashes, stash it in redis
-    redis.set("naas_cred_salt", "".join(random.choice(string.ascii_lowercase) for _ in range(10)))
+    # Create a random string to use as a Salt for the UN/PW hashes, stash it in redis.
+    # Use setnx so the salt persists across API restarts — overwriting it would invalidate
+    # all connection pool keys and in-flight job auth checks.
+    redis.setnx("naas_cred_salt", "".join(random.choice(string.ascii_lowercase) for _ in range(10)))
 
     # Initialize an rq Queue and store it for later
     q = Queue("naas", connection=redis)

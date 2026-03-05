@@ -25,8 +25,8 @@ def extract_released_issues(changelog_path: Path) -> set[int]:
             in_released_section = True
             continue
 
-        # Stop at next major section (Unreleased or another version)
-        if line.startswith("#") and in_released_section:
+        # Stop at next version header (starts with single # followed by space)
+        if re.match(r"^# [^#]", line) and in_released_section:
             in_released_section = False
             continue
 
@@ -57,7 +57,7 @@ def extract_released_prefix_fragments(changelog_path: Path, changes_dir: Path) -
         if re.match(version_pattern, line):
             in_released_section = True
             continue
-        if line.startswith("#") and in_released_section:
+        if re.match(r"^# [^#]", line) and in_released_section:
             in_released_section = False
             continue
         if in_released_section:

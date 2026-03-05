@@ -321,10 +321,51 @@ Common issues and solutions for NAAS deployment and operation.
    {
      "ip": "192.168.1.1",
      "platform": "cisco_ios",
-     "delay_factor": 2,
+     "read_timeout": 60.0,
      "commands": ["show version"]
    }
    ```
+
+   **Note:** Prior to v1.3, this parameter was `delay_factor` (integer multiplier).
+   Migrate by converting: `delay_factor=2` → `read_timeout=60.0` (approximate).
+
+### Commands That Don't Return to Standard Prompt
+
+**Symptom**: Jobs hang or timeout on commands like `ping`, `traceroute`, or interactive prompts
+
+**Solution**: Use `expect_string` to match the expected output pattern instead of relying on prompt detection:
+
+   ```json
+   {
+     "ip": "192.168.1.1",
+     "platform": "cisco_ios",
+     "expect_string": "Success rate",
+     "commands": ["ping 8.8.8.8"]
+   }
+   ```
+
+   The `expect_string` is a regex matched against device output. Useful for commands that
+   don't return to a standard prompt or have interactive elements.
+
+### Unknown or Heterogeneous Device Types
+
+**Symptom**: Managing devices with unknown or mixed platforms
+
+**Solution**: Use `platform: "autodetect"` to fingerprint devices via SSHDetect:
+
+   ```json
+   {
+     "ip": "192.168.1.1",
+     "platform": "autodetect",
+     "commands": ["show version"]
+   }
+   ```
+
+   The detected platform is returned in the job result as `detected_platform`. Note:
+
+- Adds a second SSH connection overhead (fingerprinting + actual commands)
+- Not compatible with connection pooling
+- Best for discovery workflows, not production automation against known devices
 
 3. Scale workers for parallel execution:
 
@@ -451,3 +492,84 @@ If you're still experiencing issues:
 - [Security Best Practices](security.md) - Secure your deployment
 - [API Usage Examples](api-usage.md) - Learn the API
 - [Quick Start Guide](quickstart.md) - Get started with NAAS
+
+## Connection Pooling Issues
+
+### Stale Connections
+
+**Symptom:** Commands fail with "Connection closed" or timeout errors after device reboot.
+
+**Cause:** Pooled connection became stale when device rebooted.
+
+**Solution:** NAAS automatically detects and reconnects. If issues persist, disable pooling:
+
+```yaml
+CONNECTION_POOL_ENABLED: "false"
+```
+
+### High Memory Usage
+
+**Symptom:** Worker containers consuming excessive memory.
+
+**Cause:** Too many pooled connections.
+
+**Solution:** Reduce pool size:
+
+```yaml
+CONNECTION_POOL_MAX_SIZE: "5"  # Default is 10
+```
+
+## Structured Output Issues
+
+### No Template Found
+
+**Symptom:** `/v1/send_command_structured` returns raw string instead of list[dict].
+
+**Cause:** No TextFSM template exists for the (platform, command) combination.
+
+**Solution:** Supply a custom template:
+
+```json
+{
+  "ip": "192.168.1.1",
+  "platform": "cisco_ios",
+  "commands": ["show custom"],
+  "textfsm_template": "Value FIELD (\\S+)\\n\\nStart\\n  ^${FIELD} -> Record"
+}
+```
+
+Or check [ntc-templates](https://github.com/networktocode/ntc-templates/tree/master/ntc_templates/templates) for available templates.
+
+### Parsing Errors
+
+**Symptom:** Structured output returns empty list or missing fields.
+
+**Cause:** Template doesn't match actual device output format.
+
+**Solution:** Test template with [TextFSM online tool](https://textfsm.nornir.tech/) or supply corrected custom template.
+
+## Platform Autodetect Issues
+
+### Autodetect Fails
+
+**Symptom:** `platform: "autodetect"` returns error "Platform autodetect failed".
+
+**Cause:** Device doesn't respond to SSHDetect probes, or connection fails.
+
+**Solution:** Use explicit platform instead:
+
+```json
+{
+  "ip": "192.168.1.1",
+  "platform": "cisco_ios",
+  "commands": ["show version"]
+}
+```
+
+### Wrong Platform Detected
+
+**Symptom:** Autodetect returns incorrect platform type.
+
+**Cause:** Device responds ambiguously to SSHDetect probes.
+
+**Solution:** Use explicit platform. Autodetect is best-effort and not 100% accurate.

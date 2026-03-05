@@ -38,6 +38,15 @@ All NAAS configuration is driven by environment variables. Set these in `docker-
 | `CIRCUIT_BREAKER_THRESHOLD` | `5` | Number of consecutive failures before a device's circuit opens |
 | `CIRCUIT_BREAKER_TIMEOUT` | `300` | Seconds before a tripped circuit attempts recovery (half-open state) |
 
+## Connection Pool
+
+| Variable | Default | Description |
+|---|---|---|
+| `CONNECTION_POOL_ENABLED` | `true` | Enable persistent SSH connection pooling |
+| `CONNECTION_POOL_MAX_SIZE` | `10` | Maximum connections per worker |
+| `CONNECTION_POOL_TTL` | `300` | Idle timeout in seconds before closing connections |
+| `CONNECTION_POOL_KEEPALIVE` | `30` | SSH keepalive interval in seconds |
+
 ## Example docker-compose.yml
 
 ```yaml

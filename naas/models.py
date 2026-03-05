@@ -10,7 +10,16 @@ logger = logging.getLogger(__name__)
 
 
 def _handle_device_type(data: dict[str, Any]) -> dict[str, Any]:
-    """Map deprecated device_type to platform with warning."""
+    """
+    Map deprecated device_type parameter to platform with warning.
+
+    Args:
+        data: Request data dictionary that may contain device_type
+
+    Returns:
+        Modified data dictionary with device_type mapped to platform
+    """
+    data = data.copy()  # Avoid mutating caller's dict
     if "device_type" in data:
         logger.warning(
             "Parameter 'device_type' is deprecated, use 'platform' instead. "
@@ -23,25 +32,16 @@ def _handle_device_type(data: dict[str, Any]) -> dict[str, Any]:
     return data
 
 
-class SendCommandRequest(BaseModel):
-    """Request model for send_command endpoint.
-
-    Uses strict=True because spectree passes Flask's parsed JSON body (native Python
-    types) to model_validate(). Strict mode rejects type mismatches (e.g. port sent
-    as a JSON string instead of a number) rather than silently coercing them.
-
-    NOTE: Do NOT use strict=True on query parameter models (e.g. ListJobsQuery).
-    Query params always arrive as strings from werkzeug; strict mode would reject
-    valid integer params like ?page=2 because '2' is a str, not an int.
-    """
+class _BaseCommandRequest(BaseModel):
+    """Base model for command request endpoints with common fields and validators."""
 
     model_config = {"strict": True}
 
     ip: IPvAnyAddress = Field(..., description="Device IP address")
     commands: list[str] = Field(..., min_length=1, description="Commands to execute")
     port: int = Field(default=22, ge=1, le=65535, description="SSH port")
-    platform: str = Field(default="cisco_ios", description="Netmiko device type")
-    delay_factor: int = Field(default=1, ge=1, description="Netmiko delay factor")
+    platform: str = Field(default="cisco_ios", description="Netmiko device type (use 'autodetect' for SSHDetect)")
+    read_timeout: float = Field(default=30.0, ge=1.0, description="Read timeout in seconds for device responses")
 
     @model_validator(mode="before")
     @classmethod
@@ -66,6 +66,35 @@ class SendCommandRequest(BaseModel):
         return v
 
 
+class SendCommandRequest(_BaseCommandRequest):
+    """Request model for send_command endpoint.
+
+    Uses strict=True because spectree passes Flask's parsed JSON body (native Python
+    types) to model_validate(). Strict mode rejects type mismatches (e.g. port sent
+    as a JSON string instead of a number) rather than silently coercing them.
+
+    NOTE: Do NOT use strict=True on query parameter models (e.g. ListJobsQuery).
+    Query params always arrive as strings from werkzeug; strict mode would reject
+    valid integer params like ?page=2 because '2' is a str, not an int.
+    """
+
+    expect_string: str | None = Field(
+        default=None, description="Regex pattern to match in device output (overrides prompt detection)"
+    )
+
+
+class SendCommandStructuredRequest(_BaseCommandRequest):
+    """Request model for structured send_command with TextFSM parsing.
+
+    Returns parsed output as list[dict] per command. Falls back to raw string
+    if no template is found.
+    """
+
+    textfsm_template: str | None = Field(
+        default=None, description="Custom TextFSM template (uses ntc-templates if not provided)"
+    )
+
+
 class SendConfigRequest(BaseModel):
     """Request model for send_config endpoint.
 
@@ -79,8 +108,8 @@ class SendConfigRequest(BaseModel):
     config: list[str] | None = Field(default=None, min_length=1, description="Configuration commands")
     commands: list[str] | None = Field(default=None, min_length=1, description="Configuration commands (alias)")
     port: int = Field(default=22, ge=1, le=65535, description="SSH port")
-    platform: str = Field(default="cisco_ios", description="Netmiko device type")
-    delay_factor: int = Field(default=1, ge=1, description="Netmiko delay factor")
+    platform: str = Field(default="cisco_ios", description="Netmiko device type (use 'autodetect' for SSHDetect)")
+    read_timeout: float = Field(default=30.0, ge=1.0, description="Read timeout in seconds for device responses")
     save_config: bool = Field(default=False, description="Save configuration after applying")
     commit: bool = Field(default=False, description="Commit configuration (Juniper)")
 
@@ -130,6 +159,7 @@ class JobResultResponse(BaseModel):
     status: str
     results: Any | None = None
     error: str | None = None
+    detected_platform: str | None = None
 
 
 class ListJobsQuery(BaseModel):
