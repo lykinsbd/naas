@@ -146,6 +146,10 @@ Worker replicas are set to `2` by default. Increase `spec.replicas` in
 handles one job at a time per process; the number of concurrent jobs equals the number
 of worker replicas.
 
+**Note:** Connection pooling (v1.2+) reuses SSH sessions across sequential jobs on the
+same worker, reducing latency. However, it does not change job concurrency—each worker
+still processes one job at a time. Scale replicas to increase concurrent job capacity.
+
 The worker process writes a heartbeat file to `/tmp/worker_heartbeat` every 30 seconds.
 The liveness probe checks this file was modified within the last 2 minutes — if the
 parent process hangs, Kubernetes will restart the pod. Override the path via the
