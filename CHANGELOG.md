@@ -7,51 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- towncrier release notes start -->
 
-# NAAS 1.3.1rc1 (2026-03-06)
-
-## 💥 Breaking Changes
-
-- Replace delay_factor parameter with read_timeout (float, seconds) in send_command and send_config endpoints ([#216](https://github.com/lykinsbd/naas/issues/216))
-
-## 🔒 Security
-
-- Run API and worker containers as non-root user (UID 1000) with NET_BIND_SERVICE capability for port 443 ([#198](https://github.com/lykinsbd/naas/issues/198))
-- Set readOnlyRootFilesystem on API and worker containers; pre-compile Python bytecode in Dockerfile ([#206](https://github.com/lykinsbd/naas/issues/206))
-
-## ✨ Features
-
-- Add /v1/send_command_structured endpoint with TextFSM parsing via ntc-templates or custom templates ([#219](https://github.com/lykinsbd/naas/issues/219))
-- Add optional expect_string parameter to send_command for custom prompt matching ([#220](https://github.com/lykinsbd/naas/issues/220))
-- Add platform autodetect via SSHDetect for discovery workflows and heterogeneous environments ([#222](https://github.com/lykinsbd/naas/issues/222))
-
-## 🐛 Bug Fixes
-
-- Detect config errors via `error_pattern` in `send_config_set`, returning error string instead of succeeding silently ([#217](https://github.com/lykinsbd/naas/issues/217))
-- Call find_prompt() after connection pool hit to verify clean CLI state before issuing commands ([#218](https://github.com/lykinsbd/naas/issues/218))
-- Use `setnx` for `naas_cred_salt` so API restarts do not invalidate existing connection pool keys and in-flight job auth ([#223](https://github.com/lykinsbd/naas/issues/223))
-- Pass Redis connection explicitly to `tacacs_auth_lockout` and `device_lockout`, eliminating per-request TCP connection overhead ([#224](https://github.com/lykinsbd/naas/issues/224))
-- Set explicit `job_timeout` on enqueue to prevent hung workers holding for RQ's 180s default ([#226](https://github.com/lykinsbd/naas/issues/226))
-- Call `redis.ping()` at startup to fail fast if Redis is unavailable ([#227](https://github.com/lykinsbd/naas/issues/227))
+# NAAS 1.3.1 (2026-03-06)
 
 ## 📚 Documentation
 
 - Standardize bash syntax highlighting in kubernetes.md code blocks. ([#201](https://github.com/lykinsbd/naas/issues/201))
 - Clarify worker concurrency vs connection pooling in kubernetes.md. ([#202](https://github.com/lykinsbd/naas/issues/202))
 - Add response schema documentation to HealthCheck.get() docstring. ([#203](https://github.com/lykinsbd/naas/issues/203))
-- Add comprehensive documentation for v1.3.0 features: job cancellation, connection pooling, Prometheus metrics, audit events, expect_string parameter, and troubleshooting guides
 - Add v1.2 and v1.3 release notes and fix v1.0.0 changelog entry.
-
-## 🔧 Internal Changes
-
-- Explicitly set fast_cli=True on ConnectHandler for consistent throughput across all platforms ([#221](https://github.com/lykinsbd/naas/issues/221))
-- Use Job.fetch_many() in ListJobs to batch-fetch job details in a single Redis pipeline call ([#225](https://github.com/lykinsbd/naas/issues/225))
-- Pass Job object directly to `job_locker` to avoid redundant Redis fetch after enqueue ([#228](https://github.com/lykinsbd/naas/issues/228))
-- Add comment to `worker_cache` documenting per-process global state assumption ([#229](https://github.com/lykinsbd/naas/issues/229))
-- Ignore codecov.io badge URLs in link-check to prevent flaky CI failures ([#234](https://github.com/lykinsbd/naas/issues/234))
-- Share Docker image between build.yml and k8s-tests via artifact to eliminate duplicate builds ([#240](https://github.com/lykinsbd/naas/issues/240))
-- Automate release workflow: auto-create PR from main to develop, auto-bump develop to next alpha version after release
-- Improve code quality: add docstrings, avoid mutable dict mutations, replace bare except with specific exceptions, eliminate type ignore comments
-- Replace shell scripts with Python for changelog cleanup, add comprehensive unit tests, fix bugs in cleanup_released_fragments and cleanup_changelog scripts
 
 # NAAS 1.3.0rc2 (2026-03-04)
 
