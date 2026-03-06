@@ -132,22 +132,6 @@ jobs:
           git tag -a "v${{ needs.check-version.outputs.version }}" -m "Release v${{ needs.check-version.outputs.version }}"
           git push origin "v${{ needs.check-version.outputs.version }}"
 
-      - name: Clean up fragments on release branch
-        if: needs.check-version.outputs.is_prerelease == 'false' && startsWith(github.ref, 'refs/heads/release/')
-        run: |
-          # For final releases from release branches, delete fragments on the branch too
-          # This prevents them from being included in future patch releases
-          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
-          git checkout "$BRANCH_NAME"
-          git pull origin "$BRANCH_NAME"
-
-          # Remove all fragments that were just released
-          if [ -d changes ] && [ "$(ls -A changes/*.md 2>/dev/null)" ]; then
-            git rm changes/*.md || true
-            git commit -m "chore: remove v${{ needs.check-version.outputs.version }} changelog fragments" || echo "No fragments to remove"
-            git push origin "$BRANCH_NAME"
-          fi
-
       - name: Extract changelog excerpt
         run: |
           VERSION="${{ needs.check-version.outputs.version }}"
