@@ -45,7 +45,7 @@ jobs:
       - name: Create PR to bump to final version
         if: steps.check.outputs.is_prerelease == 'true'
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
           FINAL_VERSION="${{ steps.check.outputs.final_version }}"
           echo "Creating PR to bump from ${{ steps.check.outputs.current_version }} to $FINAL_VERSION"
