@@ -41,6 +41,46 @@ jobs:
             --title "chore: sync v${VERSION} release back to develop" \
             --body "Automated PR to sync release v${VERSION} from main back to develop. After merging, manually bump develop to the next alpha version."
 
+  sync-to-release-branch:
+    runs-on: ubuntu-latest
+    # Only run for patch releases (v1.3.1, v1.3.2, etc.) - not initial releases (v1.3.0)
+    if: "!contains(github.ref_name, 'b') && !contains(github.ref_name, 'rc') && contains(github.ref_name, '.')"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Sync to release branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          # Extract major.minor (e.g., 1.3 from 1.3.1)
+          MAJOR_MINOR=$(echo "$VERSION" | cut -d. -f1,2)
+          RELEASE_BRANCH="release/${MAJOR_MINOR}"
+
+          # Check if release branch exists
+          if ! git ls-remote --heads origin "$RELEASE_BRANCH" | grep -q "$RELEASE_BRANCH"; then
+            echo "Release branch $RELEASE_BRANCH does not exist, skipping"
+            exit 0
+          fi
+
+          # Fetch release branch
+          git fetch origin "$RELEASE_BRANCH"
+
+          # Check if main is ahead of release branch (has the tag commit)
+          if git merge-base --is-ancestor "origin/$RELEASE_BRANCH" main; then
+            # Fast-forward merge is possible
+            git checkout "$RELEASE_BRANCH"
+            git merge --ff-only main
+            git push origin "$RELEASE_BRANCH"
+            echo "✅ Fast-forwarded $RELEASE_BRANCH to include v${VERSION} release commit"
+          else
+            echo "⚠️  Cannot fast-forward $RELEASE_BRANCH - manual merge required"
+            exit 1
+          fi
+
   bump-develop:
     runs-on: ubuntu-latest
     needs: sync-to-develop
