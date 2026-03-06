@@ -40,6 +40,12 @@ jobs:
 
       - name: Check for news fragment
         run: |
+          # Skip check for sync PRs from main to develop
+          if [[ "${{ github.base_ref }}" == "develop" && "${{ github.head_ref }}" == "main" ]]; then
+            echo "✅ Skipping changelog check for sync PR from main to develop"
+            exit 0
+          fi
+
           # Check if any changelog fragment exists (issue number or + prefix)
           if ! ls changes/*.*.md 1> /dev/null 2>&1; then
             echo "❌ Error: No changelog fragment found"
