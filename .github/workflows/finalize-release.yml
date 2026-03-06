@@ -53,8 +53,8 @@ jobs:
           # Create a branch for the version bump
           git checkout -b release/finalize-$FINAL_VERSION
 
-          # Update pyproject.toml
-          sed -i "s/version = \".*\"/version = \"${FINAL_VERSION}\"/" pyproject.toml
+          # Update pyproject.toml (only first occurrence - the package version)
+          sed -i "0,/^version = /s/^version = .*/version = \"${FINAL_VERSION}\"/" pyproject.toml
           uv lock
 
           # Commit
