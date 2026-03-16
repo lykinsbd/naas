@@ -14,7 +14,25 @@ _START_TIME = time.time()
 
 class HealthCheck(Resource):
     def get(self):
-        """Return detailed health status including component checks."""
+        """Return detailed health status including component checks.
+
+        Returns:
+            dict: Health status with the following structure:
+                {
+                    "status": str,  # "healthy", "degraded", or "no_workers"
+                    "version": str,  # NAAS version
+                    "uptime_seconds": int,  # Seconds since API start
+                    "components": {
+                        "redis": {"status": str},  # "healthy" or "unhealthy"
+                        "queue": {"status": str, "depth": int},  # Queue status and job count
+                        "workers": {
+                            "status": str,  # "healthy" or "no_workers"
+                            "count": int,  # Number of worker pods/hosts
+                            "active_jobs": int  # Jobs currently processing
+                        }
+                    }
+                }
+        """
         redis = current_app.config["redis"]
         q = current_app.config["q"]
 

@@ -45,7 +45,7 @@ jobs:
       - name: Create PR to bump to final version
         if: steps.check.outputs.is_prerelease == 'true'
         env:
-          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           FINAL_VERSION="${{ steps.check.outputs.final_version }}"
           echo "Creating PR to bump from ${{ steps.check.outputs.current_version }} to $FINAL_VERSION"
@@ -53,8 +53,8 @@ jobs:
           # Create a branch for the version bump
           git checkout -b release/finalize-$FINAL_VERSION
 
-          # Update pyproject.toml (only first occurrence - the package version)
-          sed -i "0,/^version = /s/^version = .*/version = \"${FINAL_VERSION}\"/" pyproject.toml
+          # Update pyproject.toml
+          sed -i "s/version = \".*\"/version = \"${FINAL_VERSION}\"/" pyproject.toml
           uv lock
 
           # Commit

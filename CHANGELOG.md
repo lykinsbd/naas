@@ -7,7 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- towncrier release notes start -->
 
-# NAAS 1.3.0 (2026-03-05)
+# NAAS 1.3.1 (2026-03-06)
+
+## 📚 Documentation
+
+- Standardize bash syntax highlighting in kubernetes.md code blocks. ([#201](https://github.com/lykinsbd/naas/issues/201))
+- Clarify worker concurrency vs connection pooling in kubernetes.md. ([#202](https://github.com/lykinsbd/naas/issues/202))
+- Add response schema documentation to HealthCheck.get() docstring. ([#203](https://github.com/lykinsbd/naas/issues/203))
+- Add v1.2 and v1.3 release notes and fix v1.0.0 changelog entry.
+
+# NAAS 1.3.0rc2 (2026-03-04)
 
 ## 💥 Breaking Changes
 
