@@ -1,6 +1,6 @@
 ########################################
 # Multi-stage build for optimized image size
-FROM python:3.11-slim AS builder
+FROM python:3.14-slim AS builder
 
 # Fixes encoding-related bugs
 ENV LC_ALL=C.UTF-8
@@ -19,7 +19,7 @@ RUN uv export --no-dev --no-emit-project | uv pip install --system -r /dev/stdin
 
 ########################################
 # Final runtime image
-FROM python:3.11-slim
+FROM python:3.14-slim
 
 # Fixes encoding-related bugs
 ENV LC_ALL=C.UTF-8
