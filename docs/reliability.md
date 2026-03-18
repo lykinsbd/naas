@@ -28,7 +28,7 @@ When a circuit is open, the job completes immediately with `status: failed` and 
 ### Configuration
 
 | Variable | Default | Description |
-|---|---|---|
+| --- | --- | --- |
 | `CIRCUIT_BREAKER_ENABLED` | `true` | Disable entirely if needed |
 | `CIRCUIT_BREAKER_THRESHOLD` | `5` | Failures before circuit opens |
 | `CIRCUIT_BREAKER_TIMEOUT` | `300` | Seconds before recovery attempt |
@@ -69,7 +69,7 @@ Workers handle `SIGTERM` gracefully. When a shutdown signal is received:
 This prevents job loss during container restarts, deployments, and scaling events.
 
 | Variable | Default | Description |
-|---|---|---|
+| --- | --- | --- |
 | `SHUTDOWN_TIMEOUT` | `60` | Seconds to wait for in-flight job before force-exit |
 
 ## Job TTL
@@ -77,7 +77,7 @@ This prevents job loss during container restarts, deployments, and scaling event
 Job results are retained in Redis for a configurable period to prevent unbounded memory growth:
 
 | Variable | Default | Description |
-|---|---|---|
+| --- | --- | --- |
 | `JOB_TTL_SUCCESS` | `86400` | Seconds to retain successful results (24h) |
 | `JOB_TTL_FAILED` | `604800` | Seconds to retain failed results (7 days) |
 

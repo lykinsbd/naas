@@ -35,7 +35,7 @@ NAAS uses a Git Flow-inspired model with long-lived release branches.
 ### Long-lived branches
 
 | Branch | Purpose |
-|---|---|
+| --- | --- |
 | `main` | Production releases only (`v1.0.0`, `v1.1.0`) |
 | `develop` | Integration branch (`v1.2.0a1`) |
 | `release/X.Y` | Maintenance branches — kept permanently |
@@ -43,7 +43,7 @@ NAAS uses a Git Flow-inspired model with long-lived release branches.
 ### Feature branch types (from `develop`)
 
 | Prefix | Use |
-|---|---|
+| --- | --- |
 | `feature/` | New features |
 | `fix/` | Bug fixes in unreleased code |
 | `docs/` | Documentation changes |
@@ -72,7 +72,7 @@ All commits must follow [Conventional Commits](https://www.conventionalcommits.o
 ```
 
 | Type | Use |
-|---|---|
+| --- | --- |
 | `feat` | New feature |
 | `fix` | Bug fix |
 | `docs` | Documentation only |
@@ -154,7 +154,7 @@ uv run invoke changelog-draft
 ### Fragment types
 
 | Type | Shown to users | Use |
-|---|---|---|
+| --- | --- | --- |
 | `feature` | ✅ | New features |
 | `bugfix` | ✅ | Bug fixes |
 | `security` | ✅ | Security improvements |
@@ -316,7 +316,7 @@ git push
 ### Common mistakes to avoid
 
 | ❌ Don't | ✅ Do |
-|---|---|
+| --- | --- |
 | Run `towncrier build` manually | Let CI build changelog |
 | Bump version on `develop` before release | Only bump on `release/X.Y` |
 | Create release branch from `main` | Always branch from `develop` |
