@@ -41,7 +41,6 @@ dev = [
     "fakeredis>=2.21.0",
     "ipython>=8.0.0",
     "ruff>=0.8.0",
-    "black>=24.0.0",
     "mypy>=1.13.0",
     "pre-commit>=4.0.0",
     "requests>=2.31.0",
@@ -87,10 +86,6 @@ ignore = ["E501", "B904"]  # Line too long, exception chaining
 
 [tool.ruff.lint.isort]
 known-first-party = ["naas"]
-
-[tool.black]
-line-length = 120
-target-version = ["py311"]
 
 [tool.mypy]
 python_version = "3.11"
