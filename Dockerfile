@@ -1,6 +1,6 @@
 ########################################
 # Multi-stage build for optimized image size
-ARG PYTHON_VERSION=3.11
+ARG PYTHON_VERSION=3.14
 FROM python:${PYTHON_VERSION}-slim AS builder
 
 # Fixes encoding-related bugs
@@ -20,7 +20,7 @@ RUN uv export --no-dev --no-emit-project | uv pip install --system -r /dev/stdin
 
 ########################################
 # Final runtime image
-ARG PYTHON_VERSION=3.11
+ARG PYTHON_VERSION=3.14
 FROM python:${PYTHON_VERSION}-slim
 
 # Fixes encoding-related bugs
