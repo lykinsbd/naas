@@ -1,6 +1,7 @@
 ########################################
 # Multi-stage build for optimized image size
-FROM python:3.11-slim AS builder
+ARG PYTHON_VERSION=3.11
+FROM python:${PYTHON_VERSION}-slim AS builder
 
 # Fixes encoding-related bugs
 ENV LC_ALL=C.UTF-8
@@ -19,7 +20,8 @@ RUN uv export --no-dev --no-emit-project | uv pip install --system -r /dev/stdin
 
 ########################################
 # Final runtime image
-FROM python:3.11-slim
+ARG PYTHON_VERSION=3.11
+FROM python:${PYTHON_VERSION}-slim
 
 # Fixes encoding-related bugs
 ENV LC_ALL=C.UTF-8
@@ -40,8 +42,9 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/* && \
     useradd -r -u 1000 -s /sbin/nologin naas
 
-# Copy installed packages from builder
-COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+# Copy installed packages from builder using dynamic Python version path
+ARG PYTHON_VERSION=3.11
+COPY --from=builder /usr/local/lib/python${PYTHON_VERSION}/site-packages /usr/local/lib/python${PYTHON_VERSION}/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Make our working dir "/app"
