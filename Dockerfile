@@ -43,7 +43,7 @@ RUN apt-get update && \
     useradd -r -u 1000 -s /sbin/nologin naas
 
 # Copy installed packages from builder using dynamic Python version path
-ARG PYTHON_VERSION=3.11
+ARG PYTHON_VERSION=3.14
 COPY --from=builder /usr/local/lib/python${PYTHON_VERSION}/site-packages /usr/local/lib/python${PYTHON_VERSION}/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
