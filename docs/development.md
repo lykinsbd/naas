@@ -346,3 +346,20 @@ uv add package-name           # Add runtime dependency
 uv add --dev package-name     # Add dev dependency
 # Commit both pyproject.toml and uv.lock
 ```
+
+## Architectural Decision Records (ADRs)
+
+Significant architectural decisions are documented as ADRs in `docs/adr/` using [MADR format](https://adr.github.io/madr/).
+
+**When to write an ADR:** choosing between non-trivial technical approaches, adopting a new tool or pattern, or making a hard-to-reverse decision.
+
+**How to add one:**
+
+```bash
+# Copy the template and fill it in
+cp docs/adr/template.md docs/adr/NNNN-short-title.md
+# Open a PR — discussion happens in review
+# Update docs/adr/README.md index
+```
+
+See [docs/adr/README.md](adr/README.md) for the full process.

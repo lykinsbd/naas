@@ -81,6 +81,9 @@ nav:
       - Testing: testing.md
   - Reference:
       - API Reference: api-reference.md
+      - Architecture Decisions:
+          - ADR Index: adr/README.md
+          - "0001: Python Client Integration": adr/0001-python-client-library-integration.md
       - Changelog: changelog.md
       - Release Notes:
           - v1.3: release-notes/v1.3.md
