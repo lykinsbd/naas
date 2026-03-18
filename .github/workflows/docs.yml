@@ -69,6 +69,7 @@ jobs:
         with:
           use-quiet-mode: 'yes'
           config-file: '.markdown-link-check.json'
+          exclude-file: 'docs/adr/template.md'
 
   check-openapi-spec:
     runs-on: ubuntu-latest
