@@ -2,7 +2,7 @@
 
 ## [Short title of the decision]
 
-* Status: [Proposed | Accepted | Deprecated | Superseded by [ADR-NNNN](NNNN-title.md)]
+* Status: [Proposed | Accepted | Deprecated | Superseded by ADR-NNNN]
 * Date: YYYY-MM-DD
 
 ## Context and Problem Statement
