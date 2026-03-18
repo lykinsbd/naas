@@ -14,7 +14,7 @@ NAAS provides structured logging, request tracing, and Prometheus metrics for mo
 All log output is JSON. Each line includes:
 
 | Field | Description |
-|---|---|
+| --- | --- |
 | `timestamp` | ISO 8601 timestamp |
 | `level` | Log level (`INFO`, `DEBUG`, `WARNING`, `ERROR`) |
 | `logger` | Logger name (e.g. `NAAS`) |
