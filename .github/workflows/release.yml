@@ -176,6 +176,16 @@ jobs:
             mv .changelog-final.md .changelog-excerpt.md
           fi
 
+      - name: Generate API client collections
+        run: |
+          VERSION="${{ needs.check-version.outputs.version }}"
+          # Generate Postman collection from OpenAPI spec
+          npx --yes openapi-to-postmanv2 \
+            -s docs/swagger/openapi.json \
+            -o "naas-v${VERSION}.postman_collection.json"
+          # Copy OpenAPI spec with versioned filename
+          cp docs/swagger/openapi.json "naas-v${VERSION}.openapi.json"
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -183,3 +193,6 @@ jobs:
           body_path: .changelog-excerpt.md
           draft: false
           prerelease: ${{ needs.check-version.outputs.is_prerelease }}
+          files: |
+            naas-v${{ needs.check-version.outputs.version }}.postman_collection.json
+            naas-v${{ needs.check-version.outputs.version }}.openapi.json
