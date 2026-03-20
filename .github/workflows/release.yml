@@ -176,6 +176,11 @@ jobs:
             mv .changelog-final.md .changelog-excerpt.md
           fi
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
       - name: Generate API client collections
         run: |
           VERSION="${{ needs.check-version.outputs.version }}"
