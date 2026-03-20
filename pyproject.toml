@@ -30,6 +30,8 @@ dependencies = [
     "scp>=0.13.2",
     "spectree>=2.0.1",
     "textfsm>=1.1.0",
+    "ttp>=0.10.0",
+    "ttp-templates>=0.4.0",
 ]
 
 [project.optional-dependencies]

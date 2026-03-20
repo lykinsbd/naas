@@ -74,6 +74,7 @@ class SendCommandStructured(Resource):
             commands=validated.commands,
             read_timeout=validated.read_timeout,
             textfsm_template=validated.textfsm_template,
+            ttp_template=validated.ttp_template,
             request_id=g.request_id,
             job_id=g.request_id,
             job_timeout=JOB_TIMEOUT,
