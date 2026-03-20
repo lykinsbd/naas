@@ -11,7 +11,7 @@ Use the `/v1/send_command_structured` endpoint:
 curl -k -u "username:password" https://localhost:8443/v1/send_command_structured \
   -H "Content-Type: application/json" \
   -d '{
-    "ip": "192.168.1.1",
+    "host": "192.168.1.1",
     "platform": "cisco_ios",
     "commands": ["show version", "show ip interface brief"]
   }'
@@ -68,7 +68,7 @@ Supply your own TextFSM template for commands not covered by ntc-templates:
 
 ```json
 {
-  "ip": "192.168.1.1",
+  "host": "192.168.1.1",
   "platform": "cisco_ios",
   "commands": ["show custom output"],
   "textfsm_template": "Value FIELD1 (\\S+)\\nValue FIELD2 (\\S+)\\n\\nStart\\n  ^${FIELD1}\\s+${FIELD2} -> Record"
@@ -102,7 +102,7 @@ Use `platform: "autodetect"` to fingerprint unknown devices:
 
 ```json
 {
-  "ip": "192.168.1.1",
+  "host": "192.168.1.1",
   "platform": "autodetect",
   "commands": ["show version"]
 }
@@ -154,7 +154,7 @@ response = requests.post(
     "https://naas.local/v1/send_command_structured",
     auth=("user", "pass"),
     json={
-        "ip": "192.168.1.1",
+        "host": "192.168.1.1",
         "platform": "cisco_ios",
         "commands": ["show version", "show inventory"]
     },
@@ -181,7 +181,7 @@ response = requests.post(
     "https://naas.local/v1/send_command_structured",
     auth=("user", "pass"),
     json={
-        "ip": "192.168.1.1",
+        "host": "192.168.1.1",
         "platform": "autodetect",
         "commands": ["show version"]
     },
@@ -210,7 +210,7 @@ response = requests.post(
     "https://naas.local/v1/send_command_structured",
     auth=("user", "pass"),
     json={
-        "ip": "192.168.1.1",
+        "host": "192.168.1.1",
         "platform": "cisco_ios",
         "commands": ["show vlan brief"],
         "textfsm_template": template
@@ -229,7 +229,7 @@ Pass a `ttp_template` instead of `textfsm_template` — the two are mutually exc
 curl -k -u "username:password" https://localhost:8443/v1/send_command_structured \
   -H "Content-Type: application/json" \
   -d '{
-    "ip": "192.168.1.1",
+    "host": "192.168.1.1",
     "platform": "cisco_ios",
     "commands": ["show interfaces"],
     "ttp_template": "interface {{ interface }}\n ip address {{ ip }} {{ mask }}"

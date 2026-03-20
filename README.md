@@ -22,7 +22,7 @@ docker compose up -d
 curl -k -X POST https://localhost:8443/v1/send_command \
   -u "username:password" \
   -H "Content-Type: application/json" \
-  -d '{"ip": "192.168.1.1", "platform": "cisco_ios", "commands": ["show version"]}'
+  -d '{"host": "192.168.1.1", "platform": "cisco_ios", "commands": ["show version"]}'
 ```
 
 📖 **[Full documentation](https://naas.readthedocs.io/)** | 🚀 **[Installation guide](https://naas.readthedocs.io/en/latest/installation/)** | 📚 **[API reference](https://naas.readthedocs.io/en/latest/api-reference/)**

@@ -55,7 +55,7 @@ curl -k -X POST https://localhost:8443/v1/send_command \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -H "X-Request-ID: 550e8400-e29b-41d4-a716-446655440000" \
-  -d '{"ip": "192.168.1.1", "platform": "cisco_ios", "commands": ["show version"]}'
+  -d '{"host": "192.168.1.1", "platform": "cisco_ios", "commands": ["show version"]}'
 ```
 
 If omitted, NAAS generates one automatically.
