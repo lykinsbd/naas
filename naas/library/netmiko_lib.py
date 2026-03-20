@@ -115,6 +115,8 @@ def _netmiko_send_command_impl(
     expect_string: str | None = None,
     use_textfsm: bool = False,
     textfsm_template: str | None = None,
+    use_ttp: bool = False,
+    ttp_template: str | None = None,
     verbose: bool = False,
     request_id: str = "",
 ) -> "tuple[dict | None, str | None]":
@@ -136,8 +138,8 @@ def _netmiko_send_command_impl(
         device_type = device_type_result
         detected_platform = device_type
 
-    # Skip pool for autodetect or TextFSM (template state makes pooling unreliable)
-    use_pool = CONNECTION_POOL_ENABLED and detected_platform is None and not use_textfsm
+    # Skip pool for autodetect, TextFSM, or TTP (template state makes pooling unreliable)
+    use_pool = CONNECTION_POOL_ENABLED and detected_platform is None and not use_textfsm and not use_ttp
 
     netmiko_device = {
         "device_type": device_type,
@@ -183,6 +185,10 @@ def _netmiko_send_command_impl(
                 kwargs["use_textfsm"] = True
                 if textfsm_template is not None:
                     kwargs["textfsm_template"] = textfsm_template
+            if use_ttp:
+                kwargs["use_ttp"] = True
+                if ttp_template is not None:
+                    kwargs["ttp_template"] = ttp_template
             net_output[command] = net_connect.send_command(command, **kwargs)
 
         if use_pool:
@@ -226,14 +232,18 @@ def netmiko_send_command_structured(
     port: int = 22,
     read_timeout: float = 30.0,
     textfsm_template: str | None = None,
+    ttp_template: str | None = None,
     verbose: bool = False,
     request_id: str = "",
 ) -> "tuple[dict | None, str | None]":
     """
-    Send commands with TextFSM parsing for structured output.
+    Send commands with TextFSM or TTP parsing for structured output.
 
-    Thin wrapper around _netmiko_send_command_impl with use_textfsm=True.
+    Thin wrapper around _netmiko_send_command_impl. Exactly one of
+    textfsm_template/use_textfsm or ttp_template/use_ttp should be set.
     """
+    use_textfsm = ttp_template is None
+    use_ttp = ttp_template is not None
     if CIRCUIT_BREAKER_ENABLED:
         return with_circuit_breaker(  # type: ignore[no-any-return]
             ip,
@@ -246,13 +256,27 @@ def netmiko_send_command_structured(
             port,
             read_timeout,
             None,  # expect_string
-            True,  # use_textfsm
+            use_textfsm,
             textfsm_template,
+            use_ttp,
+            ttp_template,
             verbose,
             request_id,
         )
     return _netmiko_send_command_impl(
-        ip, credentials, device_type, commands, port, read_timeout, None, True, textfsm_template, verbose, request_id
+        ip,
+        credentials,
+        device_type,
+        commands,
+        port,
+        read_timeout,
+        None,
+        use_textfsm,
+        textfsm_template,
+        use_ttp,
+        ttp_template,
+        verbose,
+        request_id,
     )
 
 

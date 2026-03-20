@@ -121,7 +121,7 @@
         "type": "object"
       },
       "SendCommandStructuredRequest.c5eb086": {
-        "description": "Request model for structured send_command with TextFSM parsing.\n\nReturns parsed output as list[dict] per command. Falls back to raw string\nif no template is found.",
+        "description": "Request model for structured send_command with TextFSM or TTP parsing.\n\nReturns parsed output as list[dict] per command. Falls back to raw string\nif no template is found.",
         "properties": {
           "commands": {
             "description": "Commands to execute",
@@ -171,6 +171,19 @@
             "default": null,
             "description": "Custom TextFSM template (uses ntc-templates if not provided)",
             "title": "Textfsm Template"
+          },
+          "ttp_template": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "TTP template string or ttp://<path> reference (mutually exclusive with textfsm_template)",
+            "title": "Ttp Template"
           }
         },
         "required": [

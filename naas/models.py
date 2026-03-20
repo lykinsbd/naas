@@ -84,7 +84,7 @@ class SendCommandRequest(_BaseCommandRequest):
 
 
 class SendCommandStructuredRequest(_BaseCommandRequest):
-    """Request model for structured send_command with TextFSM parsing.
+    """Request model for structured send_command with TextFSM or TTP parsing.
 
     Returns parsed output as list[dict] per command. Falls back to raw string
     if no template is found.
@@ -93,6 +93,17 @@ class SendCommandStructuredRequest(_BaseCommandRequest):
     textfsm_template: str | None = Field(
         default=None, description="Custom TextFSM template (uses ntc-templates if not provided)"
     )
+    ttp_template: str | None = Field(
+        default=None,
+        description="TTP template string or ttp://<path> reference (mutually exclusive with textfsm_template)",
+    )
+
+    @model_validator(mode="after")
+    def validate_parser_exclusivity(self) -> "SendCommandStructuredRequest":
+        """Ensure textfsm_template and ttp_template are mutually exclusive."""
+        if self.textfsm_template is not None and self.ttp_template is not None:
+            raise ValueError("textfsm_template and ttp_template are mutually exclusive")
+        return self
 
 
 class SendConfigRequest(BaseModel):

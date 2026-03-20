@@ -1104,6 +1104,8 @@ dependencies = [
     { name = "scp" },
     { name = "spectree" },
     { name = "textfsm" },
+    { name = "ttp" },
+    { name = "ttp-templates" },
 ]
 
 [package.optional-dependencies]
@@ -1162,6 +1164,8 @@ requires-dist = [
     { name = "spectree", specifier = ">=2.0.1" },
     { name = "textfsm", specifier = ">=1.1.0" },
     { name = "towncrier", marker = "extra == 'dev'", specifier = ">=23.11.0" },
+    { name = "ttp", specifier = ">=0.10.0" },
+    { name = "ttp-templates", specifier = ">=0.4.0" },
 ]
 provides-extras = ["dev"]
 
@@ -1938,6 +1942,27 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/eb/79/72064e6a701c2183016abbbfedaba506d81e30e232a68c9f0d6f6fcd1574/traitlets-5.14.3.tar.gz", hash = "sha256:9ed0579d3502c94b4b3732ac120375cda96f923114522847de4b3bb98b96b6b7", size = 161621, upload-time = "2024-04-19T11:11:49.746Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/00/c0/8f5d070730d7836adc9c9b6408dec68c6ced86b304a9b26a14df072a6e8c/traitlets-5.14.3-py3-none-any.whl", hash = "sha256:b74e89e397b1ed28cc831db7aea759ba6640cb3de13090ca145426688ff1ac4f", size = 85359, upload-time = "2024-04-19T11:11:46.763Z" },
+]
+
+[[package]]
+name = "ttp"
+version = "0.10.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/83/e6/9169d35574be82df2a0cdd2546f4f83d0d30964cf0043fc9784df855b024/ttp-0.10.0.tar.gz", hash = "sha256:40f1ca61ee1431f5b1ab5326fb55f852a04749e9574792d45455b62c5e7ac97b", size = 64665, upload-time = "2025-11-02T08:47:50.329Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b3/c3/60abb45bd8eb973997f133eb76949523478d35dfc551a0dbd8906b6a8075/ttp-0.10.0-py3-none-any.whl", hash = "sha256:9985e0ca414e85d41493a6291a924624b9a08c48c78d2d01477cc60ba2a347c1", size = 84287, upload-time = "2025-11-02T08:47:48.656Z" },
+]
+
+[[package]]
+name = "ttp-templates"
+version = "0.4.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "ttp" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/21/0e/2649128b69cb4b4b6db4029a42dff45f1becab9f1e86856febb5f8974a77/ttp_templates-0.4.0.tar.gz", hash = "sha256:607cfd1d111e24dbfd9c871d79d83ee7c55e61c32feb9296ca01674b010f9994", size = 43863, upload-time = "2026-03-15T12:06:17.758Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4a/97/c27b9cfef1a5bfd869b69cfc322d360749dff0d679fe052fe8be99eee946/ttp_templates-0.4.0-py3-none-any.whl", hash = "sha256:c61364d7e6e256adf0d753b11b117965fda6aa556f6a7addc6a1646007517b08", size = 81988, upload-time = "2026-03-15T12:06:16.338Z" },
 ]
 
 [[package]]

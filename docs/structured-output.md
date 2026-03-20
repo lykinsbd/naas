@@ -218,3 +218,50 @@ response = requests.post(
     verify=False
 )
 ```
+
+## TTP (Template Text Parser)
+
+[TTP](https://ttp.readthedocs.io/) is an alternative parser with Jinja2-like syntax. Use it when you prefer TTP's template style or need features not available in TextFSM.
+
+Pass a `ttp_template` instead of `textfsm_template` — the two are mutually exclusive:
+
+```bash
+curl -k -u "username:password" https://localhost:8443/v1/send_command_structured \
+  -H "Content-Type: application/json" \
+  -d '{
+    "ip": "192.168.1.1",
+    "platform": "cisco_ios",
+    "commands": ["show interfaces"],
+    "ttp_template": "interface {{ interface }}\n ip address {{ ip }} {{ mask }}"
+  }'
+```
+
+### TTP Template Syntax
+
+TTP templates use `{{ variable }}` placeholders:
+
+```text
+interface {{ interface }}
+ ip address {{ ip }} {{ mask }}
+ description {{ description | ORPHRASE }}
+```
+
+See [TTP documentation](https://ttp.readthedocs.io/) for full syntax.
+
+### Community Templates
+
+The [`ttp-templates`](https://github.com/dmulyalin/ttp_templates) library provides community-maintained templates. Reference them with `ttp://` prefix:
+
+```json
+{
+  "ttp_template": "ttp://platform/cisco_ios/show_interfaces.txt"
+}
+```
+
+### When to Use TTP vs TextFSM
+
+| | TextFSM | TTP |
+| --- | --- | --- |
+| Community templates | ntc-templates (large, active) | ttp-templates (small) |
+| Template syntax | Regex-based | Jinja2-like |
+| Best for | Standard commands with ntc-templates coverage | Custom parsing, complex structures |
