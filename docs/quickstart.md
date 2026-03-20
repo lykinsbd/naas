@@ -45,7 +45,7 @@ curl -k -X POST https://localhost:8443/v1/send_command \
   -u "device_username:device_password" \
   -H "Content-Type: application/json" \
   -d '{
-    "ip": "192.168.1.1",
+    "host": "192.168.1.1",
     "platform": "cisco_ios",
     "commands": ["show version"]
   }'
@@ -92,7 +92,7 @@ curl -k -X POST https://localhost:8443/v1/send_config \
   -u "device_username:device_password" \
   -H "Content-Type: application/json" \
   -d '{
-    "ip": "192.168.1.1",
+    "host": "192.168.1.1",
     "platform": "cisco_ios",
     "commands": [
       "interface GigabitEthernet0/1",

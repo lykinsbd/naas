@@ -85,10 +85,9 @@
             "description": "Regex pattern to match in device output (overrides prompt detection)",
             "title": "Expect String"
           },
-          "ip": {
-            "description": "Device IP address",
-            "format": "ipvanyaddress",
-            "title": "Ip",
+          "host": {
+            "description": "Device IP address or hostname",
+            "title": "Host",
             "type": "string"
           },
           "platform": {
@@ -114,7 +113,7 @@
           }
         },
         "required": [
-          "ip",
+          "host",
           "commands"
         ],
         "title": "SendCommandRequest",
@@ -132,10 +131,9 @@
             "title": "Commands",
             "type": "array"
           },
-          "ip": {
-            "description": "Device IP address",
-            "format": "ipvanyaddress",
-            "title": "Ip",
+          "host": {
+            "description": "Device IP address or hostname",
+            "title": "Host",
             "type": "string"
           },
           "platform": {
@@ -187,7 +185,7 @@
           }
         },
         "required": [
-          "ip",
+          "host",
           "commands"
         ],
         "title": "SendCommandStructuredRequest",
@@ -236,10 +234,9 @@
             "description": "Configuration commands",
             "title": "Config"
           },
-          "ip": {
-            "description": "Device IP address",
-            "format": "ipvanyaddress",
-            "title": "Ip",
+          "host": {
+            "description": "Device IP address or hostname",
+            "title": "Host",
             "type": "string"
           },
           "platform": {
@@ -271,7 +268,7 @@
           }
         },
         "required": [
-          "ip"
+          "host"
         ],
         "title": "SendConfigRequest",
         "type": "object"

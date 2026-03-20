@@ -6,6 +6,11 @@ Detailed examples for common NAAS API operations.
     The `delay_factor` parameter was replaced with `read_timeout` (float, seconds).
     Migrate by converting: `delay_factor=2` → `read_timeout=60.0` (approximate).
 
+!!! warning "Deprecation in v1.4: ip field"
+    The `ip` field is deprecated. Use `host` instead — it accepts IPv4, IPv6, and hostnames.
+    The `ip` field still works but will be removed in v2.0.
+    Example: `{"host": "192.168.1.1", ...}` or `{"host": "router1.example.com", ...}`
+
 ## Contents
 
 - [Authentication](#authentication)
@@ -44,7 +49,7 @@ curl -k -X POST https://localhost:8443/v1/send_command \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -d '{
-    "ip": "192.168.1.1",
+    "host": "192.168.1.1",
     "platform": "cisco_ios",
     "commands": ["show version", "show ip interface brief"]
   }'
@@ -57,7 +62,7 @@ curl -k -X POST https://localhost:8443/v1/send_command \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -d '{
-    "ip": "192.168.1.1",
+    "host": "192.168.1.1",
     "port": 2222,
     "platform": "cisco_ios",
     "commands": ["show version"]
@@ -71,7 +76,7 @@ curl -k -X POST https://localhost:8443/v1/send_command \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -d '{
-    "ip": "192.168.1.1",
+    "host": "192.168.1.1",
     "platform": "cisco_ios",
     "enable": "enable_password",
     "commands": ["show running-config"]
@@ -88,7 +93,7 @@ curl -k -X POST https://localhost:8443/v1/send_command \
   -H "Content-Type: application/json" \
   -H "X-Request-ID: my-custom-id-12345" \
   -d '{
-    "ip": "192.168.1.1",
+    "host": "192.168.1.1",
     "platform": "cisco_ios",
     "commands": ["show version"]
   }'
@@ -103,7 +108,7 @@ curl -k -X POST https://localhost:8443/v1/send_command \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -d '{
-    "ip": "192.168.1.1",
+    "host": "192.168.1.1",
     "platform": "cisco_ios",
     "commands": ["show version"],
     "expect_string": "router.*#"
@@ -144,7 +149,7 @@ curl -k -X POST https://localhost:8443/v1/send_config \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -d '{
-    "ip": "192.168.1.1",
+    "host": "192.168.1.1",
     "platform": "cisco_ios",
     "commands": [
       "interface GigabitEthernet0/1",
@@ -163,7 +168,7 @@ curl -k -X POST https://localhost:8443/v1/send_config \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -d '{
-    "ip": "192.168.1.1",
+    "host": "192.168.1.1",
     "platform": "cisco_ios",
     "commands": [
       "interface GigabitEthernet0/1",
@@ -182,7 +187,7 @@ curl -k -X POST https://localhost:8443/v1/send_config \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -d '{
-    "ip": "192.168.1.1",
+    "host": "192.168.1.1",
     "platform": "juniper_junos",
     "commands": [
       "set interfaces ge-0/0/1 description \"Configured via NAAS\""
@@ -215,7 +220,7 @@ curl -k -X DELETE https://localhost:8443/v1/send_command/{job_id} \
 JOB_ID=$(curl -k -X POST https://localhost:8443/v1/send_command \
   -u "admin:password" \
   -H "Content-Type: application/json" \
-  -d '{"ip": "192.168.1.1", "platform": "cisco_ios", "commands": ["show version"]}' \
+  -d '{"host": "192.168.1.1", "platform": "cisco_ios", "commands": ["show version"]}' \
   | jq -r '.job_id')
 
 # Cancel it
@@ -249,7 +254,7 @@ The `X-Request-ID` header in the 202 response contains the job ID:
 # Capture job ID from response header
 JOB_ID=$(curl -k -s -D - -X POST https://localhost:8443/v1/send_command \
   -u "admin:password" -H "Content-Type: application/json" \
-  -d '{"ip": "192.168.1.1", "platform": "cisco_ios", "commands": ["show version"]}' \
+  -d '{"host": "192.168.1.1", "platform": "cisco_ios", "commands": ["show version"]}' \
   | grep -i x-request-id | awk '{print $2}' | tr -d '\r')
 ```
 
@@ -404,7 +409,7 @@ response = requests.post(
     auth=AUTH,
     verify=False,
     json={
-        "ip": "192.168.1.1",
+        "host": "192.168.1.1",
         "platform": "cisco_ios",
         "commands": ["show version"]
     }
@@ -446,7 +451,7 @@ async def send_command(session, device_ip, commands):
     async with session.post(
         "https://localhost:8443/v1/send_command",
         json={
-            "ip": device_ip,
+            "host": device_ip,
             "platform": "cisco_ios",
             "commands": commands
         },
@@ -552,7 +557,7 @@ def send_command_safe(ip, commands):
             auth=HTTPBasicAuth("admin", "password"),
             verify=False,
             json={
-                "ip": ip,
+                "host": ip,
                 "platform": "cisco_ios",
                 "commands": commands
             },

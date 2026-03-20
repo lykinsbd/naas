@@ -74,7 +74,7 @@ class TestSendCommand:
         assert response.status_code == 403
 
     def test_send_command_invalid_ip(self, app, client):
-        """Test POST with invalid IP returns 422."""
+        """Test POST with invalid host returns 422."""
         auth = b64encode(b"testuser:testpass").decode()
         app.config["redis"].set("naas_cred_salt", b"test-salt")
 
@@ -82,7 +82,7 @@ class TestSendCommand:
             response = client.post(
                 "/v1/send_command",
                 json={
-                    "ip": "not-an-ip",
+                    "host": "not a valid host!",
                     "commands": ["show version"],
                 },
                 headers={"Authorization": f"Basic {auth}"},
@@ -177,6 +177,58 @@ class TestSendCommand:
                     "ip": "192.0.2.1",
                     "commands": ["show version"],
                     "device_type": "arista_eos",
+                },
+                headers={"Authorization": f"Basic {auth}"},
+            )
+
+        assert response.status_code == 202
+
+    def test_send_command_ip_backward_compat(self, app, client):
+        """Test POST with deprecated ip field maps to host."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
+            response = client.post(
+                "/v1/send_command",
+                json={
+                    "ip": "192.0.2.1",
+                    "commands": ["show version"],
+                },
+                headers={"Authorization": f"Basic {auth}"},
+            )
+
+        assert response.status_code == 202
+
+    def test_send_command_ip_ignored_when_host_present(self, app, client):
+        """Test POST with both ip and host uses host."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
+            response = client.post(
+                "/v1/send_command",
+                json={
+                    "host": "192.0.2.1",
+                    "ip": "10.0.0.1",
+                    "commands": ["show version"],
+                },
+                headers={"Authorization": f"Basic {auth}"},
+            )
+
+        assert response.status_code == 202
+
+    def test_send_command_hostname(self, app, client):
+        """Test POST with hostname instead of IP."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
+            response = client.post(
+                "/v1/send_command",
+                json={
+                    "host": "router1.example.com",
+                    "commands": ["show version"],
                 },
                 headers={"Authorization": f"Basic {auth}"},
             )
@@ -306,6 +358,38 @@ class TestSendConfig:
 
         assert response.status_code == 422
         assert isinstance(response.json, list)
+
+    def test_send_config_hostname(self, app, client):
+        """Test POST with hostname instead of IP."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
+            response = client.post(
+                "/v1/send_config",
+                json={
+                    "host": "switch1.example.com",
+                    "commands": ["interface Gi0/1", "no shutdown"],
+                },
+                headers={"Authorization": f"Basic {auth}"},
+            )
+
+        assert response.status_code == 202
+
+    def test_send_config_invalid_host(self, app, client):
+        """Test POST with invalid host returns 422."""
+        auth = b64encode(b"testuser:testpass").decode()
+
+        response = client.post(
+            "/v1/send_config",
+            json={
+                "host": "not a valid host!",
+                "commands": ["interface Gi0/1"],
+            },
+            headers={"Authorization": f"Basic {auth}"},
+        )
+
+        assert response.status_code == 422
 
     def test_send_config_invalid_platform(self, app, client):
         """Test POST with invalid platform returns 422."""

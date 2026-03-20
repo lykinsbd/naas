@@ -42,7 +42,7 @@ class SendCommandStructured(Resource):
         :return: A dict of the job ID, a 202 response code, and the job_id as the X-Request-ID header
         """
         validated: SendCommandStructuredRequest = request.context.json
-        ip_str = str(validated.ip)
+        ip_str = validated.host
 
         if device_lockout(ip=ip_str, redis=current_app.config["redis"]):
             current_app.logger.error("%s: Device %s is locked out", g.request_id, ip_str)

@@ -1,12 +1,18 @@
 """Pydantic models for request/response validation."""
 
 import logging
+import re
+from ipaddress import ip_address
 from typing import Any, Literal
 
 from netmiko import platforms as netmiko_platforms
-from pydantic import BaseModel, Field, IPvAnyAddress, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 logger = logging.getLogger(__name__)
+
+_HOSTNAME_RE = re.compile(
+    r"^(?:[a-zA-Z0-9](?:[a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)*" r"[a-zA-Z0-9](?:[a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?$"
+)
 
 
 def _handle_device_type(data: dict[str, Any]) -> dict[str, Any]:
@@ -32,12 +38,32 @@ def _handle_device_type(data: dict[str, Any]) -> dict[str, Any]:
     return data
 
 
+def _handle_ip(data: dict[str, Any]) -> dict[str, Any]:
+    """
+    Map deprecated ip parameter to host with warning.
+
+    Args:
+        data: Request data dictionary that may contain ip
+
+    Returns:
+        Modified data dictionary with ip mapped to host
+    """
+    data = data.copy()
+    if "ip" in data:
+        logger.warning("Parameter 'ip' is deprecated, use 'host' instead. Support for 'ip' will be removed in v2.0")
+        if "host" not in data:
+            data["host"] = data.pop("ip")
+        else:
+            data.pop("ip")
+    return data
+
+
 class _BaseCommandRequest(BaseModel):
     """Base model for command request endpoints with common fields and validators."""
 
     model_config = {"strict": True}
 
-    ip: IPvAnyAddress = Field(..., description="Device IP address")
+    host: str = Field(..., description="Device IP address or hostname")
     commands: list[str] = Field(..., min_length=1, description="Commands to execute")
     port: int = Field(default=22, ge=1, le=65535, description="SSH port")
     platform: str = Field(default="cisco_ios", description="Netmiko device type (use 'autodetect' for SSHDetect)")
@@ -45,9 +71,25 @@ class _BaseCommandRequest(BaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def handle_device_type(cls, data: dict[str, Any]) -> dict[str, Any]:
-        """Support deprecated device_type parameter."""
-        return _handle_device_type(data)
+    def handle_deprecated_params(cls, data: dict[str, Any]) -> dict[str, Any]:
+        """Support deprecated device_type and ip parameters."""
+        data = _handle_device_type(data)
+        return _handle_ip(data)
+
+    @field_validator("host")
+    @classmethod
+    def validate_host(cls, v: str) -> str:
+        """Validate host is a valid IP address or hostname."""
+        # Try IP first
+        try:
+            ip_address(v)
+            return v
+        except Exception:
+            pass
+        # Try hostname
+        if len(v) <= 253 and _HOSTNAME_RE.match(v):
+            return v
+        raise ValueError(f"'{v}' is not a valid IP address or hostname")
 
     @field_validator("commands")
     @classmethod
@@ -115,7 +157,7 @@ class SendConfigRequest(BaseModel):
 
     model_config = {"strict": True}
 
-    ip: IPvAnyAddress = Field(..., description="Device IP address")
+    host: str = Field(..., description="Device IP address or hostname")
     config: list[str] | None = Field(default=None, min_length=1, description="Configuration commands")
     commands: list[str] | None = Field(default=None, min_length=1, description="Configuration commands (alias)")
     port: int = Field(default=22, ge=1, le=65535, description="SSH port")
@@ -126,9 +168,23 @@ class SendConfigRequest(BaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def handle_device_type(cls, data: dict[str, Any]) -> dict[str, Any]:
-        """Support deprecated device_type parameter."""
-        return _handle_device_type(data)
+    def handle_deprecated_params(cls, data: dict[str, Any]) -> dict[str, Any]:
+        """Support deprecated device_type and ip parameters."""
+        data = _handle_device_type(data)
+        return _handle_ip(data)
+
+    @field_validator("host")
+    @classmethod
+    def validate_host(cls, v: str) -> str:
+        """Validate host is a valid IP address or hostname."""
+        try:
+            ip_address(v)
+            return v
+        except Exception:
+            pass
+        if len(v) <= 253 and _HOSTNAME_RE.match(v):
+            return v
+        raise ValueError(f"'{v}' is not a valid IP address or hostname")
 
     @field_validator("config", "commands")
     @classmethod
