@@ -19,7 +19,9 @@ def app():
             mock_job = MagicMock()
             mock_job.id = "test-job-id"
             mock_job.meta = {}
+            mock_job.enqueued_at.isoformat.return_value = "2026-01-01T00:00:00+00:00"
             mock_queue.return_value.enqueue.return_value = mock_job
+            mock_queue.return_value.job_ids = []
 
             # Make fetch_job return None for new job IDs (not duplicates)
             def fetch_job_side_effect(job_id):

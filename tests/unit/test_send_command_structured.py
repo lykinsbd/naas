@@ -19,6 +19,7 @@ class TestSendCommandStructured:
         mock_job = MagicMock()
         mock_job.id = "test-job-id"
         mock_job.meta = {}
+        mock_job.enqueued_at.isoformat.return_value = "2026-01-01T00:00:00+00:00"
         app.config["q"].enqueue.return_value = mock_job
 
         with patch("naas.resources.send_command_structured.device_lockout", return_value=False):
@@ -45,6 +46,7 @@ class TestSendCommandStructured:
         mock_job = MagicMock()
         mock_job.id = "test-job-id"
         mock_job.meta = {}
+        mock_job.enqueued_at.isoformat.return_value = "2026-01-01T00:00:00+00:00"
         app.config["q"].enqueue.return_value = mock_job
 
         with patch("naas.resources.send_command_structured.device_lockout", return_value=False):
@@ -88,6 +90,7 @@ class TestSendCommandStructured:
         mock_job = MagicMock()
         mock_job.id = "test-job-id"
         mock_job.meta = {}
+        mock_job.enqueued_at.isoformat.return_value = "2026-01-01T00:00:00+00:00"
         app.config["q"].enqueue.return_value = mock_job
 
         with patch("naas.resources.send_command_structured.device_lockout", return_value=False):
