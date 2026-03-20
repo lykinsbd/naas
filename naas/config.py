@@ -43,6 +43,9 @@ CONNECTION_POOL_MAX_SIZE = int(os.environ.get("CONNECTION_POOL_MAX_SIZE", 10))
 CONNECTION_POOL_IDLE_TIMEOUT = int(os.environ.get("CONNECTION_POOL_IDLE_TIMEOUT", 300))  # 5 minutes
 CONNECTION_POOL_MAX_AGE = int(os.environ.get("CONNECTION_POOL_MAX_AGE", 3600))  # 1 hour
 CONNECTION_POOL_KEEPALIVE = int(os.environ.get("CONNECTION_POOL_KEEPALIVE", 60))  # seconds
+CONNECTION_POOL_EXCLUDE: frozenset[str] = frozenset(
+    e.strip() for e in os.environ.get("CONNECTION_POOL_EXCLUDE", "").split(",") if e.strip()
+)
 
 
 def app_configure(app):
