@@ -50,7 +50,7 @@ def _handle_ip(data: dict[str, Any]) -> dict[str, Any]:
     """
     data = data.copy()
     if "ip" in data:
-        logger.warning("Parameter 'ip' is deprecated, use 'host' instead. " "Support for 'ip' will be removed in v2.0")
+        logger.warning("Parameter 'ip' is deprecated, use 'host' instead. Support for 'ip' will be removed in v2.0")
         if "host" not in data:
             data["host"] = data.pop("ip")
         else:
