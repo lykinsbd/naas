@@ -42,6 +42,22 @@ curl -k -H "Authorization: Basic $(echo -n 'username:password' | base64)" \
 
 Execute show commands on network devices.
 
+### Enqueue Response (202 Accepted)
+
+```json
+{
+  "job_id": "550e8400-e29b-41d4-a716-446655440000",
+  "message": "Job enqueued",
+  "queue_position": 1,
+  "enqueued_at": "2026-03-20T19:00:00+00:00",
+  "timeout": 60
+}
+```
+
+- `queue_position` — approximate position in queue (1 = next to run, may change as jobs complete)
+- `enqueued_at` — ISO 8601 timestamp when job was accepted
+- `timeout` — maximum seconds the job will run before being killed
+
 ### Basic Example
 
 ```bash
