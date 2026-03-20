@@ -46,6 +46,7 @@ All NAAS configuration is driven by environment variables. Set these in `docker-
 | `CONNECTION_POOL_MAX_SIZE` | `10` | Maximum connections per worker |
 | `CONNECTION_POOL_TTL` | `300` | Idle timeout in seconds before closing connections |
 | `CONNECTION_POOL_KEEPALIVE` | `30` | SSH keepalive interval in seconds |
+| `CONNECTION_POOL_EXCLUDE` | `` | Comma-separated IPs or device_types to exclude from pooling (e.g. `192.168.1.1,cisco_ios_old`) |
 
 ## Example docker-compose.yml
 
