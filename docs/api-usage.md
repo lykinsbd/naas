@@ -574,6 +574,28 @@ def send_command_safe(ip, commands):
     return None
 ```
 
+## API Client Collections
+
+Each NAAS release includes downloadable API client collections on the [GitHub Releases page](https://github.com/lykinsbd/naas/releases):
+
+- `naas-vX.Y.Z.postman_collection.json` — Postman collection with all endpoints
+- `naas-vX.Y.Z.openapi.json` — OpenAPI spec for import into any compatible tool
+
+### Postman
+
+1. Download `naas-vX.Y.Z.postman_collection.json` from the release
+2. In Postman: **Import** → select the file
+3. Set environment variables: `base_url`, `username`, `password`
+
+### Insomnia
+
+1. Download `naas-vX.Y.Z.openapi.json` from the release
+2. In Insomnia: **Create** → **Import** → select the file
+
+### Bruno / Other Tools
+
+Import `naas-vX.Y.Z.openapi.json` — any OpenAPI 3.x compatible client works.
+
 ## Next steps
 
 - [Troubleshooting Guide](troubleshooting.md) - Common issues
