@@ -4,6 +4,11 @@
       "JobResponse.c5eb086": {
         "description": "Response model for job submission.",
         "properties": {
+          "enqueued_at": {
+            "description": "ISO 8601 timestamp when job was enqueued",
+            "title": "Enqueued At",
+            "type": "string"
+          },
           "job_id": {
             "description": "Unique job identifier",
             "title": "Job Id",
@@ -13,11 +18,24 @@
             "description": "Status message",
             "title": "Message",
             "type": "string"
+          },
+          "queue_position": {
+            "description": "Approximate position in queue (1 = next to run)",
+            "title": "Queue Position",
+            "type": "integer"
+          },
+          "timeout": {
+            "description": "Job timeout in seconds",
+            "title": "Timeout",
+            "type": "integer"
           }
         },
         "required": [
           "job_id",
-          "message"
+          "message",
+          "queue_position",
+          "enqueued_at",
+          "timeout"
         ],
         "title": "JobResponse",
         "type": "object"

@@ -109,6 +109,13 @@ class SendConfig(Resource):
         )
 
         # Return our payload containing job_id added to the base response, a 202 Accepted, and the X-Request-ID header
-        response = JobResponse(job_id=job_id, message="Job enqueued").model_dump()
+        queue_position = len(current_app.config["q"].job_ids)
+        response = JobResponse(
+            job_id=job_id,
+            message="Job enqueued",
+            queue_position=queue_position,
+            enqueued_at=job.enqueued_at.isoformat(),
+            timeout=JOB_TIMEOUT,
+        ).model_dump()
         response.update(__base_response__)
         return response, 202, {"X-Request-ID": job_id}

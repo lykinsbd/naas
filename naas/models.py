@@ -217,6 +217,9 @@ class JobResponse(BaseModel):
 
     job_id: str = Field(..., description="Unique job identifier")
     message: str = Field(..., description="Status message")
+    queue_position: int = Field(..., description="Approximate position in queue (1 = next to run)")
+    enqueued_at: str = Field(..., description="ISO 8601 timestamp when job was enqueued")
+    timeout: int = Field(..., description="Job timeout in seconds")
 
 
 class JobResultResponse(BaseModel):

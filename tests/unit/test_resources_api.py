@@ -44,6 +44,9 @@ class TestSendCommand:
         assert response.status_code == 202
         assert response.json["job_id"] is not None
         assert response.json["message"] == "Job enqueued"
+        assert "queue_position" in response.json
+        assert "enqueued_at" in response.json
+        assert "timeout" in response.json
         assert response.headers["X-Request-ID"] == response.json["job_id"]
 
     def test_send_command_post_no_auth(self, client):
