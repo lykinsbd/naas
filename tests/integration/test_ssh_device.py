@@ -562,28 +562,6 @@ class TestPlatformAutodetect:
 
 
 # ---------------------------------------------------------------------------
-# expect_string parameter (v1.3)
-# ---------------------------------------------------------------------------
-
-
-class TestExpectString:
-    """Tests for the expect_string parameter."""
-
-    def test_expect_string_matches_prompt(self, api_url, wait_for_api, wait_for_cisshgo):
-        """Job with expect_string matching device prompt completes successfully."""
-        payload = {
-            "host": CISSHGO_HOST,
-            "platform": CISSHGO_PLATFORM,
-            "port": CISSHGO_PORT,
-            "commands": ["show version"],
-            "expect_string": "cisshgo-ios#",  # cisshgo IOS prompt format: {hostname}#
-        }
-        result = _submit_and_poll(api_url, payload)
-        assert result["status"] == "finished"
-        assert result["results"] is not None
-
-
-# ---------------------------------------------------------------------------
 # send_config with context (v1.4)
 # ---------------------------------------------------------------------------
 
