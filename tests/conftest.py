@@ -42,7 +42,18 @@ def app():
 
             flask_app.config["TESTING"] = True
             flask_app.config["q"] = mock_queue.return_value
-            yield flask_app
+
+            # Patch Job.fetch to delegate to q.fetch_job so existing tests work
+            # (get_results now uses Job.fetch instead of q.fetch_job for cross-queue support)
+            with patch(
+                "naas.resources.get_results.Job.fetch",
+                side_effect=lambda jid, connection: mock_queue.return_value.fetch_job(jid),
+            ):
+                with patch(
+                    "naas.library.auth.Job.fetch",
+                    side_effect=lambda jid, connection: mock_queue.return_value.fetch_job(jid),
+                ):
+                    yield flask_app
 
 
 @pytest.fixture

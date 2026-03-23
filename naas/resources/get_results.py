@@ -2,6 +2,8 @@
 
 from flask import current_app, request
 from flask_restful import Resource
+from rq.exceptions import NoSuchJobError
+from rq.job import Job
 from werkzeug.exceptions import Forbidden
 
 from naas import __base_response__
@@ -39,8 +41,10 @@ class GetResults(Resource):
             raise Forbidden
 
         # Fetch your job, and return the job status and results (if it's finished)
-        q = current_app.config["q"]
-        job = q.fetch_job(job_id)
+        try:
+            job = Job.fetch(job_id, connection=current_app.config["redis"])
+        except NoSuchJobError:
+            job = None
 
         if job is None:
             r = JobResultResponse(job_id=job_id, status="not_found").model_dump()

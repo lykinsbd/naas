@@ -7,6 +7,7 @@ from uuid import uuid4
 
 from flask import current_app
 from redis import Redis
+from rq.job import Job
 
 from naas.library.audit import emit_audit_event
 
@@ -34,11 +35,9 @@ def job_unlocker(salted_creds: str, job_id: str) -> bool:
     :return:
     """
 
-    q = current_app.config["q"]
-
     try:
         current_app.logger.debug("Attempting to unlock job %s with %s", job_id, salted_creds)
-        job = q.fetch_job(job_id=job_id)
+        job = Job.fetch(job_id, connection=current_app.config["redis"])
         stored_hash = job.meta.get("hash", "")
         if stored_hash == salted_creds:
             return True
