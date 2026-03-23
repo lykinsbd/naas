@@ -163,7 +163,7 @@ class TestSendConfigHappyPath:
 class TestAuthFailure:
     """Jobs with wrong device credentials fail cleanly."""
 
-    def test_wrong_password_job_fails(self, api_url, wait_for_api, wait_for_cisshgo):
+    def test_wrong_password_job_fails(self, api_url, wait_for_api, wait_for_cisshgo, redis_client):
         """Wrong device password results in an auth error in the job result."""
         payload = {
             "ip": CISSHGO_HOST,
@@ -177,6 +177,9 @@ class TestAuthFailure:
         assert result["results"] is None
         assert result.get("error")
         assert "Authentication" in result["error"]
+
+        # Cleanup: clear user lockout so subsequent tests using the same user aren't blocked
+        redis_client.delete(f"naas_failures_user_{CISSHGO_USER}")
 
 
 # ---------------------------------------------------------------------------
