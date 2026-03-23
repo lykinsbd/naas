@@ -10,12 +10,14 @@ Description: Main app setup/config
 import logging
 import os
 
-from flask import Flask, request
+from flask import Flask, jsonify, request
 from flask_restful import Api
 from prometheus_client import Gauge
 from prometheus_flask_exporter import PrometheusMetrics
 from pythonjsonlogger.json import JsonFormatter
+from redis.exceptions import RedisError
 
+from naas import __base_response__
 from naas.config import app_configure
 from naas.library.errorhandlers import api_error_generator
 from naas.library.worker_cache import get_cached_workers
@@ -32,6 +34,17 @@ from naas.spec import spec
 app = Flask(__name__)
 
 app_configure(app)
+
+
+@app.errorhandler(RedisError)
+def handle_redis_error(e: RedisError):
+    """Return 503 for any Redis connectivity failure without leaking internal details."""
+    app.logger.error("Redis error: %s", type(e).__name__)
+    response = jsonify({"error": "Queue backend unavailable", "status": 503, **__base_response__})
+    response.status_code = 503
+    response.headers["Retry-After"] = "10"
+    return response
+
 
 # Prometheus metrics — request counts/latency via exporter, NAAS-specific gauges manually updated
 metrics = PrometheusMetrics(app, path="/metrics", default_labels={"app": "naas"})
