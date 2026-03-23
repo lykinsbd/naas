@@ -465,3 +465,103 @@ class TestContextRouting:
         # Both contexts should have at least 1 worker
         for ctx in data["contexts"]:
             assert ctx["workers"] >= 1, f"Context {ctx['name']} has no workers"
+
+
+# ---------------------------------------------------------------------------
+# Job cancellation (v1.2)
+# ---------------------------------------------------------------------------
+
+
+class TestJobCancellation:
+    """Tests for DELETE /v1/jobs/{job_id} endpoint."""
+
+    def test_cancel_queued_job(self, api_url, wait_for_api):
+        """A queued job can be cancelled before it starts."""
+        # Submit to a slow unreachable host so the job stays queued long enough to cancel
+        payload = {
+            "host": "192.0.2.253",
+            "platform": CISSHGO_PLATFORM,
+            "port": CISSHGO_PORT,
+            "commands": ["show version"],
+        }
+        r = requests.post(f"{api_url}/v1/send_command", json=payload, auth=API_AUTH, verify=False)
+        assert r.status_code == 202
+        job_id = r.json()["job_id"]
+
+        # Cancel it
+        cancel_r = requests.delete(f"{api_url}/v1/send_command/{job_id}", auth=API_AUTH, verify=False)
+        assert cancel_r.status_code in (200, 204), f"Cancel failed: {cancel_r.text}"
+
+    def test_cancel_nonexistent_job_returns_404(self, api_url, wait_for_api):
+        """Cancelling a non-existent job returns 404."""
+        r = requests.delete(
+            f"{api_url}/v1/send_command/00000000-0000-0000-0000-000000000000",
+            auth=API_AUTH,
+            verify=False,
+        )
+        assert r.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# List jobs (v1.1)
+# ---------------------------------------------------------------------------
+
+
+class TestListJobs:
+    """Tests for GET /v1/jobs endpoint."""
+
+    def test_list_jobs_returns_submitted_job(self, api_url, wait_for_api, wait_for_cisshgo):
+        """Submitted job appears in job list."""
+        payload = {
+            "host": CISSHGO_HOST,
+            "platform": CISSHGO_PLATFORM,
+            "port": CISSHGO_PORT,
+            "commands": ["show version"],
+        }
+        r = requests.post(f"{api_url}/v1/send_command", json=payload, auth=API_AUTH, verify=False)
+        assert r.status_code == 202
+        job_id = r.json()["job_id"]
+
+        # Poll until finished so it appears in list
+        _submit_and_poll(
+            api_url,
+            {"host": CISSHGO_HOST, "platform": CISSHGO_PLATFORM, "port": CISSHGO_PORT, "commands": ["show version"]},
+        )
+
+        # List jobs and verify our job appears
+        list_r = requests.get(f"{api_url}/v1/jobs", auth=API_AUTH, verify=False)
+        assert list_r.status_code == 200
+        data = list_r.json()
+        assert "jobs" in data
+        job_ids = [j["job_id"] for j in data["jobs"]]
+        assert job_id in job_ids
+
+    def test_list_jobs_pagination(self, api_url, wait_for_api):
+        """List jobs respects per_page parameter."""
+        r = requests.get(f"{api_url}/v1/jobs?per_page=1", auth=API_AUTH, verify=False)
+        assert r.status_code == 200
+        data = r.json()
+        assert len(data["jobs"]) <= 1
+
+
+# ---------------------------------------------------------------------------
+# Platform autodetect (v1.3)
+# ---------------------------------------------------------------------------
+
+
+class TestPlatformAutodetect:
+    """Tests for platform='autodetect' using SSHDetect."""
+
+    def test_autodetect_identifies_cisshgo(self, api_url, wait_for_api, wait_for_cisshgo):
+        """Autodetect successfully identifies cisshgo device type and runs command."""
+        payload = {
+            "host": CISSHGO_HOST,
+            "platform": "autodetect",
+            "port": CISSHGO_PORT,
+            "commands": ["show version"],
+        }
+        result = _submit_and_poll(api_url, payload, timeout=60)
+        assert result["status"] == "finished"
+        assert result["results"] is not None
+        # Autodetect should have identified the platform
+        assert result.get("detected_platform") is not None
