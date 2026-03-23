@@ -48,6 +48,13 @@ All NAAS configuration is driven by environment variables. Set these in `docker-
 | `CONNECTION_POOL_KEEPALIVE` | `30` | SSH keepalive interval in seconds |
 | `CONNECTION_POOL_EXCLUDE` | `` | Comma-separated IPs or device_types to exclude from pooling (e.g. `192.168.1.1,cisco_ios_old`) |
 
+## Context Routing
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `NAAS_CONTEXTS` | `default` | Comma-separated list of valid context names (e.g. `default,corp,oob-dc1,hk-prod`) |
+| `WORKER_CONTEXTS` | `default` | Comma-separated contexts this worker serves (e.g. `oob-dc1,oob-dc2`) |
+
 ## Example docker-compose.yml
 
 ```yaml

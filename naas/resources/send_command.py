@@ -8,6 +8,7 @@ from naas import __base_response__
 from naas.config import JOB_TIMEOUT, JOB_TTL_FAILED, JOB_TTL_SUCCESS
 from naas.library.audit import emit_audit_event
 from naas.library.auth import device_lockout, job_locker
+from naas.library.context import get_queue_for_context
 from naas.library.decorators import valid_post
 from naas.library.errorhandlers import LockedOut
 from naas.library.netmiko_lib import netmiko_send_command
@@ -70,7 +71,8 @@ class SendCommand(Resource):
             ip_str,
             validated.port,
         )
-        job = current_app.config["q"].enqueue(
+        q = get_queue_for_context(validated.context, current_app.config["redis"])
+        job = q.enqueue(
             netmiko_send_command,
             ip=ip_str,
             port=validated.port,
@@ -103,10 +105,11 @@ class SendCommand(Resource):
             command_count=len(validated.commands),
             user_hash=user_hash,
             request_id=job_id,
+            context=validated.context,
         )
 
         # Return our payload containing job_id, a 202 Accepted, and the X-Request-ID header
-        queue_position = len(current_app.config["q"].job_ids)
+        queue_position = len(q.job_ids)
         response = JobResponse(
             job_id=job_id,
             message="Job enqueued",

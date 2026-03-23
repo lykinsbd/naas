@@ -68,6 +68,10 @@ class _BaseCommandRequest(BaseModel):
     port: int = Field(default=22, ge=1, le=65535, description="SSH port")
     platform: str = Field(default="cisco_ios", description="Netmiko device type (use 'autodetect' for SSHDetect)")
     read_timeout: float = Field(default=30.0, ge=1.0, description="Read timeout in seconds for device responses")
+    context: str = Field(
+        default="default",
+        description="Routing context for multi-segment environments (e.g. 'corp', 'oob-dc1', 'hk-prod')",
+    )
 
     @model_validator(mode="before")
     @classmethod
@@ -165,6 +169,7 @@ class SendConfigRequest(BaseModel):
     read_timeout: float = Field(default=30.0, ge=1.0, description="Read timeout in seconds for device responses")
     save_config: bool = Field(default=False, description="Save configuration after applying")
     commit: bool = Field(default=False, description="Commit configuration (Juniper)")
+    context: str = Field(default="default", description="Routing context for multi-segment environments")
 
     @model_validator(mode="before")
     @classmethod
@@ -243,3 +248,17 @@ class ListJobsQuery(BaseModel):
     page: int = Field(default=1, ge=1)
     per_page: int = Field(default=20, ge=1, le=100)
     status: Literal["finished", "failed", "started", "queued"] | None = None
+
+
+class ContextInfo(BaseModel):
+    """Status of a single routing context."""
+
+    name: str = Field(..., description="Context name")
+    workers: int = Field(..., description="Number of active workers serving this context")
+    queue_depth: int = Field(..., description="Number of jobs currently queued")
+
+
+class ContextsResponse(BaseModel):
+    """Response model for GET /v1/contexts."""
+
+    contexts: list[ContextInfo] = Field(..., description="Active contexts")

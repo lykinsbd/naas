@@ -47,6 +47,12 @@ CONNECTION_POOL_EXCLUDE: frozenset[str] = frozenset(
     e.strip() for e in os.environ.get("CONNECTION_POOL_EXCLUDE", "").split(",") if e.strip()
 )
 
+# Context routing config
+NAAS_CONTEXTS: frozenset[str] = frozenset(
+    c.strip() for c in os.environ.get("NAAS_CONTEXTS", "default").split(",") if c.strip()
+)
+WORKER_CONTEXTS: list[str] = [c.strip() for c in os.environ.get("WORKER_CONTEXTS", "default").split(",") if c.strip()]
+
 
 def app_configure(app):
     # Configure our environment
