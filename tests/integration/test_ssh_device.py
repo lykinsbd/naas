@@ -559,3 +559,58 @@ class TestPlatformAutodetect:
         assert result["results"] is not None
         # Autodetect should have identified the platform
         assert result.get("detected_platform") is not None
+
+
+# ---------------------------------------------------------------------------
+# expect_string parameter (v1.3)
+# ---------------------------------------------------------------------------
+
+
+class TestExpectString:
+    """Tests for the expect_string parameter."""
+
+    def test_expect_string_matches_prompt(self, api_url, wait_for_api, wait_for_cisshgo):
+        """Job with expect_string matching device prompt completes successfully."""
+        payload = {
+            "host": CISSHGO_HOST,
+            "platform": CISSHGO_PLATFORM,
+            "port": CISSHGO_PORT,
+            "commands": ["show version"],
+            "expect_string": "#",  # Standard IOS prompt suffix
+        }
+        result = _submit_and_poll(api_url, payload)
+        assert result["status"] == "finished"
+        assert result["results"] is not None
+
+
+# ---------------------------------------------------------------------------
+# send_config with context (v1.4)
+# ---------------------------------------------------------------------------
+
+
+class TestSendConfigContext:
+    """Tests for send_config with context routing."""
+
+    def test_send_config_default_context(self, api_url, wait_for_api, wait_for_cisshgo):
+        """send_config with default context routes to default worker."""
+        payload = {
+            "host": CISSHGO_HOST,
+            "platform": CISSHGO_PLATFORM,
+            "port": CISSHGO_PORT,
+            "config": ["interface Loopback0", "description test"],
+            "context": "default",
+        }
+        result = _submit_and_poll(api_url, payload, endpoint="send_config")
+        assert result["status"] == "finished"
+
+    def test_send_config_alt_context(self, api_url, wait_for_api, wait_for_cisshgo):
+        """send_config with alt context routes to alt worker."""
+        payload = {
+            "host": CISSHGO_HOST,
+            "platform": CISSHGO_PLATFORM,
+            "port": CISSHGO_PORT,
+            "config": ["interface Loopback0", "description test-alt"],
+            "context": "alt",
+        }
+        result = _submit_and_poll(api_url, payload, endpoint="send_config")
+        assert result["status"] == "finished"
