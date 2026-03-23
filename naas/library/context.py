@@ -5,8 +5,8 @@ Context routing helpers for multi-segment worker environments.
 
 from rq import Queue, Worker
 
-from naas.config import NAAS_CONTEXTS
-from naas.library.errorhandlers import InvalidContext, NoWorkersForContext
+from naas.config import MAX_QUEUE_DEPTH, NAAS_CONTEXTS
+from naas.library.errorhandlers import InvalidContext, NoWorkersForContext, QueueFull
 
 
 def get_queue_for_context(context: str, redis: object) -> Queue:
@@ -34,5 +34,8 @@ def get_queue_for_context(context: str, redis: object) -> Queue:
     active_workers = [w for w in Worker.all(connection=redis) if queue_name in w.queue_names()]  # type: ignore[arg-type]
     if not active_workers:
         raise NoWorkersForContext
+
+    if MAX_QUEUE_DEPTH > 0 and len(q) >= MAX_QUEUE_DEPTH:
+        raise QueueFull
 
     return q

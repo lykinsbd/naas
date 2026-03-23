@@ -53,6 +53,9 @@ NAAS_CONTEXTS: frozenset[str] = frozenset(
 )
 WORKER_CONTEXTS: list[str] = [c.strip() for c in os.environ.get("WORKER_CONTEXTS", "default").split(",") if c.strip()]
 
+# Queue depth limit (0 = disabled)
+MAX_QUEUE_DEPTH: int = int(os.environ.get("MAX_QUEUE_DEPTH", 0))
+
 
 def app_configure(app):
     # Configure our environment

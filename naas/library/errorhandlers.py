@@ -35,6 +35,10 @@ class NoWorkersForContext(ServiceUnavailable):
     pass
 
 
+class QueueFull(ServiceUnavailable):
+    pass
+
+
 def api_error_generator():
     """
     API error dict generator for Flask-restful
@@ -60,6 +64,7 @@ def api_error_generator():
         },
         "InvalidIP": {"status": 422, "error": "Invalid IPv4 address in 'ip' field of payload"},
         "NoWorkersForContext": {"status": 503, "error": "No workers available for the requested context"},
+        "QueueFull": {"status": 503, "error": "Queue depth limit reached, please retry later"},
         "InternalServerError": {
             "status": 500,
             "error": (
