@@ -576,7 +576,7 @@ class TestExpectString:
             "platform": CISSHGO_PLATFORM,
             "port": CISSHGO_PORT,
             "commands": ["show version"],
-            "expect_string": "#",  # Standard IOS prompt suffix
+            "expect_string": "cisshgo-ios#",  # cisshgo IOS prompt format: {hostname}#
         }
         result = _submit_and_poll(api_url, payload)
         assert result["status"] == "finished"
