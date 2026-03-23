@@ -304,3 +304,164 @@ class TestErrorHandling:
         assert result["results"] is None
         assert result.get("error")
         assert "TCP connection" in result["error"] or "timed out" in result["error"].lower()
+
+
+# ---------------------------------------------------------------------------
+# Host field (v1.4 - hostname support, ip deprecation)
+# ---------------------------------------------------------------------------
+
+
+class TestHostField:
+    """Tests for the new 'host' field and deprecated 'ip' field."""
+
+    def test_host_field_with_ip(self, api_url, wait_for_api, wait_for_cisshgo):
+        """Job submitted with 'host' field (IP) succeeds."""
+        payload = {
+            "host": CISSHGO_HOST,
+            "platform": CISSHGO_PLATFORM,
+            "port": CISSHGO_PORT,
+            "commands": ["show version"],
+        }
+        result = _submit_and_poll(api_url, payload)
+        assert result["status"] == "finished"
+        assert result["results"] is not None
+
+    def test_deprecated_ip_field_still_works(self, api_url, wait_for_api, wait_for_cisshgo):
+        """Job submitted with deprecated 'ip' field still succeeds (backwards compat)."""
+        payload = {
+            "ip": CISSHGO_HOST,
+            "platform": CISSHGO_PLATFORM,
+            "port": CISSHGO_PORT,
+            "commands": ["show version"],
+        }
+        result = _submit_and_poll(api_url, payload)
+        assert result["status"] == "finished"
+        assert result["results"] is not None
+
+
+# ---------------------------------------------------------------------------
+# Job metadata in enqueue response (v1.4)
+# ---------------------------------------------------------------------------
+
+
+class TestEnqueueResponseMetadata:
+    """Tests for queue_position, enqueued_at, timeout in enqueue response."""
+
+    def test_enqueue_response_includes_metadata(self, api_url, wait_for_api, wait_for_cisshgo):
+        """Enqueue response includes queue_position, enqueued_at, and timeout."""
+        payload = {
+            "host": CISSHGO_HOST,
+            "platform": CISSHGO_PLATFORM,
+            "port": CISSHGO_PORT,
+            "commands": ["show version"],
+        }
+        r = requests.post(f"{api_url}/v1/send_command", json=payload, auth=API_AUTH, verify=False)
+        assert r.status_code == 202
+        data = r.json()
+        assert "queue_position" in data
+        assert isinstance(data["queue_position"], int)
+        assert data["queue_position"] >= 0
+        assert "enqueued_at" in data
+        assert "T" in data["enqueued_at"]  # ISO 8601
+        assert "timeout" in data
+        assert isinstance(data["timeout"], int)
+        assert data["timeout"] > 0
+
+
+# ---------------------------------------------------------------------------
+# Structured output (v1.3 - TextFSM)
+# ---------------------------------------------------------------------------
+
+
+class TestStructuredOutput:
+    """Tests for /v1/send_command_structured endpoint."""
+
+    def test_structured_output_with_ntc_templates(self, api_url, wait_for_api, wait_for_cisshgo):
+        """send_command_structured returns parsed output via ntc-templates."""
+        payload = {
+            "host": CISSHGO_HOST,
+            "platform": CISSHGO_PLATFORM,
+            "port": CISSHGO_PORT,
+            "commands": ["show version"],
+        }
+        result = _submit_and_poll(api_url, payload, endpoint="send_command_structured")
+        assert result["status"] == "finished"
+        # ntc-templates parses show version into a list of dicts
+        assert result["results"] is not None
+        show_version_result = result["results"].get("show version")
+        assert show_version_result is not None
+
+    def test_structured_output_with_custom_ttp_template(self, api_url, wait_for_api, wait_for_cisshgo):
+        """send_command_structured with TTP template returns parsed output."""
+        # Simple TTP template that captures the hostname from cisshgo output
+        ttp_template = "hostname {{ hostname }}"
+        payload = {
+            "host": CISSHGO_HOST,
+            "platform": CISSHGO_PLATFORM,
+            "port": CISSHGO_PORT,
+            "commands": ["show version"],
+            "ttp_template": ttp_template,
+        }
+        result = _submit_and_poll(api_url, payload, endpoint="send_command_structured")
+        assert result["status"] == "finished"
+        assert result["results"] is not None
+
+
+# ---------------------------------------------------------------------------
+# Context routing (v1.4)
+# ---------------------------------------------------------------------------
+
+
+class TestContextRouting:
+    """Tests for context-aware job routing."""
+
+    def test_default_context_routes_to_default_worker(self, api_url, wait_for_api, wait_for_cisshgo):
+        """Job with default context (or no context) is processed successfully."""
+        payload = {
+            "host": CISSHGO_HOST,
+            "platform": CISSHGO_PLATFORM,
+            "port": CISSHGO_PORT,
+            "commands": ["show version"],
+            "context": "default",
+        }
+        result = _submit_and_poll(api_url, payload)
+        assert result["status"] == "finished"
+        assert result["results"] is not None
+
+    def test_alt_context_routes_to_alt_worker(self, api_url, wait_for_api, wait_for_cisshgo):
+        """Job with 'alt' context is processed by the alt worker."""
+        payload = {
+            "host": CISSHGO_HOST,
+            "platform": CISSHGO_PLATFORM,
+            "port": CISSHGO_PORT,
+            "commands": ["show version"],
+            "context": "alt",
+        }
+        result = _submit_and_poll(api_url, payload)
+        assert result["status"] == "finished"
+        assert result["results"] is not None
+
+    def test_invalid_context_returns_400(self, api_url, wait_for_api):
+        """Job with unknown context returns 400."""
+        payload = {
+            "host": CISSHGO_HOST,
+            "platform": CISSHGO_PLATFORM,
+            "port": CISSHGO_PORT,
+            "commands": ["show version"],
+            "context": "nonexistent-context",
+        }
+        r = requests.post(f"{api_url}/v1/send_command", json=payload, auth=API_AUTH, verify=False)
+        assert r.status_code == 400
+
+    def test_get_contexts_returns_configured_contexts(self, api_url, wait_for_api):
+        """GET /v1/contexts returns both configured contexts."""
+        r = requests.get(f"{api_url}/v1/contexts", auth=API_AUTH, verify=False)
+        assert r.status_code == 200
+        data = r.json()
+        assert "contexts" in data
+        context_names = {c["name"] for c in data["contexts"]}
+        assert "default" in context_names
+        assert "alt" in context_names
+        # Both contexts should have at least 1 worker
+        for ctx in data["contexts"]:
+            assert ctx["workers"] >= 1, f"Context {ctx['name']} has no workers"
