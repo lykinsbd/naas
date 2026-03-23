@@ -459,6 +459,22 @@ class TestGetResults:
         assert response.status_code == 404
         assert response.json["status"] == "not_found"
 
+    def test_get_results_no_such_job_error(self, app, client):
+        """Test GET returns 404 when Job.fetch raises NoSuchJobError."""
+        from rq.exceptions import NoSuchJobError
+
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.resources.get_results.job_unlocker", return_value=True):
+            with patch("naas.resources.get_results.Job.fetch", side_effect=NoSuchJobError):
+                response = client.get(
+                    "/v1/send_command/00000000-0000-0000-0000-000000000000",
+                    headers={"Authorization": f"Basic {auth}"},
+                )
+
+        assert response.status_code == 404
+
     def test_get_results_queued(self, app, client):
         """Test GET with queued job returns status."""
         auth = b64encode(b"testuser:testpass").decode()
