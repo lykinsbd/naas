@@ -592,3 +592,71 @@ class TestSendConfigContext:
         }
         result = _submit_and_poll(api_url, payload, endpoint="send_config")
         assert result["status"] == "finished"
+
+
+# ---------------------------------------------------------------------------
+# send_command_structured with context (v1.3 + v1.4)
+# ---------------------------------------------------------------------------
+
+
+class TestStructuredOutputWithContext:
+    """Tests for send_command_structured routed via context."""
+
+    def test_structured_output_alt_context(self, api_url, wait_for_api, wait_for_cisshgo):
+        """send_command_structured with alt context routes to alt worker and returns parsed output."""
+        payload = {
+            "host": CISSHGO_HOST,
+            "platform": CISSHGO_PLATFORM,
+            "port": CISSHGO_PORT,
+            "commands": ["show version"],
+            "context": "alt",
+        }
+        result = _submit_and_poll(api_url, payload, endpoint="send_command_structured")
+        assert result["status"] == "finished"
+        assert result["results"] is not None
+
+
+# ---------------------------------------------------------------------------
+# Host field with hostname (v1.4)
+# ---------------------------------------------------------------------------
+
+
+class TestHostnameResolution:
+    """Tests for host field accepting a hostname (not just IP)."""
+
+    def test_hostname_resolves_and_connects(self, api_url, wait_for_api, wait_for_cisshgo):
+        """Job submitted with hostname resolves via DNS and connects successfully."""
+        payload = {
+            "host": "cisshgo",  # Docker network hostname for cisshgo container
+            "platform": CISSHGO_PLATFORM,
+            "port": CISSHGO_PORT,
+            "commands": ["show version"],
+        }
+        result = _submit_and_poll(api_url, payload)
+        assert result["status"] == "finished"
+        assert result["results"] is not None
+
+
+# ---------------------------------------------------------------------------
+# send_config result structure (v1.0)
+# ---------------------------------------------------------------------------
+
+
+class TestSendConfigResult:
+    """Tests for send_config job result structure."""
+
+    def test_send_config_result_structure(self, api_url, wait_for_api, wait_for_cisshgo):
+        """send_config result contains expected fields."""
+        payload = {
+            "host": CISSHGO_HOST,
+            "platform": CISSHGO_PLATFORM,
+            "port": CISSHGO_PORT,
+            "config": ["interface Loopback0", "description integration-test"],
+        }
+        result = _submit_and_poll(api_url, payload, endpoint="send_config")
+        assert result["status"] == "finished"
+        assert "job_id" in result
+        assert "status" in result
+        # send_config returns results as a string (config output) or None
+        # Either is valid — the key assertion is the job completed without error
+        assert result.get("error") is None
