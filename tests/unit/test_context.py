@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from naas.library.context import get_queue_for_context
-from naas.library.errorhandlers import InvalidContext, NoWorkersForContext
+from naas.library.errorhandlers import InvalidContext, NoWorkersForContext, QueueFull
 
 
 class TestGetQueueForContext:
@@ -32,3 +32,15 @@ class TestGetQueueForContext:
                     result = get_queue_for_context("default", fake_redis)
                     mock_queue_cls.assert_called_once_with("naas-default", connection=fake_redis)
                     assert result == mock_queue_cls.return_value
+
+    def test_queue_full_raises(self, fake_redis):
+        """Valid context with queue at limit raises QueueFull."""
+        mock_worker = MagicMock()
+        mock_worker.queue_names.return_value = ["naas-default"]
+        with patch("naas.library.context.NAAS_CONTEXTS", frozenset({"default"})):
+            with patch("naas.library.context.Worker.all", return_value=[mock_worker]):
+                with patch("naas.library.context.MAX_QUEUE_DEPTH", 1):
+                    with patch("naas.library.context.Queue") as mock_queue_cls:
+                        mock_queue_cls.return_value.__len__ = lambda self: 1
+                        with pytest.raises(QueueFull):
+                            get_queue_for_context("default", fake_redis)

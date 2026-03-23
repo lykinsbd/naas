@@ -54,6 +54,7 @@ All NAAS configuration is driven by environment variables. Set these in `docker-
 | --- | --- | --- |
 | `NAAS_CONTEXTS` | `default` | Comma-separated list of valid context names (e.g. `default,corp,oob-dc1,hk-prod`) |
 | `WORKER_CONTEXTS` | `default` | Comma-separated contexts this worker serves (e.g. `oob-dc1,oob-dc2`) |
+| `MAX_QUEUE_DEPTH` | `0` | Max queued jobs before returning 503 (0 = disabled) |
 
 ## Example docker-compose.yml
 
