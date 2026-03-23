@@ -23,7 +23,7 @@ services:
       - REDIS_PORT=6379
       - REDIS_PASSWORD=test_password
       - APP_ENVIRONMENT=test
-      - NAAS_CONTEXTS=default
+      - NAAS_CONTEXTS=default,alt
     networks:
       - naas-test
     depends_on:
@@ -53,11 +53,29 @@ services:
       redis:
         condition: service_healthy
 
+  worker-alt:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    command: ["rq", "worker", "naas-alt", "--url", "redis://:test_password@redis:6379"]
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=test_password
+      - APP_ENVIRONMENT=test
+      - WORKER_CONTEXTS=alt
+    networks:
+      - naas-test
+    depends_on:
+      redis:
+        condition: service_healthy
+
   cisshgo:
     image: ghcr.io/tbotnz/cisshgo:v0.2.0
-    command: ["-listeners", "1", "-startingPort", "10022"]
+    command: ["-listeners", "2", "-startingPort", "10022"]
     ports:
       - "10022:10022"
+      - "10023:10023"
     networks:
       naas-test:
         ipv4_address: 240.11.2.100

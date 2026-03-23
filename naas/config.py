@@ -97,6 +97,6 @@ def app_configure(app):
     # all connection pool keys and in-flight job auth checks.
     redis.setnx("naas_cred_salt", "".join(random.choice(string.ascii_lowercase) for _ in range(10)))
 
-    # Initialize an rq Queue and store it for later
-    q = Queue("naas", connection=redis)
+    # Initialize an rq Queue and store it for later (default context queue)
+    q = Queue("naas-default", connection=redis)
     app.config["q"] = q
