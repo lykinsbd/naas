@@ -23,6 +23,7 @@ services:
       - REDIS_PORT=6379
       - REDIS_PASSWORD=test_password
       - APP_ENVIRONMENT=test
+      - NAAS_CONTEXTS=default
     networks:
       - naas-test
     depends_on:
@@ -39,12 +40,13 @@ services:
     build:
       context: ../..
       dockerfile: Dockerfile
-    command: ["rq", "worker", "naas", "--url", "redis://:test_password@redis:6379"]
+    command: ["rq", "worker", "naas-default", "--url", "redis://:test_password@redis:6379"]
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=test_password
       - APP_ENVIRONMENT=test
+      - WORKER_CONTEXTS=default
     networks:
       - naas-test
     depends_on:
