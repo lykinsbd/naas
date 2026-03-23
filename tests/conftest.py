@@ -10,6 +10,13 @@ def fake_redis():
     return FakeStrictRedis()
 
 
+def _make_mock_worker(queue_names: list[str]) -> MagicMock:
+    """Create a mock RQ worker serving the given queue names."""
+    worker = MagicMock()
+    worker.queue_names.return_value = queue_names
+    return worker
+
+
 @pytest.fixture
 def app():
     """Provide Flask app for testing."""

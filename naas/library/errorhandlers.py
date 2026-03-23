@@ -2,7 +2,7 @@
 # -*- coding: UTF-8 -*-
 
 
-from werkzeug.exceptions import BadRequest, Forbidden, Unauthorized, UnprocessableEntity
+from werkzeug.exceptions import BadRequest, Forbidden, ServiceUnavailable, Unauthorized, UnprocessableEntity
 
 from naas import __base_response__
 
@@ -12,6 +12,10 @@ class DuplicateRequestID(BadRequest):
 
 
 class InvalidIP(UnprocessableEntity):
+    pass
+
+
+class InvalidContext(BadRequest):
     pass
 
 
@@ -27,6 +31,10 @@ class NoJSON(BadRequest):
     pass
 
 
+class NoWorkersForContext(ServiceUnavailable):
+    pass
+
+
 def api_error_generator():
     """
     API error dict generator for Flask-restful
@@ -38,6 +46,7 @@ def api_error_generator():
         "BadRequest": {"status": 400, "error": "Invalid syntax in request"},
         "NoJSON": {"status": 400, "error": "Payload must be JSON"},
         "DuplicateRequestID": {"status": 400, "error": "Please provide a unique X-Request-ID"},
+        "InvalidContext": {"status": 400, "error": "Unknown context. See GET /v1/contexts for valid contexts."},
         "Unauthorized": {"status": 401, "error": "Please provide a valid Username/Password"},
         "NoAuth": {"status": 401, "error": "You must authenticate with HTTP Basic authentication to use this resource"},
         "Forbidden": {"status": 403, "error": "You are not currently allowed to access this resource"},
@@ -50,6 +59,7 @@ def api_error_generator():
             "error": "Invalid type of data in request payload, please see documentation",
         },
         "InvalidIP": {"status": 422, "error": "Invalid IPv4 address in 'ip' field of payload"},
+        "NoWorkersForContext": {"status": 503, "error": "No workers available for the requested context"},
         "InternalServerError": {
             "status": 500,
             "error": (

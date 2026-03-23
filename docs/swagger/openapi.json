@@ -1,6 +1,51 @@
 {
   "components": {
     "schemas": {
+      "ContextsResponse.c5eb086": {
+        "description": "Response model for GET /v1/contexts.",
+        "properties": {
+          "contexts": {
+            "description": "Active contexts",
+            "items": {
+              "$ref": "#/components/schemas/ContextsResponse.c5eb086.ContextInfo"
+            },
+            "title": "Contexts",
+            "type": "array"
+          }
+        },
+        "required": [
+          "contexts"
+        ],
+        "title": "ContextsResponse",
+        "type": "object"
+      },
+      "ContextsResponse.c5eb086.ContextInfo": {
+        "description": "Status of a single routing context.",
+        "properties": {
+          "name": {
+            "description": "Context name",
+            "title": "Name",
+            "type": "string"
+          },
+          "queue_depth": {
+            "description": "Number of jobs currently queued",
+            "title": "Queue Depth",
+            "type": "integer"
+          },
+          "workers": {
+            "description": "Number of active workers serving this context",
+            "title": "Workers",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "workers",
+          "queue_depth"
+        ],
+        "title": "ContextInfo",
+        "type": "object"
+      },
       "JobResponse.c5eb086": {
         "description": "Response model for job submission.",
         "properties": {
@@ -90,6 +135,12 @@
             "title": "Commands",
             "type": "array"
           },
+          "context": {
+            "default": "default",
+            "description": "Routing context for multi-segment environments (e.g. 'corp', 'oob-dc1', 'hk-prod')",
+            "title": "Context",
+            "type": "string"
+          },
           "expect_string": {
             "anyOf": [
               {
@@ -148,6 +199,12 @@
             "minItems": 1,
             "title": "Commands",
             "type": "array"
+          },
+          "context": {
+            "default": "default",
+            "description": "Routing context for multi-segment environments (e.g. 'corp', 'oob-dc1', 'hk-prod')",
+            "title": "Context",
+            "type": "string"
           },
           "host": {
             "description": "Device IP address or hostname",
@@ -251,6 +308,12 @@
             "default": null,
             "description": "Configuration commands",
             "title": "Config"
+          },
+          "context": {
+            "default": "default",
+            "description": "Routing context for multi-segment environments",
+            "title": "Context",
+            "type": "string"
           },
           "host": {
             "description": "Device IP address or hostname",
@@ -518,6 +581,37 @@
         ],
         "responses": {},
         "summary": "Given the requested job_id, return status and/or any results if finished. :param job_id: :return: A dict of job status and/or results if finished.",
+        "tags": []
+      }
+    },
+    "/v1/contexts": {
+      "get": {
+        "description": ":return: ContextsResponse with per-context status",
+        "operationId": "get__v1_contexts",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContextsResponse.c5eb086"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError.6a07bef"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "List all configured contexts with active worker counts and queue depths.",
         "tags": []
       }
     },
