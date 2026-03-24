@@ -54,6 +54,12 @@
             "title": "Enqueued At",
             "type": "string"
           },
+          "idempotent": {
+            "default": false,
+            "description": "True if this response reuses an existing job",
+            "title": "Idempotent",
+            "type": "boolean"
+          },
           "job_id": {
             "description": "Unique job identifier",
             "title": "Job Id",

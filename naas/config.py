@@ -56,6 +56,9 @@ WORKER_CONTEXTS: list[str] = [c.strip() for c in os.environ.get("WORKER_CONTEXTS
 # Queue depth limit (0 = disabled)
 MAX_QUEUE_DEPTH: int = int(os.environ.get("MAX_QUEUE_DEPTH", 0))
 
+# Idempotency key TTL in seconds (24h default)
+IDEMPOTENCY_TTL: int = int(os.environ.get("IDEMPOTENCY_TTL", 86400))
+
 
 def app_configure(app):
     # Configure our environment

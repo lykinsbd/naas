@@ -108,6 +108,7 @@ class SendCommandStructured(Resource):
             queue_position=queue_position,
             enqueued_at=job.enqueued_at.isoformat(),
             timeout=JOB_TIMEOUT,
+            idempotent=False,
         ).model_dump()
         response.update(__base_response__)
         return response, 202, {"X-Request-ID": job_id}
