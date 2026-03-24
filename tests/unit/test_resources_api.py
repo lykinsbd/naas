@@ -351,6 +351,64 @@ class TestSendCommand:
         assert response.status_code == 202
         # Just verify it accepted the request - the X-Request-ID handling is tested
 
+    def test_idempotency_key_returns_existing_job(self, app, client):
+        """POST with X-Idempotency-Key returns existing job_id on repeat."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        existing_job = MagicMock()
+        existing_job.id = "existing-job-id"
+        existing_job.enqueued_at.isoformat.return_value = "2026-01-01T00:00:00+00:00"
+
+        with patch("naas.resources.send_command.get_idempotent_job_id", return_value="existing-job-id"):
+            with patch("naas.resources.send_command.RQJob.fetch", return_value=existing_job):
+                response = client.post(
+                    "/v1/send_command",
+                    json={"host": "192.0.2.1", "commands": ["show version"]},
+                    headers={"Authorization": f"Basic {auth}", "X-Idempotency-Key": "my-key"},
+                )
+
+        assert response.status_code == 202
+        assert response.json["job_id"] == "existing-job-id"
+        assert response.json["idempotent"] is True
+        # Should NOT have enqueued a new job
+        app.config["q"].enqueue.assert_not_called()
+
+    def test_idempotency_key_enqueues_new_job_first_time(self, app, client):
+        """POST with X-Idempotency-Key enqueues normally on first call."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.resources.send_command.get_idempotent_job_id", return_value=None):
+            with patch("naas.resources.send_command.store_idempotency_key") as mock_store:
+                response = client.post(
+                    "/v1/send_command",
+                    json={"host": "192.0.2.1", "commands": ["show version"]},
+                    headers={"Authorization": f"Basic {auth}", "X-Idempotency-Key": "new-key"},
+                )
+
+        assert response.status_code == 202
+        assert response.json["idempotent"] is False
+        mock_store.assert_called_once()
+
+    def test_idempotency_key_enqueues_new_when_job_gone(self, app, client):
+        """POST with X-Idempotency-Key enqueues new job if stored job no longer exists."""
+        from rq.exceptions import NoSuchJobError
+
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.resources.send_command.get_idempotent_job_id", return_value="gone-job-id"):
+            with patch("naas.resources.send_command.RQJob.fetch", side_effect=NoSuchJobError):
+                response = client.post(
+                    "/v1/send_command",
+                    json={"host": "192.0.2.1", "commands": ["show version"]},
+                    headers={"Authorization": f"Basic {auth}", "X-Idempotency-Key": "stale-key"},
+                )
+
+        assert response.status_code == 202
+        assert response.json["idempotent"] is False  # New job was enqueued
+
 
 class TestSendConfig:
     """Test send_config resource."""
@@ -498,6 +556,63 @@ class TestSendConfig:
         )
 
         assert response.status_code == 422
+
+    def test_send_config_idempotency_key_returns_existing_job(self, app, client):
+        """POST with X-Idempotency-Key returns existing job_id on repeat."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        existing_job = MagicMock()
+        existing_job.id = "existing-config-job"
+        existing_job.enqueued_at.isoformat.return_value = "2026-01-01T00:00:00+00:00"
+
+        with patch("naas.resources.send_config.get_idempotent_job_id", return_value="existing-config-job"):
+            with patch("naas.resources.send_config.RQJob.fetch", return_value=existing_job):
+                response = client.post(
+                    "/v1/send_config",
+                    json={"host": "192.0.2.1", "commands": ["interface Gi0/1"]},
+                    headers={"Authorization": f"Basic {auth}", "X-Idempotency-Key": "config-key"},
+                )
+
+        assert response.status_code == 202
+        assert response.json["job_id"] == "existing-config-job"
+        assert response.json["idempotent"] is True
+        app.config["q"].enqueue.assert_not_called()
+
+    def test_send_config_idempotency_key_enqueues_new_job(self, app, client):
+        """POST with X-Idempotency-Key enqueues normally on first call."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.resources.send_config.get_idempotent_job_id", return_value=None):
+            with patch("naas.resources.send_config.store_idempotency_key") as mock_store:
+                response = client.post(
+                    "/v1/send_config",
+                    json={"host": "192.0.2.1", "commands": ["interface Gi0/1"]},
+                    headers={"Authorization": f"Basic {auth}", "X-Idempotency-Key": "new-config-key"},
+                )
+
+        assert response.status_code == 202
+        assert response.json["idempotent"] is False
+        mock_store.assert_called_once()
+
+    def test_send_config_idempotency_key_enqueues_new_when_job_gone(self, app, client):
+        """POST with X-Idempotency-Key enqueues new job if stored job no longer exists."""
+        from rq.exceptions import NoSuchJobError
+
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.resources.send_config.get_idempotent_job_id", return_value="gone-job-id"):
+            with patch("naas.resources.send_config.RQJob.fetch", side_effect=NoSuchJobError):
+                response = client.post(
+                    "/v1/send_config",
+                    json={"host": "192.0.2.1", "commands": ["interface Gi0/1"]},
+                    headers={"Authorization": f"Basic {auth}", "X-Idempotency-Key": "stale-config-key"},
+                )
+
+        assert response.status_code == 202
+        assert response.json["idempotent"] is False
 
     def test_send_config_invalid_platform(self, app, client):
         """Test POST with invalid platform returns 422."""

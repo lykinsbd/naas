@@ -2,6 +2,8 @@
 
 from flask import current_app, g, request
 from flask_restful import Resource
+from rq.exceptions import NoSuchJobError
+from rq.job import Job as RQJob
 from spectree import Response
 
 from naas import __base_response__
@@ -11,6 +13,7 @@ from naas.library.auth import device_lockout, job_locker
 from naas.library.context import get_queue_for_context
 from naas.library.decorators import valid_post
 from naas.library.errorhandlers import LockedOut
+from naas.library.idempotency import get_idempotent_job_id, store_idempotency_key
 from naas.library.netmiko_lib import netmiko_send_command
 from naas.models import JobResponse, SendCommandRequest
 from naas.spec import spec
@@ -63,6 +66,27 @@ class SendCommand(Resource):
             validated.commands,
         )
 
+        # Check idempotency key if provided
+        idempotency_key = request.headers.get("X-Idempotency-Key")
+        if idempotency_key:
+            existing_job_id = get_idempotent_job_id(idempotency_key, current_app.config["redis"])
+            if existing_job_id:
+                try:
+                    existing_job = RQJob.fetch(existing_job_id, connection=current_app.config["redis"])
+                    queue_position = 0
+                    response = JobResponse(
+                        job_id=existing_job_id,
+                        message="Job enqueued",
+                        queue_position=queue_position,
+                        enqueued_at=existing_job.enqueued_at.isoformat() if existing_job.enqueued_at else "",
+                        timeout=JOB_TIMEOUT,
+                        idempotent=True,
+                    ).model_dump()
+                    response.update(__base_response__)
+                    return response, 202, {"X-Request-ID": existing_job_id}
+                except NoSuchJobError:
+                    pass  # Key expired or job gone, proceed with new enqueue
+
         # Enqueue your job, and return the job ID
         current_app.logger.debug(
             "%s: Enqueueing job for %s@%s:%s",
@@ -96,6 +120,10 @@ class SendCommand(Resource):
         # Stash the job_id in redis, with the user/pass hash so that only that user can retrieve results
         job_locker(salted_creds=user_hash, job=job)
 
+        # Store idempotency key if provided
+        if idempotency_key:
+            store_idempotency_key(idempotency_key, job_id, current_app.config["redis"])
+
         # Store tags in job metadata if provided
         if validated.tags:
             job.meta["tags"] = validated.tags
@@ -121,6 +149,7 @@ class SendCommand(Resource):
             queue_position=queue_position,
             enqueued_at=job.enqueued_at.isoformat(),
             timeout=JOB_TIMEOUT,
+            idempotent=False,
         ).model_dump()
         response.update(__base_response__)
         return response, 202, {"X-Request-ID": job_id}

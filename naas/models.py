@@ -262,6 +262,7 @@ class JobResponse(BaseModel):
     queue_position: int = Field(..., description="Approximate position in queue (1 = next to run)")
     enqueued_at: str = Field(..., description="ISO 8601 timestamp when job was enqueued")
     timeout: int = Field(..., description="Job timeout in seconds")
+    idempotent: bool = Field(default=False, description="True if this response reuses an existing job")
 
 
 class JobResultResponse(BaseModel):
