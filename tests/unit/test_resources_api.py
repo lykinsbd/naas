@@ -257,6 +257,75 @@ class TestSendCommand:
 
         assert response.status_code == 202
 
+    def test_send_command_with_tags(self, app, client):
+        """Test POST with tags stores them in job meta."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
+            response = client.post(
+                "/v1/send_command",
+                json={
+                    "host": "192.0.2.1",
+                    "commands": ["show version"],
+                    "tags": {"change": "CHG001", "site": "nyc-dc1"},
+                },
+                headers={"Authorization": f"Basic {auth}"},
+            )
+
+        assert response.status_code == 202
+        # Verify tags were saved to job meta
+        mock_job = app.config["q"].enqueue.return_value
+        assert mock_job.meta["tags"] == {"change": "CHG001", "site": "nyc-dc1"}
+
+    def test_send_command_invalid_tags_too_many(self, app, client):
+        """Test POST with more than 10 tags returns 422."""
+        auth = b64encode(b"testuser:testpass").decode()
+
+        response = client.post(
+            "/v1/send_command",
+            json={
+                "host": "192.0.2.1",
+                "commands": ["show version"],
+                "tags": {f"key{i}": f"val{i}" for i in range(11)},
+            },
+            headers={"Authorization": f"Basic {auth}"},
+        )
+
+        assert response.status_code == 422
+
+    def test_send_command_invalid_tags_bad_key(self, app, client):
+        """Test POST with invalid tag key (spaces) returns 422."""
+        auth = b64encode(b"testuser:testpass").decode()
+
+        response = client.post(
+            "/v1/send_command",
+            json={
+                "host": "192.0.2.1",
+                "commands": ["show version"],
+                "tags": {"invalid key!": "value"},
+            },
+            headers={"Authorization": f"Basic {auth}"},
+        )
+
+        assert response.status_code == 422
+
+    def test_send_command_invalid_tags_bad_value(self, app, client):
+        """Test POST with invalid tag value (spaces) returns 422."""
+        auth = b64encode(b"testuser:testpass").decode()
+
+        response = client.post(
+            "/v1/send_command",
+            json={
+                "host": "192.0.2.1",
+                "commands": ["show version"],
+                "tags": {"key": "invalid value!"},
+            },
+            headers={"Authorization": f"Basic {auth}"},
+        )
+
+        assert response.status_code == 422
+
     def test_send_command_with_request_id(self, app, client):
         """Test POST with custom X-Request-ID uses that ID."""
         auth = b64encode(b"testuser:testpass").decode()
@@ -378,6 +447,42 @@ class TestSendConfig:
             )
 
         assert response.status_code == 202
+
+    def test_send_config_with_tags(self, app, client):
+        """Test POST with tags stores them in job meta."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
+            response = client.post(
+                "/v1/send_config",
+                json={
+                    "host": "192.0.2.1",
+                    "commands": ["interface Gi0/1"],
+                    "tags": {"change": "CHG002"},
+                },
+                headers={"Authorization": f"Basic {auth}"},
+            )
+
+        assert response.status_code == 202
+        mock_job = app.config["q"].enqueue.return_value
+        assert mock_job.meta["tags"] == {"change": "CHG002"}
+
+    def test_send_config_invalid_tags(self, app, client):
+        """Test POST with invalid tags returns 422."""
+        auth = b64encode(b"testuser:testpass").decode()
+
+        for bad_tags in [
+            {f"key{i}": f"val{i}" for i in range(11)},  # too many
+            {"invalid key!": "value"},  # bad key
+            {"key": "invalid value!"},  # bad value
+        ]:
+            response = client.post(
+                "/v1/send_config",
+                json={"host": "192.0.2.1", "commands": ["interface Gi0/1"], "tags": bad_tags},
+                headers={"Authorization": f"Basic {auth}"},
+            )
+            assert response.status_code == 422
 
     def test_send_config_invalid_host(self, app, client):
         """Test POST with invalid host returns 422."""
@@ -559,6 +664,31 @@ class TestGetResults:
         assert response.status_code == 200
         assert response.json["detected_platform"] == "cisco_nxos"
         assert "_detected_platform" not in response.json["results"]
+
+    def test_get_results_with_tags(self, app, client):
+        """Test GET returns tags from job metadata."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        job_id = "55555555-5555-5555-5555-555555555555"
+        job = MagicMock()
+        job.get_status = lambda: "finished"
+        job.result = ({"show version": "output"}, None)
+        job.meta = {"tags": {"change": "CHG001", "site": "nyc"}}
+
+        def fetch_side_effect(job_id_param):
+            return job if job_id_param == job_id else None
+
+        app.config["q"].fetch_job.side_effect = fetch_side_effect
+
+        with patch("naas.resources.get_results.job_unlocker", return_value=True):
+            response = client.get(
+                f"/v1/send_command/{job_id}",
+                headers={"Authorization": f"Basic {auth}"},
+            )
+
+        assert response.status_code == 200
+        assert response.json["tags"] == {"change": "CHG001", "site": "nyc"}
 
     def test_get_results_no_auth(self, client):
         """Test GET without auth returns 401."""

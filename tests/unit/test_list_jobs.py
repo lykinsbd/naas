@@ -312,3 +312,40 @@ class TestListJobs:
         assert data["jobs"][0]["job_id"] == "job2"
         # Verify queue was called (is_queue branch) and finished registry was skipped
         app.config["q"].get_job_ids.assert_called_once_with(offset=0, length=1)
+
+    def test_list_jobs_tag_filter(self, app, client):
+        """Test GET with tag filter returns only matching jobs."""
+        from rq.job import Job
+
+        auth = b64encode(b"testuser:testpass").decode()
+
+        job_with_tag = MagicMock(spec=Job)
+        job_with_tag.id = "tagged-job"
+        job_with_tag.get_status = lambda: "finished"
+        job_with_tag.created_at = None
+        job_with_tag.ended_at = None
+        job_with_tag.meta = {"tags": {"change": "CHG001"}}
+
+        job_without_tag = MagicMock(spec=Job)
+        job_without_tag.id = "untagged-job"
+        job_without_tag.get_status = lambda: "finished"
+        job_without_tag.created_at = None
+        job_without_tag.ended_at = None
+        job_without_tag.meta = {}
+
+        with patch("naas.resources.list_jobs.Job.fetch_many", return_value=[job_with_tag, job_without_tag]):
+            with patch("naas.resources.list_jobs.FinishedJobRegistry") as mock_reg:
+                mock_reg_instance = MagicMock()
+                mock_reg_instance.get_job_ids.return_value = ["tagged-job", "untagged-job"]
+                mock_reg_instance.count = 2
+                mock_reg.return_value = mock_reg_instance
+                response = client.get(
+                    "/v1/jobs?status=finished&tag=change:CHG001",
+                    headers={"Authorization": f"Basic {auth}"},
+                )
+
+        assert response.status_code == 200
+        data = response.json
+        assert len(data["jobs"]) == 1
+        assert data["jobs"][0]["job_id"] == "tagged-job"
+        assert data["jobs"][0]["tags"] == {"change": "CHG001"}

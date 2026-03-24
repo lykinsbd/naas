@@ -10,9 +10,26 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 logger = logging.getLogger(__name__)
 
+_TAGS_KEY_RE = re.compile(r"^[a-zA-Z0-9_\-:]{1,64}$")
 _HOSTNAME_RE = re.compile(
     r"^(?:[a-zA-Z0-9](?:[a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)*" r"[a-zA-Z0-9](?:[a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?$"
 )
+
+
+def _validate_tags(v: dict[str, str] | None) -> dict[str, str] | None:
+    """Validate tags: max 10 entries, keys/values max 64 chars, alphanumeric + hyphens/underscores/colons."""
+    if v is None:
+        return v
+    if len(v) > 10:
+        raise ValueError("tags must contain at most 10 entries")
+    for k, val in v.items():
+        if not _TAGS_KEY_RE.match(k):
+            raise ValueError(f"tag key '{k}' must be alphanumeric with hyphens, underscores, or colons (max 64 chars)")
+        if not _TAGS_KEY_RE.match(val):
+            raise ValueError(
+                f"tag value '{val}' must be alphanumeric with hyphens, underscores, or colons (max 64 chars)"
+            )
+    return v
 
 
 def _handle_device_type(data: dict[str, Any]) -> dict[str, Any]:
@@ -72,6 +89,16 @@ class _BaseCommandRequest(BaseModel):
         default="default",
         description="Routing context for multi-segment environments (e.g. 'corp', 'oob-dc1', 'hk-prod')",
     )
+    tags: dict[str, str] | None = Field(
+        default=None,
+        description="Optional key-value metadata tags (max 10, keys/values max 64 chars, alphanumeric + hyphens/underscores/colons)",
+    )
+
+    @field_validator("tags")
+    @classmethod
+    def validate_tags(cls, v: dict[str, str] | None) -> dict[str, str] | None:
+        """Validate tags via shared _validate_tags function."""
+        return _validate_tags(v)
 
     @model_validator(mode="before")
     @classmethod
@@ -170,6 +197,16 @@ class SendConfigRequest(BaseModel):
     save_config: bool = Field(default=False, description="Save configuration after applying")
     commit: bool = Field(default=False, description="Commit configuration (Juniper)")
     context: str = Field(default="default", description="Routing context for multi-segment environments")
+    tags: dict[str, str] | None = Field(
+        default=None,
+        description="Optional key-value metadata tags (max 10, keys/values max 64 chars)",
+    )
+
+    @field_validator("tags")
+    @classmethod
+    def validate_tags(cls, v: dict[str, str] | None) -> dict[str, str] | None:
+        """Validate tags via shared _validate_tags function."""
+        return _validate_tags(v)
 
     @model_validator(mode="before")
     @classmethod
@@ -235,6 +272,7 @@ class JobResultResponse(BaseModel):
     results: Any | None = None
     error: str | None = None
     detected_platform: str | None = None
+    tags: dict[str, str] | None = None
 
 
 class ListJobsQuery(BaseModel):
@@ -248,6 +286,7 @@ class ListJobsQuery(BaseModel):
     page: int = Field(default=1, ge=1)
     per_page: int = Field(default=20, ge=1, le=100)
     status: Literal["finished", "failed", "started", "queued"] | None = None
+    tag: str | None = Field(default=None, description="Filter by tag in 'key:value' format")
 
 
 class ContextInfo(BaseModel):

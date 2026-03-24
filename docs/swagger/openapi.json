@@ -118,6 +118,19 @@
             ],
             "default": null,
             "title": "Status"
+          },
+          "tag": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Filter by tag in 'key:value' format",
+            "title": "Tag"
           }
         },
         "title": "ListJobsQuery",
@@ -179,6 +192,22 @@
             "minimum": 1.0,
             "title": "Read Timeout",
             "type": "number"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Optional key-value metadata tags (max 10, keys/values max 64 chars, alphanumeric + hyphens/underscores/colons)",
+            "title": "Tags"
           }
         },
         "required": [
@@ -231,6 +260,22 @@
             "minimum": 1.0,
             "title": "Read Timeout",
             "type": "number"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Optional key-value metadata tags (max 10, keys/values max 64 chars, alphanumeric + hyphens/underscores/colons)",
+            "title": "Tags"
           },
           "textfsm_template": {
             "anyOf": [
@@ -346,6 +391,22 @@
             "description": "Save configuration after applying",
             "title": "Save Config",
             "type": "boolean"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Optional key-value metadata tags (max 10, keys/values max 64 chars)",
+            "title": "Tags"
           }
         },
         "required": [
@@ -677,6 +738,25 @@
               ],
               "default": null,
               "title": "Status"
+            }
+          },
+          {
+            "description": "Filter by tag in 'key:value' format",
+            "in": "query",
+            "name": "tag",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Filter by tag in 'key:value' format",
+              "title": "Tag"
             }
           }
         ],
