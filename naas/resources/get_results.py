@@ -65,5 +65,10 @@ class GetResults(Resource):
         elif job_status == "failed":
             r["error"] = str(job.exc_info).strip() if job.exc_info else "Job failed"
 
+        # Include tags if present in job metadata
+        tags = getattr(job, "meta", {}).get("tags") if isinstance(getattr(job, "meta", {}), dict) else None
+        if tags:
+            r["tags"] = tags
+
         r.update(__base_response__)
         return r

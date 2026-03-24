@@ -96,6 +96,11 @@ class SendCommand(Resource):
         # Stash the job_id in redis, with the user/pass hash so that only that user can retrieve results
         job_locker(salted_creds=user_hash, job=job)
 
+        # Store tags in job metadata if provided
+        if validated.tags:
+            job.meta["tags"] = validated.tags
+            job.save_meta()
+
         # Emit audit event
         emit_audit_event(
             "job.submitted",
