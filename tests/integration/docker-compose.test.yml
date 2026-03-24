@@ -53,8 +53,6 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-      webhook-receiver:
-        condition: service_healthy
 
   worker-alt:
     build:
@@ -72,8 +70,6 @@ services:
       - naas-test
     depends_on:
       redis:
-        condition: service_healthy
-      webhook-receiver:
         condition: service_healthy
 
   cisshgo:
