@@ -19,7 +19,7 @@ def api_url():
 @pytest.fixture(scope="session")
 def wait_for_api(api_url):
     """Wait for API to be ready (session-scoped, runs once)."""
-    max_retries = 15
+    max_retries = 60
     retry_delay = 1
     for i in range(max_retries):
         try:
