@@ -212,6 +212,44 @@ curl -k -X POST https://localhost:8443/v1/send_config \
   }'
 ```
 
+## Job Deduplication
+
+NAAS automatically deduplicates in-flight jobs. If you submit the same command to the same device while a previous identical job is still running or queued, NAAS returns the existing job_id instead of enqueuing a new one.
+
+Two jobs are considered duplicates when they share the same `host`, `platform`, `commands`, and username.
+
+### Detecting a Deduplicated Response
+
+```json
+{
+  "job_id": "abc-123",
+  "message": "Job enqueued",
+  "deduplicated": true,
+  "queue_position": 0,
+  "enqueued_at": "2026-03-24T18:00:00+00:00",
+  "timeout": 60
+}
+```
+
+When `deduplicated: true`, the `job_id` refers to the existing in-flight job. Poll it normally to get results.
+
+### Disabling Deduplication
+
+Set `JOB_DEDUP_ENABLED=false` to disable deduplication globally. Useful for testing or when you intentionally want parallel identical jobs.
+
+### Idempotency Keys
+
+For client-controlled deduplication (e.g., safe retries on network failure), use `X-Idempotency-Key`:
+
+```bash
+curl -k -X POST https://localhost:8443/v1/send_command \
+  -H "X-Idempotency-Key: my-unique-key-abc123" \
+  -u "admin:password" \
+  -d '{"host": "192.168.1.1", "platform": "cisco_ios", "commands": ["show version"]}'
+```
+
+Repeat requests with the same key within 24 hours return the original job_id with `idempotent: true`. Unlike server-side dedup, idempotency keys are opt-in and key-based (not content-based).
+
 ## Job Cancellation
 
 Cancel running or queued jobs using DELETE.

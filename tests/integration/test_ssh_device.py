@@ -179,7 +179,7 @@ class TestAuthFailure:
         assert "Authentication" in result["error"]
 
         # Cleanup: clear user lockout so subsequent tests using the same user aren't blocked
-        redis_client.delete(f"naas_failures_user_{CISSHGO_USER}")
+        redis_client.delete(f"naas_failures_{CISSHGO_USER}")
 
 
 # ---------------------------------------------------------------------------

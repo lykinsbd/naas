@@ -49,6 +49,12 @@
       "JobResponse.c5eb086": {
         "description": "Response model for job submission.",
         "properties": {
+          "deduplicated": {
+            "default": false,
+            "description": "True if this response reuses an in-flight duplicate job",
+            "title": "Deduplicated",
+            "type": "boolean"
+          },
           "enqueued_at": {
             "description": "ISO 8601 timestamp when job was enqueued",
             "title": "Enqueued At",

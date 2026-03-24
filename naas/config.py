@@ -59,6 +59,9 @@ MAX_QUEUE_DEPTH: int = int(os.environ.get("MAX_QUEUE_DEPTH", 0))
 # Idempotency key TTL in seconds (24h default)
 IDEMPOTENCY_TTL: int = int(os.environ.get("IDEMPOTENCY_TTL", 86400))
 
+# Job deduplication (enabled by default)
+JOB_DEDUP_ENABLED: bool = os.environ.get("JOB_DEDUP_ENABLED", "true").lower() == "true"
+
 
 def app_configure(app):
     # Configure our environment
