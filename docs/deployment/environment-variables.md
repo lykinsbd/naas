@@ -57,6 +57,9 @@ All NAAS configuration is driven by environment variables. Set these in `docker-
 | `MAX_QUEUE_DEPTH` | `0` | Max queued jobs before returning 503 (0 = disabled) |
 | `IDEMPOTENCY_TTL` | `86400` | Seconds to remember idempotency keys (24h) |
 | `JOB_DEDUP_ENABLED` | `true` | Enable server-side job deduplication (opt-out) |
+| `JOB_REAPER_ENABLED` | `true` | Enable orphaned job detection (opt-out) |
+| `JOB_REAPER_INTERVAL` | `60` | Seconds between reaper scans |
+| `WORKER_STALE_THRESHOLD` | `120` | Seconds since last heartbeat before worker considered dead |
 
 ## Example docker-compose.yml
 
