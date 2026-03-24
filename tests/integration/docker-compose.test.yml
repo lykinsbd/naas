@@ -96,10 +96,11 @@ services:
     networks:
       - naas-test
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8080/webhooks"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/webhooks')"]
       interval: 2s
       timeout: 2s
-      retries: 5
+      retries: 10
+      start_period: 5s
 
 networks:
   naas-test:
