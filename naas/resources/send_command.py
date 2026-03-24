@@ -90,6 +90,9 @@ class SendCommand(Resource):
                 except NoSuchJobError:
                     pass  # Key expired or job gone, proceed with new enqueue
 
+        # Validate context and get queue (raises 400/503 before dedup check)
+        q = get_queue_for_context(validated.context, current_app.config["redis"])
+
         # Check for duplicate in-flight job (server-side dedup)
         _commands = validated.commands
         duplicate_job_id = get_duplicate_job_id(
@@ -120,7 +123,6 @@ class SendCommand(Resource):
             ip_str,
             validated.port,
         )
-        q = get_queue_for_context(validated.context, current_app.config["redis"])
         job = q.enqueue(
             netmiko_send_command,
             ip=ip_str,
