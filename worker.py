@@ -168,6 +168,11 @@ def worker_launch(
     else:
         logger.warning("naas_cred_salt not found in Redis — connection pooling will be disabled until salt is set")
 
+    # Start job reaper background thread
+    from naas.library.reaper import start_reaper
+
+    start_reaper(redis_conn)
+
     # Setup signal handlers for graceful shutdown
     def request_stop(signum, frame):
         logger.info("Received signal %s, requesting graceful shutdown", signum)
