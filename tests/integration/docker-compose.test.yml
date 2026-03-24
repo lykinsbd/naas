@@ -47,10 +47,13 @@ services:
       - REDIS_PASSWORD=test_password
       - APP_ENVIRONMENT=test
       - WORKER_CONTEXTS=default
+      - WEBHOOK_ALLOW_HTTP=true
     networks:
       - naas-test
     depends_on:
       redis:
+        condition: service_healthy
+      webhook-receiver:
         condition: service_healthy
 
   worker-alt:
@@ -64,10 +67,13 @@ services:
       - REDIS_PASSWORD=test_password
       - APP_ENVIRONMENT=test
       - WORKER_CONTEXTS=alt
+      - WEBHOOK_ALLOW_HTTP=true
     networks:
       - naas-test
     depends_on:
       redis:
+        condition: service_healthy
+      webhook-receiver:
         condition: service_healthy
 
   cisshgo:
@@ -79,6 +85,21 @@ services:
     networks:
       naas-test:
         ipv4_address: 240.11.2.100
+
+  webhook-receiver:
+    image: python:3.11-alpine
+    command: ["python", "/receiver/webhook_receiver.py"]
+    volumes:
+      - ./webhook_receiver.py:/receiver/webhook_receiver.py:ro
+    ports:
+      - "18080:8080"
+    networks:
+      - naas-test
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/webhooks"]
+      interval: 2s
+      timeout: 2s
+      retries: 5
 
 networks:
   naas-test:

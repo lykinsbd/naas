@@ -660,3 +660,52 @@ class TestSendConfigResult:
         # send_config returns results as a string (config output) or None
         # Either is valid — the key assertion is the job completed without error
         assert result.get("error") is None
+
+
+# ---------------------------------------------------------------------------
+# Webhook delivery
+# ---------------------------------------------------------------------------
+
+WEBHOOK_RECEIVER_URL = "http://localhost:18080"
+
+
+class TestWebhookDelivery:
+    """Tests for webhook notification on job completion."""
+
+    def test_webhook_fires_on_job_completion(self, api_url, wait_for_api, wait_for_cisshgo):
+        """Webhook receiver gets a notification payload when a job finishes."""
+        # Use a unique marker so we can identify our webhook among any others
+        marker = str(uuid.uuid4())
+        webhook_url = f"http://webhook-receiver:8080/webhooks?marker={marker}"
+
+        payload = {
+            "host": CISSHGO_HOST,
+            "platform": CISSHGO_PLATFORM,
+            "port": CISSHGO_PORT,
+            "commands": [f"show version {marker}"],
+            "webhook_url": webhook_url,
+        }
+        result = _submit_and_poll(api_url, payload)
+        assert result["status"] == "finished"
+
+        job_id = result["job_id"]
+
+        # Give the webhook a moment to be delivered (fire-and-forget is async)
+        for _ in range(10):
+            time.sleep(1)
+            received = requests.get(f"{WEBHOOK_RECEIVER_URL}/webhooks", timeout=5).json()
+            matching = [w for w in received if w.get("job_id") == job_id]
+            if matching:
+                break
+        else:
+            pytest.fail(f"Webhook for job {job_id} was not received within 10 seconds")
+
+        notification = matching[0]
+        assert notification["job_id"] == job_id
+        assert notification["status"] == "finished"
+        assert "enqueued_at" in notification
+        assert "completed_at" in notification
+        # Verify no results or credentials leaked into the payload
+        assert "results" not in notification
+        assert "password" not in notification
+        assert "username" not in notification

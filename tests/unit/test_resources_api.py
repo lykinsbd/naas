@@ -1042,3 +1042,37 @@ class TestCancelJob:
             )
 
         assert response.status_code == 403
+
+
+class TestWebhookUrlInEnqueue:
+    def test_send_command_stores_webhook_url_in_meta(self, app, client):
+        """POST with webhook_url stores it in job.meta."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
+            response = client.post(
+                "/v1/send_command",
+                json={"host": "192.0.2.1", "commands": ["show version"], "webhook_url": "https://example.com/cb"},
+                headers={"Authorization": f"Basic {auth}"},
+            )
+
+        assert response.status_code == 202
+        job = app.config["q"].enqueue.return_value
+        assert job.meta.get("webhook_url") == "https://example.com/cb"
+
+    def test_send_config_stores_webhook_url_in_meta(self, app, client):
+        """POST send_config with webhook_url stores it in job.meta."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
+            response = client.post(
+                "/v1/send_config",
+                json={"host": "192.0.2.1", "commands": ["interface Gi0/1"], "webhook_url": "https://example.com/cb"},
+                headers={"Authorization": f"Basic {auth}"},
+            )
+
+        assert response.status_code == 202
+        job = app.config["q"].enqueue.return_value
+        assert job.meta.get("webhook_url") == "https://example.com/cb"

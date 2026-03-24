@@ -166,9 +166,11 @@ class SendConfig(Resource):
         if idempotency_key:
             store_idempotency_key(idempotency_key, job_id, current_app.config["redis"])
 
-        # Store tags in job metadata if provided
+        # Store tags and webhook_url in job metadata if provided
         if validated.tags:
             job.meta["tags"] = validated.tags
+        if validated.webhook_url:
+            job.meta["webhook_url"] = validated.webhook_url
         if job.meta:
             job.save_meta()
 

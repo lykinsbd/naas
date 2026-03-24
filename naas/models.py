@@ -4,9 +4,12 @@ import logging
 import re
 from ipaddress import ip_address
 from typing import Any, Literal
+from urllib.parse import urlparse
 
 from netmiko import platforms as netmiko_platforms
 from pydantic import BaseModel, Field, field_validator, model_validator
+
+import naas.config as _naas_config
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +32,24 @@ def _validate_tags(v: dict[str, str] | None) -> dict[str, str] | None:
             raise ValueError(
                 f"tag value '{val}' must be alphanumeric with hyphens, underscores, or colons (max 64 chars)"
             )
+    return v
+
+
+def _validate_webhook_url(v: str | None) -> str | None:
+    """Validate webhook_url is a valid HTTPS URL (HTTP allowed only when WEBHOOK_ALLOW_HTTP=true)."""
+    if v is None:
+        return v
+    parsed = urlparse(v)
+    if _naas_config.WEBHOOK_ALLOW_HTTP:
+        # HTTP allowed only in test/dev environments (WEBHOOK_ALLOW_HTTP=true)
+        # Branch not reachable in production; pragma suppresses coverage miss
+        allowed_schemes: set[str] = {"https", "http"}  # pragma: no cover
+        scheme_msg = "https or http"  # pragma: no cover
+    else:
+        allowed_schemes = {"https"}
+        scheme_msg = "https"
+    if parsed.scheme not in allowed_schemes or not parsed.netloc:
+        raise ValueError(f"webhook_url must be a valid {scheme_msg} URL")
     return v
 
 
@@ -93,12 +114,22 @@ class _BaseCommandRequest(BaseModel):
         default=None,
         description="Optional key-value metadata tags (max 10, keys/values max 64 chars, alphanumeric + hyphens/underscores/colons)",
     )
+    webhook_url: str | None = Field(
+        default=None,
+        description="Optional HTTPS URL to POST a job completion notification to (never includes results)",
+    )
 
     @field_validator("tags")
     @classmethod
     def validate_tags(cls, v: dict[str, str] | None) -> dict[str, str] | None:
         """Validate tags via shared _validate_tags function."""
         return _validate_tags(v)
+
+    @field_validator("webhook_url")
+    @classmethod
+    def validate_webhook_url(cls, v: str | None) -> str | None:
+        """Validate webhook_url is a valid HTTPS URL."""
+        return _validate_webhook_url(v)
 
     @model_validator(mode="before")
     @classmethod
@@ -201,12 +232,22 @@ class SendConfigRequest(BaseModel):
         default=None,
         description="Optional key-value metadata tags (max 10, keys/values max 64 chars)",
     )
+    webhook_url: str | None = Field(
+        default=None,
+        description="Optional HTTPS URL to POST a job completion notification to (never includes results)",
+    )
 
     @field_validator("tags")
     @classmethod
     def validate_tags(cls, v: dict[str, str] | None) -> dict[str, str] | None:
         """Validate tags via shared _validate_tags function."""
         return _validate_tags(v)
+
+    @field_validator("webhook_url")
+    @classmethod
+    def validate_webhook_url(cls, v: str | None) -> str | None:
+        """Validate webhook_url is a valid HTTPS URL."""
+        return _validate_webhook_url(v)
 
     @model_validator(mode="before")
     @classmethod

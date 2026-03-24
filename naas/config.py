@@ -62,6 +62,9 @@ IDEMPOTENCY_TTL: int = int(os.environ.get("IDEMPOTENCY_TTL", 86400))
 # Job deduplication (enabled by default)
 JOB_DEDUP_ENABLED: bool = os.environ.get("JOB_DEDUP_ENABLED", "true").lower() == "true"
 
+# Webhook config
+WEBHOOK_ALLOW_HTTP: bool = os.environ.get("WEBHOOK_ALLOW_HTTP", "false").lower() == "true"
+
 # Job reaper config
 JOB_REAPER_ENABLED: bool = os.environ.get("JOB_REAPER_ENABLED", "true").lower() == "true"
 JOB_REAPER_INTERVAL: int = int(os.environ.get("JOB_REAPER_INTERVAL", 60))
