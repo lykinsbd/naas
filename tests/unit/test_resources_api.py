@@ -409,6 +409,46 @@ class TestSendCommand:
         assert response.status_code == 202
         assert response.json["idempotent"] is False  # New job was enqueued
 
+    def test_dedup_returns_existing_job(self, app, client):
+        """POST returns existing job_id when duplicate is in-flight."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        dup_job = MagicMock()
+        dup_job.id = "dup-job-id"
+        dup_job.enqueued_at.isoformat.return_value = "2026-01-01T00:00:00+00:00"
+
+        with patch("naas.resources.send_command.get_duplicate_job_id", return_value="dup-job-id"):
+            with patch("naas.resources.send_command.RQJob.fetch", return_value=dup_job):
+                response = client.post(
+                    "/v1/send_command",
+                    json={"host": "192.0.2.1", "commands": ["show version"]},
+                    headers={"Authorization": f"Basic {auth}"},
+                )
+
+        assert response.status_code == 202
+        assert response.json["job_id"] == "dup-job-id"
+        assert response.json["deduplicated"] is True
+        app.config["q"].enqueue.assert_not_called()
+
+    def test_dedup_enqueues_new_when_job_gone(self, app, client):
+        """POST enqueues new job when dedup key exists but job is gone."""
+        from rq.exceptions import NoSuchJobError
+
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.resources.send_command.get_duplicate_job_id", return_value="gone-dup-id"):
+            with patch("naas.resources.send_command.RQJob.fetch", side_effect=NoSuchJobError):
+                response = client.post(
+                    "/v1/send_command",
+                    json={"host": "192.0.2.1", "commands": ["show version"]},
+                    headers={"Authorization": f"Basic {auth}"},
+                )
+
+        assert response.status_code == 202
+        assert response.json["deduplicated"] is False
+
 
 class TestSendConfig:
     """Test send_config resource."""
@@ -613,6 +653,45 @@ class TestSendConfig:
 
         assert response.status_code == 202
         assert response.json["idempotent"] is False
+
+    def test_send_config_dedup_returns_existing_job(self, app, client):
+        """POST returns existing job_id when duplicate config job is in-flight."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        dup_job = MagicMock()
+        dup_job.id = "dup-config-job"
+        dup_job.enqueued_at.isoformat.return_value = "2026-01-01T00:00:00+00:00"
+
+        with patch("naas.resources.send_config.get_duplicate_job_id", return_value="dup-config-job"):
+            with patch("naas.resources.send_config.RQJob.fetch", return_value=dup_job):
+                response = client.post(
+                    "/v1/send_config",
+                    json={"host": "192.0.2.1", "commands": ["interface Gi0/1"]},
+                    headers={"Authorization": f"Basic {auth}"},
+                )
+
+        assert response.status_code == 202
+        assert response.json["deduplicated"] is True
+        app.config["q"].enqueue.assert_not_called()
+
+    def test_send_config_dedup_enqueues_new_when_job_gone(self, app, client):
+        """POST enqueues new job when dedup key exists but job is gone."""
+        from rq.exceptions import NoSuchJobError
+
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.resources.send_config.get_duplicate_job_id", return_value="gone-dup-id"):
+            with patch("naas.resources.send_config.RQJob.fetch", side_effect=NoSuchJobError):
+                response = client.post(
+                    "/v1/send_config",
+                    json={"host": "192.0.2.1", "commands": ["interface Gi0/1"]},
+                    headers={"Authorization": f"Basic {auth}"},
+                )
+
+        assert response.status_code == 202
+        assert response.json["deduplicated"] is False
 
     def test_send_config_invalid_platform(self, app, client):
         """Test POST with invalid platform returns 422."""

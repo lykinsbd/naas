@@ -30,3 +30,8 @@ def mock_context_routing(monkeypatch, app):
     monkeypatch.setattr("naas.resources.send_command.get_queue_for_context", mock_get_queue)
     monkeypatch.setattr("naas.resources.send_command_structured.get_queue_for_context", mock_get_queue)
     monkeypatch.setattr("naas.resources.send_config.get_queue_for_context", mock_get_queue)
+
+    # Dedup always returns None in unit tests (no real in-flight jobs)
+    monkeypatch.setattr("naas.resources.send_command.get_duplicate_job_id", lambda *a, **kw: None)
+    monkeypatch.setattr("naas.resources.send_command_structured.get_duplicate_job_id", lambda *a, **kw: None)
+    monkeypatch.setattr("naas.resources.send_config.get_duplicate_job_id", lambda *a, **kw: None)

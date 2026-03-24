@@ -56,6 +56,7 @@ All NAAS configuration is driven by environment variables. Set these in `docker-
 | `WORKER_CONTEXTS` | `default` | Comma-separated contexts this worker serves (e.g. `oob-dc1,oob-dc2`) |
 | `MAX_QUEUE_DEPTH` | `0` | Max queued jobs before returning 503 (0 = disabled) |
 | `IDEMPOTENCY_TTL` | `86400` | Seconds to remember idempotency keys (24h) |
+| `JOB_DEDUP_ENABLED` | `true` | Enable server-side job deduplication (opt-out) |
 
 ## Example docker-compose.yml
 
