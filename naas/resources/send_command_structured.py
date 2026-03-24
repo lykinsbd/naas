@@ -10,7 +10,7 @@ from spectree import Response
 from naas import __base_response__
 from naas.config import JOB_TIMEOUT, JOB_TTL_FAILED, JOB_TTL_SUCCESS
 from naas.library.audit import emit_audit_event
-from naas.library.auth import device_lockout, job_locker
+from naas.library.auth import device_lockout, job_locker, job_unlocker
 from naas.library.callbacks import on_job_complete, on_job_failure
 from naas.library.context import get_queue_for_context
 from naas.library.decorators import valid_post
@@ -102,16 +102,19 @@ class SendCommandStructured(Resource):
         if duplicate_job_id:
             try:
                 dup_job = RQJob.fetch(duplicate_job_id, connection=current_app.config["redis"])
-                response = JobResponse(
-                    job_id=duplicate_job_id,
-                    message="Job enqueued",
-                    queue_position=0,
-                    enqueued_at=dup_job.enqueued_at.isoformat() if dup_job.enqueued_at else "",
-                    timeout=JOB_TIMEOUT,
-                    deduplicated=True,
-                ).model_dump()
-                response.update(__base_response__)
-                return response, 202, {"X-Request-ID": duplicate_job_id}
+                # Only return dedup if current user owns the job
+                _user_hash = g.credentials.salted_hash()
+                if job_unlocker(salted_creds=_user_hash, job_id=duplicate_job_id):
+                    response = JobResponse(
+                        job_id=duplicate_job_id,
+                        message="Job enqueued",
+                        queue_position=0,
+                        enqueued_at=dup_job.enqueued_at.isoformat() if dup_job.enqueued_at else "",
+                        timeout=JOB_TIMEOUT,
+                        deduplicated=True,
+                    ).model_dump()
+                    response.update(__base_response__)
+                    return response, 202, {"X-Request-ID": duplicate_job_id}
             except NoSuchJobError:
                 pass
 
