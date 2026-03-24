@@ -420,11 +420,12 @@ class TestSendCommand:
 
         with patch("naas.resources.send_command.get_duplicate_job_id", return_value="dup-job-id"):
             with patch("naas.resources.send_command.RQJob.fetch", return_value=dup_job):
-                response = client.post(
-                    "/v1/send_command",
-                    json={"host": "192.0.2.1", "commands": ["show version"]},
-                    headers={"Authorization": f"Basic {auth}"},
-                )
+                with patch("naas.resources.send_command.job_unlocker", return_value=True):
+                    response = client.post(
+                        "/v1/send_command",
+                        json={"host": "192.0.2.1", "commands": ["show version"]},
+                        headers={"Authorization": f"Basic {auth}"},
+                    )
 
         assert response.status_code == 202
         assert response.json["job_id"] == "dup-job-id"
@@ -665,11 +666,12 @@ class TestSendConfig:
 
         with patch("naas.resources.send_config.get_duplicate_job_id", return_value="dup-config-job"):
             with patch("naas.resources.send_config.RQJob.fetch", return_value=dup_job):
-                response = client.post(
-                    "/v1/send_config",
-                    json={"host": "192.0.2.1", "commands": ["interface Gi0/1"]},
-                    headers={"Authorization": f"Basic {auth}"},
-                )
+                with patch("naas.resources.send_config.job_unlocker", return_value=True):
+                    response = client.post(
+                        "/v1/send_config",
+                        json={"host": "192.0.2.1", "commands": ["interface Gi0/1"]},
+                        headers={"Authorization": f"Basic {auth}"},
+                    )
 
         assert response.status_code == 202
         assert response.json["deduplicated"] is True

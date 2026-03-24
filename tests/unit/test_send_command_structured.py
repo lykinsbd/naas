@@ -167,11 +167,12 @@ class TestSendCommandStructured:
 
         with patch("naas.resources.send_command_structured.get_duplicate_job_id", return_value="dup-structured-job"):
             with patch("naas.resources.send_command_structured.RQJob.fetch", return_value=dup_job):
-                response = client.post(
-                    "/v1/send_command_structured",
-                    json={"ip": "192.168.1.1", "commands": ["show version"]},
-                    headers={"Authorization": f"Basic {auth}"},
-                )
+                with patch("naas.resources.send_command_structured.job_unlocker", return_value=True):
+                    response = client.post(
+                        "/v1/send_command_structured",
+                        json={"ip": "192.168.1.1", "commands": ["show version"]},
+                        headers={"Authorization": f"Basic {auth}"},
+                    )
 
         assert response.status_code == 202
         assert response.json["deduplicated"] is True
