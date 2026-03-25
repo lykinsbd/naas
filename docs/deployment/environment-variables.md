@@ -16,6 +16,7 @@ All NAAS configuration is driven by environment variables. Set these in `docker-
 | --- | --- | --- |
 | `APP_ENVIRONMENT` | `production` | Set to `dev` for debug logging and relaxed settings |
 | `LOG_LEVEL` | `INFO` | Log level (`DEBUG`, `INFO`, `WARNING`, `ERROR`). Overridden to `DEBUG` when `APP_ENVIRONMENT=dev` |
+| `GUNICORN_WORKERS` | `8` | Number of gunicorn worker processes. Reduce (e.g. `2`) in resource-constrained environments |
 
 ## Jobs
 
