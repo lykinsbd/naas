@@ -25,7 +25,6 @@ services:
       - APP_ENVIRONMENT=test
       - NAAS_CONTEXTS=default,alt
       - GUNICORN_WORKERS=2
-      - WEB_CONCURRENCY=2
     networks:
       - naas-test
     depends_on:
