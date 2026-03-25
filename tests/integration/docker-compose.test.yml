@@ -83,10 +83,12 @@ services:
         ipv4_address: 240.11.2.100
 
   webhook-receiver:
-    image: python:3.11-alpine
-    command: ["python", "/receiver/webhook_receiver.py"]
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    command: ["python", "/app/webhook_receiver.py"]
     volumes:
-      - ./webhook_receiver.py:/receiver/webhook_receiver.py:ro
+      - ./webhook_receiver.py:/app/webhook_receiver.py:ro
     ports:
       - "18080:8080"
     networks:
