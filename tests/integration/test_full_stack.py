@@ -17,7 +17,7 @@ def api_url():
 
 
 @pytest.fixture(scope="session")
-def wait_for_api(api_url):
+def wait_for_api(api_url, docker_compose):  # noqa: ARG001
     """Wait for API to be ready (session-scoped, runs once)."""
     max_retries = 60
     retry_delay = 1

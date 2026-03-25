@@ -36,7 +36,7 @@ def redis_client():
 
 
 @pytest.fixture(scope="session")
-def wait_for_api(api_url):
+def wait_for_api(api_url, docker_compose):  # noqa: ARG001
     """Wait for API to be ready."""
     for _ in range(60):
         try:
