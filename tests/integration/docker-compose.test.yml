@@ -47,6 +47,7 @@ services:
       - REDIS_PASSWORD=test_password
       - APP_ENVIRONMENT=test
       - WORKER_CONTEXTS=default
+      - WEBHOOK_ALLOW_HTTP=true
     networks:
       - naas-test
     depends_on:
@@ -64,6 +65,7 @@ services:
       - REDIS_PASSWORD=test_password
       - APP_ENVIRONMENT=test
       - WORKER_CONTEXTS=alt
+      - WEBHOOK_ALLOW_HTTP=true
     networks:
       - naas-test
     depends_on:
@@ -79,6 +81,20 @@ services:
     networks:
       naas-test:
         ipv4_address: 240.11.2.100
+
+  webhook-tester:
+    image: ghcr.io/tarampampam/webhook-tester:2
+    command: ["start", "--port", "8080", "--auto-create-sessions"]
+    ports:
+      - "18080:8080"
+    networks:
+      - naas-test
+    healthcheck:
+      test: ["CMD", "/app", "start", "healthcheck", "--port", "8080"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+      start_period: 3s
 
 networks:
   naas-test:
