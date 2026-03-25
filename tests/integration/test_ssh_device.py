@@ -36,9 +36,9 @@ def redis_client():
 
 
 @pytest.fixture(scope="session")
-def wait_for_api(api_url, docker_compose):  # noqa: ARG001
+def wait_for_api(api_url):
     """Wait for API to be ready."""
-    for _ in range(60):
+    for _ in range(30):
         try:
             r = requests.get(f"{api_url}/healthcheck", verify=False, timeout=2)
             if r.status_code == 200:
@@ -46,7 +46,7 @@ def wait_for_api(api_url, docker_compose):  # noqa: ARG001
         except requests.exceptions.RequestException:
             pass
         time.sleep(1)
-    pytest.fail("API did not become ready in 60s")
+    pytest.fail("API did not become ready in 30s")
 
 
 @pytest.fixture(scope="session")

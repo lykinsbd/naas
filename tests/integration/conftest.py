@@ -13,7 +13,7 @@ def docker_compose():
     print("\n🐳 Starting Docker Compose stack...")
     # Start services
     result = subprocess.run(
-        ["docker", "compose", "-f", compose_file, "up", "-d", "--build"],
+        ["docker", "compose", "-f", compose_file, "up", "-d", "--build", "--wait"],
         capture_output=True,
         text=True,
     )
