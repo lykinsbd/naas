@@ -47,7 +47,6 @@ services:
       - REDIS_PASSWORD=test_password
       - APP_ENVIRONMENT=test
       - WORKER_CONTEXTS=default
-      - WEBHOOK_ALLOW_HTTP=true
     networks:
       - naas-test
     depends_on:
@@ -65,7 +64,6 @@ services:
       - REDIS_PASSWORD=test_password
       - APP_ENVIRONMENT=test
       - WORKER_CONTEXTS=alt
-      - WEBHOOK_ALLOW_HTTP=true
     networks:
       - naas-test
     depends_on:
@@ -81,24 +79,6 @@ services:
     networks:
       naas-test:
         ipv4_address: 240.11.2.100
-
-  webhook-receiver:
-    build:
-      context: ../..
-      dockerfile: Dockerfile
-    command: ["python", "/app/webhook_receiver.py"]
-    volumes:
-      - ./webhook_receiver.py:/app/webhook_receiver.py:ro
-    ports:
-      - "18080:8080"
-    networks:
-      - naas-test
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/webhooks')"]
-      interval: 2s
-      timeout: 2s
-      retries: 10
-      start_period: 5s
 
 networks:
   naas-test:
