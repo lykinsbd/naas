@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- towncrier release notes start -->
 
+# NAAS 1.4.0b1 (2026-03-26)
+
+## ✨ Features
+
+- Add CONNECTION_POOL_EXCLUDE environment variable to exclude specific device IPs or platforms from connection pooling. ([#187](https://github.com/lykinsbd/naas/issues/187))
+- Add TTP structured output support to /v1/send_command_structured endpoint via ttp_template parameter. Mutually exclusive with textfsm_template. ([#246](https://github.com/lykinsbd/naas/issues/246))
+- Add host field accepting IP addresses and hostnames. Deprecate ip field (still works, will be removed in v2.0). ([#270](https://github.com/lykinsbd/naas/issues/270))
+- Enqueue response now includes queue_position, enqueued_at, and timeout fields. ([#271](https://github.com/lykinsbd/naas/issues/271))
+- Add webhook_url field to all job submission endpoints. When set, NAAS POSTs a job completion notification (job_id, status, timestamps — never results or credentials) to the URL when the job finishes. ([#275](https://github.com/lykinsbd/naas/issues/275))
+- Add optional tags field (dict[str,str]) to all enqueue requests. Tags stored in job metadata, returned in job results and list_jobs. Filter jobs by tag with ?tag=key:value. ([#276](https://github.com/lykinsbd/naas/issues/276))
+- Add MAX_QUEUE_DEPTH config to limit queue depth and return 503 when exceeded. ([#279](https://github.com/lykinsbd/naas/issues/279))
+- Add X-Idempotency-Key header support. Repeat requests with the same key return the original job_id instead of enqueuing a new job. ([#280](https://github.com/lykinsbd/naas/issues/280))
+- Add dead letter queue endpoints: GET /v1/jobs/failed lists failed jobs (credentials never exposed), POST /v1/jobs/{job_id}/replay re-enqueues with caller's credentials. Includes FAILED_JOB_MAX_RETAIN config and naas_failed_jobs_total Prometheus gauge. ([#281](https://github.com/lykinsbd/naas/issues/281))
+- Add job reaper background thread that detects orphaned jobs from dead workers and moves them to FailedJobRegistry. Uses distributed Redis lock to ensure only one reaper runs per cycle. ([#282](https://github.com/lykinsbd/naas/issues/282))
+- Add global Redis error handler returning 503 with Retry-After header instead of unhandled 500. ([#283](https://github.com/lykinsbd/naas/issues/283))
+- Add server-side job deduplication. Duplicate in-flight jobs (same host+platform+commands+user) return the existing job_id with deduplicated=true. Dedup keys cleared automatically via RQ callbacks on job completion/failure. ([#285](https://github.com/lykinsbd/naas/issues/285))
+- Add context-aware job routing for multi-VRF and multi-segment environments. Workers declare contexts via WORKER_CONTEXTS; callers specify context in requests. Includes GET /v1/contexts endpoint and comprehensive documentation. ([#290](https://github.com/lykinsbd/naas/issues/290))
+- Add conn_timeout field to all job submission endpoints to control TCP connection timeout (default 10s). Useful for fast failure detection on unreachable hosts or tuning for high-latency links. ([#304](https://github.com/lykinsbd/naas/issues/304))
+
+## 🐛 Bug Fixes
+
+- Fix Dockerfile hardcoded python3.11 path to use ARG PYTHON_VERSION, enabling base image upgrades. ([#261](https://github.com/lykinsbd/naas/issues/261))
+
+## 📚 Documentation
+
+- Add Postman collection and OpenAPI spec as release artifacts. Document API client import instructions for Postman, Insomnia, and Bruno. ([#92](https://github.com/lykinsbd/naas/issues/92))
+- Establish ADR process using MADR format. Add docs/adr/ directory with template and first ADR for Python client library integration strategy. ([#265](https://github.com/lykinsbd/naas/issues/265))
+- Fix MD060 table column style violations across documentation files.
+
+## 🧪 Testing & CI/CD
+
+- Add Python 3.12, 3.13, and 3.14 to CI test matrix. Bump Docker default base image to python:3.14-slim. ([#263](https://github.com/lykinsbd/naas/issues/263))
+- Expand integration tests to cover v1.4 features: host field, deprecated ip field, enqueue response metadata, structured output (TextFSM/TTP), and context routing with multiple workers. ([#293](https://github.com/lykinsbd/naas/issues/293))
+- Add Docker BuildKit GHA layer caching to integration test builds, reducing rebuild time on cache hits. ([#302](https://github.com/lykinsbd/naas/issues/302))
+- Run integration tests on Python 3.14 only — the Docker container always uses 3.14 regardless of matrix version, so multi-version integration testing added no coverage value. ([#303](https://github.com/lykinsbd/naas/issues/303))
+- Reduce k8s CI test time by patching GUNICORN_WORKERS=2 on the API deployment and reducing rollout timeouts from 180s to 90s. ([#308](https://github.com/lykinsbd/naas/issues/308))
+
+## 🔧 Internal Changes
+
+- Remove black dependency, superseded by ruff format. ([#258](https://github.com/lykinsbd/naas/issues/258))
+- Use RELEASE_TOKEN in finalize-release workflow to trigger CI checks on auto-created PRs
+
 # NAAS 1.3.1 (2026-03-06)
 
 ## 📚 Documentation
