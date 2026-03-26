@@ -160,6 +160,13 @@
             "title": "Commands",
             "type": "array"
           },
+          "conn_timeout": {
+            "default": 10.0,
+            "description": "TCP connection timeout in seconds",
+            "minimum": 1.0,
+            "title": "Conn Timeout",
+            "type": "number"
+          },
           "context": {
             "default": "default",
             "description": "Routing context for multi-segment environments (e.g. 'corp', 'oob-dc1', 'hk-prod')",
@@ -253,6 +260,13 @@
             "minItems": 1,
             "title": "Commands",
             "type": "array"
+          },
+          "conn_timeout": {
+            "default": 10.0,
+            "description": "TCP connection timeout in seconds",
+            "minimum": 1.0,
+            "title": "Conn Timeout",
+            "type": "number"
           },
           "context": {
             "default": "default",
@@ -391,6 +405,13 @@
             "default": null,
             "description": "Configuration commands",
             "title": "Config"
+          },
+          "conn_timeout": {
+            "default": 10.0,
+            "description": "TCP connection timeout in seconds",
+            "minimum": 1.0,
+            "title": "Conn Timeout",
+            "type": "number"
           },
           "context": {
             "default": "default",

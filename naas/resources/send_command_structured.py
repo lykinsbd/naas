@@ -126,6 +126,7 @@ class SendCommandStructured(Resource):
             credentials=g.credentials,
             commands=validated.commands,
             read_timeout=validated.read_timeout,
+            conn_timeout=validated.conn_timeout,
             textfsm_template=validated.textfsm_template,
             ttp_template=validated.ttp_template,
             request_id=g.request_id,

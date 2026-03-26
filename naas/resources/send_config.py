@@ -138,6 +138,7 @@ class SendConfig(Resource):
             save_config=validated.save_config,
             commit=validated.commit,
             read_timeout=validated.read_timeout,
+            conn_timeout=validated.conn_timeout,
             request_id=g.request_id,
             job_id=g.request_id,
             job_timeout=JOB_TIMEOUT,
