@@ -106,6 +106,7 @@ class _BaseCommandRequest(BaseModel):
     port: int = Field(default=22, ge=1, le=65535, description="SSH port")
     platform: str = Field(default="cisco_ios", description="Netmiko device type (use 'autodetect' for SSHDetect)")
     read_timeout: float = Field(default=30.0, ge=1.0, description="Read timeout in seconds for device responses")
+    conn_timeout: float = Field(default=10.0, ge=1.0, description="TCP connection timeout in seconds")
     context: str = Field(
         default="default",
         description="Routing context for multi-segment environments (e.g. 'corp', 'oob-dc1', 'hk-prod')",
@@ -225,6 +226,7 @@ class SendConfigRequest(BaseModel):
     port: int = Field(default=22, ge=1, le=65535, description="SSH port")
     platform: str = Field(default="cisco_ios", description="Netmiko device type (use 'autodetect' for SSHDetect)")
     read_timeout: float = Field(default=30.0, ge=1.0, description="Read timeout in seconds for device responses")
+    conn_timeout: float = Field(default=10.0, ge=1.0, description="TCP connection timeout in seconds")
     save_config: bool = Field(default=False, description="Save configuration after applying")
     commit: bool = Field(default=False, description="Commit configuration (Juniper)")
     context: str = Field(default="default", description="Routing context for multi-segment environments")

@@ -134,6 +134,7 @@ class SendCommand(Resource):
             credentials=g.credentials,
             commands=validated.commands,
             read_timeout=validated.read_timeout,
+            conn_timeout=validated.conn_timeout,
             expect_string=validated.expect_string,
             request_id=g.request_id,
             job_id=g.request_id,

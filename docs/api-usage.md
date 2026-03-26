@@ -139,6 +139,27 @@ curl -k -X POST https://localhost:8443/v1/send_command \
 
 **Note:** This is an advanced feature. Most users should rely on automatic prompt detection.
 
+### Connection Timeout
+
+Control the TCP connection timeout with `conn_timeout` (default: `10.0` seconds):
+
+```bash
+curl -k -X POST https://localhost:8443/v1/send_command \
+  -u "admin:password" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "host": "192.168.1.1",
+    "platform": "cisco_ios",
+    "commands": ["show version"],
+    "conn_timeout": 5.0
+  }'
+```
+
+- `conn_timeout` — seconds to wait for the TCP connection to be established before failing
+- `read_timeout` — seconds to wait for a command response after connection is established (default: `30.0`)
+
+Reduce `conn_timeout` for faster failure detection on unreachable hosts. Increase it for devices on high-latency links.
+
 ### Supported Platforms
 
 NAAS supports all [Netmiko platforms](https://github.com/ktbyers/netmiko/blob/develop/PLATFORMS.md):

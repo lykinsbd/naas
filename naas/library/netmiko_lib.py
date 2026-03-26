@@ -65,6 +65,7 @@ def netmiko_send_command(
     commands: "Sequence[str]",
     port: int = 22,
     read_timeout: float = 30.0,
+    conn_timeout: float = 10.0,
     expect_string: str | None = None,
     verbose: bool = False,
     request_id: str = "",
@@ -94,6 +95,7 @@ def netmiko_send_command(
             commands,
             port,
             read_timeout,
+            conn_timeout,
             expect_string,
             False,  # use_textfsm
             None,  # textfsm_template
@@ -101,7 +103,18 @@ def netmiko_send_command(
             request_id,
         )
     return _netmiko_send_command_impl(
-        ip, credentials, device_type, commands, port, read_timeout, expect_string, False, None, verbose, request_id
+        ip,
+        credentials,
+        device_type,
+        commands,
+        port,
+        read_timeout,
+        conn_timeout,
+        expect_string,
+        False,
+        None,
+        verbose,
+        request_id,
     )
 
 
@@ -112,6 +125,7 @@ def _netmiko_send_command_impl(
     commands: "Sequence[str]",
     port: int = 22,
     read_timeout: float = 30.0,
+    conn_timeout: float = 10.0,
     expect_string: str | None = None,
     use_textfsm: bool = False,
     textfsm_template: str | None = None,
@@ -153,6 +167,7 @@ def _netmiko_send_command_impl(
         "use_keys": False,
         "fast_cli": True,
         "verbose": verbose,
+        "conn_timeout": conn_timeout,
     }
 
     try:
@@ -231,6 +246,7 @@ def netmiko_send_command_structured(
     commands: "Sequence[str]",
     port: int = 22,
     read_timeout: float = 30.0,
+    conn_timeout: float = 10.0,
     textfsm_template: str | None = None,
     ttp_template: str | None = None,
     verbose: bool = False,
@@ -255,6 +271,7 @@ def netmiko_send_command_structured(
             commands,
             port,
             read_timeout,
+            conn_timeout,
             None,  # expect_string
             use_textfsm,
             textfsm_template,
@@ -270,6 +287,7 @@ def netmiko_send_command_structured(
         commands,
         port,
         read_timeout,
+        conn_timeout,
         None,
         use_textfsm,
         textfsm_template,
@@ -289,6 +307,7 @@ def netmiko_send_config(
     save_config: bool = False,
     commit: bool = False,
     read_timeout: float = 30.0,
+    conn_timeout: float = 10.0,
     verbose: bool = False,
     request_id: str = "",
 ) -> "tuple[dict | None, str | None]":
@@ -320,11 +339,22 @@ def netmiko_send_config(
             save_config,
             commit,
             read_timeout,
+            conn_timeout,
             verbose,
             request_id,
         )
     return _netmiko_send_config_impl(
-        ip, credentials, device_type, commands, port, save_config, commit, read_timeout, verbose, request_id
+        ip,
+        credentials,
+        device_type,
+        commands,
+        port,
+        save_config,
+        commit,
+        read_timeout,
+        conn_timeout,
+        verbose,
+        request_id,
     )
 
 
@@ -337,6 +367,7 @@ def _netmiko_send_config_impl(
     save_config: bool = False,
     commit: bool = False,
     read_timeout: float = 30.0,
+    conn_timeout: float = 10.0,
     verbose: bool = False,
     request_id: str = "",
 ) -> "tuple[dict | None, str | None]":
@@ -353,6 +384,7 @@ def _netmiko_send_config_impl(
         "use_keys": False,
         "fast_cli": True,
         "verbose": verbose,
+        "conn_timeout": conn_timeout,
     }
 
     try:
