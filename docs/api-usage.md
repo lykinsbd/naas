@@ -250,6 +250,42 @@ curl -k -X POST https://localhost:8443/v1/send_command \
 
 Repeat requests with the same key within 24 hours return the original job_id with `idempotent: true`. Unlike server-side dedup, idempotency keys are opt-in and key-based (not content-based).
 
+## Webhooks
+
+Instead of polling for results, you can provide a `webhook_url` to receive a notification when the job completes.
+
+```bash
+curl -k -u admin:admin -X POST https://naas.example.com/v1/send_command \
+  -H "Content-Type: application/json" \
+  -d '{
+    "host": "192.168.1.1",
+    "platform": "cisco_ios",
+    "commands": ["show version"],
+    "webhook_url": "https://my-app.example.com/naas-callback"
+  }'
+```
+
+When the job finishes (success or failure), NAAS POSTs a notification to your URL:
+
+```json
+{
+  "job_id": "abc-123",
+  "status": "finished",
+  "enqueued_at": "2026-03-20T19:00:00+00:00",
+  "completed_at": "2026-03-20T19:00:05+00:00"
+}
+```
+
+Use `job_id` to fetch the full results from `GET /v1/jobs/{job_id}`.
+
+### Security
+
+- `webhook_url` must be HTTPS (HTTP is rejected)
+- The payload contains **only job metadata** — results and credentials are never included
+- Your webhook endpoint must be reachable from the NAAS worker network
+- Webhook delivery is fire-and-forget: failures are logged but do not affect job status
+- No retries in v1.4 (tracked in [#278](https://github.com/lykinsbd/naas/issues/278))
+
 ## Job Cancellation
 
 Cancel running or queued jobs using DELETE.

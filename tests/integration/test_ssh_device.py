@@ -1,5 +1,7 @@
 """Integration tests for NAAS SSH device interaction via cisshgo mock device."""
 
+import base64
+import json
 import time
 import uuid
 
@@ -660,3 +662,62 @@ class TestSendConfigResult:
         # send_config returns results as a string (config output) or None
         # Either is valid — the key assertion is the job completed without error
         assert result.get("error") is None
+
+
+# ---------------------------------------------------------------------------
+# Webhook delivery
+# ---------------------------------------------------------------------------
+
+WEBHOOK_TESTER_URL = "http://localhost:18080"
+
+
+class TestWebhookDelivery:
+    """Tests for webhook notification on job completion."""
+
+    def test_webhook_fires_on_job_completion(self, api_url, wait_for_api, wait_for_cisshgo):
+        """Webhook-tester receives a notification payload when a job finishes."""
+        # Use a unique session UUID per run so stale requests don't interfere
+        session_id = str(uuid.uuid4())
+        webhook_url = f"http://webhook-tester:8080/{session_id}"
+
+        payload = {
+            "host": CISSHGO_HOST,
+            "platform": CISSHGO_PLATFORM,
+            "port": CISSHGO_PORT,
+            "commands": [f"show version webhook-{session_id[:8]}"],  # unique to avoid dedup collision
+            "webhook_url": webhook_url,
+        }
+        r = requests.post(
+            f"{api_url}/v1/send_command",
+            json=payload,
+            auth=API_AUTH,
+            verify=False,
+        )
+        assert r.status_code == 202, f"Expected 202, got {r.status_code}: {r.text}"
+        job_id = r.json()["job_id"]
+
+        # Poll webhook-tester for up to 15s (job ~1s + callback + HTTP delivery)
+        for _ in range(15):
+            time.sleep(1)
+            resp = requests.get(
+                f"{WEBHOOK_TESTER_URL}/api/session/{session_id}/requests",
+                timeout=5,
+            )
+            if resp.status_code == 200 and resp.json():
+                break
+        else:
+            pytest.fail(f"Webhook for job {job_id} was not received within 15 seconds")
+
+        captured = resp.json()
+        assert len(captured) >= 1
+
+        # Decode the request body (base64-encoded by webhook-tester)
+        body = json.loads(base64.b64decode(captured[0]["request_payload_base64"]))
+        assert body["job_id"] == job_id
+        assert body["status"] == "finished"
+        assert "enqueued_at" in body
+        assert "completed_at" in body
+        # Verify no results or credentials leaked into the payload
+        assert "results" not in body
+        assert "password" not in body
+        assert "username" not in body

@@ -145,6 +145,7 @@ class SendConfig(Resource):
             failure_ttl=JOB_TTL_FAILED,
             on_success=Callback(on_job_complete),
             on_failure=Callback(on_job_failure),
+            meta={"webhook_url": validated.webhook_url or ""},
         )
         job_id = job.id
         current_app.logger.info("%s: Enqueued job for %s@%s:%s", job_id, g.credentials.username, ip_str, validated.port)
@@ -166,7 +167,7 @@ class SendConfig(Resource):
         if idempotency_key:
             store_idempotency_key(idempotency_key, job_id, current_app.config["redis"])
 
-        # Store tags in job metadata if provided
+        # Store tags in job metadata if provided (webhook_url already set at enqueue time)
         if validated.tags:
             job.meta["tags"] = validated.tags
         if job.meta:

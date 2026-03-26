@@ -220,6 +220,19 @@
             "default": null,
             "description": "Optional key-value metadata tags (max 10, keys/values max 64 chars, alphanumeric + hyphens/underscores/colons)",
             "title": "Tags"
+          },
+          "webhook_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Optional HTTPS URL to POST a job completion notification to (never includes results)",
+            "title": "Webhook Url"
           }
         },
         "required": [
@@ -314,6 +327,19 @@
             "default": null,
             "description": "TTP template string or ttp://<path> reference (mutually exclusive with textfsm_template)",
             "title": "Ttp Template"
+          },
+          "webhook_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Optional HTTPS URL to POST a job completion notification to (never includes results)",
+            "title": "Webhook Url"
           }
         },
         "required": [
@@ -419,6 +445,19 @@
             "default": null,
             "description": "Optional key-value metadata tags (max 10, keys/values max 64 chars)",
             "title": "Tags"
+          },
+          "webhook_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Optional HTTPS URL to POST a job completion notification to (never includes results)",
+            "title": "Webhook Url"
           }
         },
         "required": [

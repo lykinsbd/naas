@@ -1,5 +1,7 @@
 """Unit tests for Pydantic model validation."""
 
+from unittest.mock import patch
+
 import pytest
 from pydantic import ValidationError
 
@@ -69,3 +71,49 @@ class TestTagsValidation:
                 commands=["interface Gi0/1"],
                 tags={"key": "bad value!"},
             )
+
+
+class TestWebhookUrlValidation:
+    def test_https_url_accepted(self):
+        """HTTPS webhook_url is accepted."""
+        from naas.models import SendCommandRequest
+
+        req = SendCommandRequest(host="192.0.2.1", commands=["show version"], webhook_url="https://example.com/cb")
+        assert req.webhook_url == "https://example.com/cb"
+
+    def test_none_accepted(self):
+        """webhook_url=None is accepted (optional field)."""
+        from naas.models import SendCommandRequest, _validate_webhook_url
+
+        req = SendCommandRequest(host="192.0.2.1", commands=["show version"])
+        assert req.webhook_url is None
+        # Test the validator directly to ensure None early-return is covered
+        assert _validate_webhook_url(None) is None
+
+    def test_http_rejected_by_default(self):
+        """HTTP webhook_url is rejected when WEBHOOK_ALLOW_HTTP=false."""
+        from naas.models import SendCommandRequest
+
+        with patch("naas.config.WEBHOOK_ALLOW_HTTP", False):
+            with pytest.raises(ValidationError, match="https"):
+                SendCommandRequest(host="192.0.2.1", commands=["show version"], webhook_url="http://example.com/cb")
+
+    def test_http_allowed_when_flag_set(self):
+        """HTTP webhook_url is accepted when WEBHOOK_ALLOW_HTTP=true."""
+        from naas.models import _validate_webhook_url
+
+        with patch("naas.config.WEBHOOK_ALLOW_HTTP", True):
+            result = _validate_webhook_url("http://example.com/cb")
+        assert result == "http://example.com/cb"
+
+    def test_invalid_url_rejected(self):
+        """Non-URL string is rejected."""
+        from naas.models import SendCommandRequest
+
+        with pytest.raises(ValidationError, match="https"):
+            SendCommandRequest(host="192.0.2.1", commands=["show version"], webhook_url="not-a-url")
+
+    def test_send_config_https_accepted(self):
+        """SendConfigRequest also validates webhook_url."""
+        req = SendConfigRequest(host="192.0.2.1", commands=["interface Gi0/1"], webhook_url="https://example.com/cb")
+        assert req.webhook_url == "https://example.com/cb"

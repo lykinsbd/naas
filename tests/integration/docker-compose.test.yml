@@ -24,6 +24,8 @@ services:
       - REDIS_PASSWORD=test_password
       - APP_ENVIRONMENT=test
       - NAAS_CONTEXTS=default,alt
+      - GUNICORN_WORKERS=2
+      - WEBHOOK_ALLOW_HTTP=true
     networks:
       - naas-test
     depends_on:
@@ -40,6 +42,12 @@ services:
     build:
       context: ../..
       dockerfile: Dockerfile
+    healthcheck:
+      test: ["CMD", "sh", "-c", "kill -0 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
     command: ["rq", "worker", "naas-default", "--url", "redis://:test_password@redis:6379"]
     environment:
       - REDIS_HOST=redis
@@ -47,6 +55,7 @@ services:
       - REDIS_PASSWORD=test_password
       - APP_ENVIRONMENT=test
       - WORKER_CONTEXTS=default
+      - WEBHOOK_ALLOW_HTTP=true
     networks:
       - naas-test
     depends_on:
@@ -57,6 +66,12 @@ services:
     build:
       context: ../..
       dockerfile: Dockerfile
+    healthcheck:
+      test: ["CMD", "sh", "-c", "kill -0 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
     command: ["rq", "worker", "naas-alt", "--url", "redis://:test_password@redis:6379"]
     environment:
       - REDIS_HOST=redis
@@ -64,6 +79,7 @@ services:
       - REDIS_PASSWORD=test_password
       - APP_ENVIRONMENT=test
       - WORKER_CONTEXTS=alt
+      - WEBHOOK_ALLOW_HTTP=true
     networks:
       - naas-test
     depends_on:
@@ -79,6 +95,20 @@ services:
     networks:
       naas-test:
         ipv4_address: 240.11.2.100
+
+  webhook-tester:
+    image: ghcr.io/tarampampam/webhook-tester:2
+    command: ["start", "--port", "8080", "--auto-create-sessions"]
+    ports:
+      - "18080:8080"
+    networks:
+      - naas-test
+    healthcheck:
+      test: ["CMD", "/bin/app", "start", "healthcheck", "--port", "8080"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+      start_period: 3s
 
 networks:
   naas-test:
