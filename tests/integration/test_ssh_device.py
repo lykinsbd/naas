@@ -299,8 +299,9 @@ class TestErrorHandling:
             "platform": CISSHGO_PLATFORM,
             "port": CISSHGO_PORT,
             "commands": ["show version"],
+            "conn_timeout": 3.0,  # fail fast — we just need it to fail, not wait 10s
         }
-        result = _submit_and_poll(api_url, payload, timeout=60)
+        result = _submit_and_poll(api_url, payload, timeout=30)
         # Worker catches the connection exception and returns it as an error;
         # job status is "finished" (worker ran to completion) but results is None
         assert result["results"] is None
