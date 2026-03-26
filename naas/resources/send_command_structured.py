@@ -135,6 +135,7 @@ class SendCommandStructured(Resource):
             failure_ttl=JOB_TTL_FAILED,
             on_success=Callback(on_job_complete),
             on_failure=Callback(on_job_failure),
+            meta={"webhook_url": validated.webhook_url or ""},
         )
         job_id = job.id
         current_app.logger.info(

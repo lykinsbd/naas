@@ -25,6 +25,7 @@ services:
       - APP_ENVIRONMENT=test
       - NAAS_CONTEXTS=default,alt
       - GUNICORN_WORKERS=2
+      - WEBHOOK_ALLOW_HTTP=true
     networks:
       - naas-test
     depends_on:
@@ -41,6 +42,8 @@ services:
     build:
       context: ../..
       dockerfile: Dockerfile
+    healthcheck:
+      disable: true
     command: ["rq", "worker", "naas-default", "--url", "redis://:test_password@redis:6379"]
     environment:
       - REDIS_HOST=redis
@@ -59,6 +62,8 @@ services:
     build:
       context: ../..
       dockerfile: Dockerfile
+    healthcheck:
+      disable: true
     command: ["rq", "worker", "naas-alt", "--url", "redis://:test_password@redis:6379"]
     environment:
       - REDIS_HOST=redis
@@ -91,7 +96,7 @@ services:
     networks:
       - naas-test
     healthcheck:
-      test: ["CMD", "/app", "start", "healthcheck", "--port", "8080"]
+      test: ["CMD", "/bin/app", "start", "healthcheck", "--port", "8080"]
       interval: 2s
       timeout: 2s
       retries: 10

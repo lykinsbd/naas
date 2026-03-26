@@ -1058,8 +1058,8 @@ class TestWebhookUrlInEnqueue:
             )
 
         assert response.status_code == 202
-        job = app.config["q"].enqueue.return_value
-        assert job.meta.get("webhook_url") == "https://example.com/cb"
+        enqueue_kwargs = app.config["q"].enqueue.call_args[1]
+        assert enqueue_kwargs.get("meta", {}).get("webhook_url") == "https://example.com/cb"
 
     def test_send_config_stores_webhook_url_in_meta(self, app, client):
         """POST send_config with webhook_url stores it in job.meta."""
@@ -1074,5 +1074,5 @@ class TestWebhookUrlInEnqueue:
             )
 
         assert response.status_code == 202
-        job = app.config["q"].enqueue.return_value
-        assert job.meta.get("webhook_url") == "https://example.com/cb"
+        enqueue_kwargs = app.config["q"].enqueue.call_args[1]
+        assert enqueue_kwargs.get("meta", {}).get("webhook_url") == "https://example.com/cb"

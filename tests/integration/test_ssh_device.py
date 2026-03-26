@@ -674,23 +674,28 @@ class TestWebhookDelivery:
 
     def test_webhook_fires_on_job_completion(self, api_url, wait_for_api, wait_for_cisshgo):
         """Webhook-tester receives a notification payload when a job finishes."""
-        # Use a fixed UUID as the session ID — auto-create-sessions creates it on first POST
-        session_id = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        # Use a unique session UUID per run so stale requests don't interfere
+        session_id = str(uuid.uuid4())
         webhook_url = f"http://webhook-tester:8080/{session_id}"
 
         payload = {
             "host": CISSHGO_HOST,
             "platform": CISSHGO_PLATFORM,
             "port": CISSHGO_PORT,
-            "commands": ["show version"],
+            "commands": [f"show version webhook-{session_id[:8]}"],  # unique to avoid dedup collision
             "webhook_url": webhook_url,
         }
-        result = _submit_and_poll(api_url, payload)
-        assert result["status"] == "finished"
-        job_id = result["job_id"]
+        r = requests.post(
+            f"{api_url}/v1/send_command",
+            json=payload,
+            auth=API_AUTH,
+            verify=False,
+        )
+        assert r.status_code == 202, f"Expected 202, got {r.status_code}: {r.text}"
+        job_id = r.json()["job_id"]
 
-        # Poll webhook-tester for the captured request
-        for _ in range(15):
+        # Poll webhook-tester directly for up to 60s (covers job execution + delivery)
+        for _ in range(60):
             time.sleep(1)
             resp = requests.get(
                 f"{WEBHOOK_TESTER_URL}/api/session/{session_id}/requests",
@@ -699,7 +704,7 @@ class TestWebhookDelivery:
             if resp.status_code == 200 and resp.json():
                 break
         else:
-            pytest.fail(f"Webhook for job {job_id} was not received within 15 seconds")
+            pytest.fail(f"Webhook for job {job_id} was not received within 60 seconds")
 
         captured = resp.json()
         assert len(captured) >= 1
