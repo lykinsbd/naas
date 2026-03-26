@@ -23,6 +23,7 @@ from naas.library.errorhandlers import api_error_generator
 from naas.library.worker_cache import get_cached_workers
 from naas.resources.cancel_job import CancelJob
 from naas.resources.contexts import Contexts
+from naas.resources.failed_jobs import FailedJobs, ReplayJob
 from naas.resources.get_results import GetResults
 from naas.resources.healthcheck import HealthCheck
 from naas.resources.list_jobs import ListJobs
@@ -50,6 +51,7 @@ def handle_redis_error(e: RedisError):
 metrics = PrometheusMetrics(app, path="/metrics", default_labels={"app": "naas"})
 _queue_depth = Gauge("naas_queue_depth", "Number of jobs waiting in queue")
 _workers_active = Gauge("naas_workers_active", "Number of active RQ workers")
+_failed_jobs = Gauge("naas_failed_jobs_total", "Number of jobs in the failed registry")
 
 
 @app.before_request
@@ -61,6 +63,9 @@ def _update_queue_metrics() -> None:
         _queue_depth.set(len(q))
     if redis is not None:
         _workers_active.set(len(get_cached_workers(redis)))
+        from rq.registry import FailedJobRegistry
+
+        _failed_jobs.set(len(FailedJobRegistry(connection=redis)))
 
 
 # Structured JSON logging
@@ -96,7 +101,9 @@ api.add_resource(
     "/v1/send_command_structured/<string:job_id>",
 )
 api.add_resource(ListJobs, "/v1/jobs")
+api.add_resource(FailedJobs, "/v1/jobs/failed")
 api.add_resource(CancelJob, "/v1/jobs/<string:job_id>")
+api.add_resource(ReplayJob, "/v1/jobs/<string:job_id>/replay")
 api.add_resource(Contexts, "/v1/contexts")
 
 # Legacy unversioned routes (deprecated aliases — kept for backward compatibility)

@@ -94,7 +94,7 @@ Start
   ^${INTERFACE}\s+${IP_ADDRESS}.*${STATUS} -> Record
 ```
 
-See [TextFSM documentation](https://github.com/google/textfsm/wiki) for full syntax.
+See [TextFSM documentation](https://github.com/google/textfsm/blob/master/README.md) for full syntax.
 
 ## Platform Autodetect
 

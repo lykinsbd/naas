@@ -307,6 +307,54 @@ Use `job_id` to fetch the full results from `GET /v1/jobs/{job_id}`.
 - Webhook delivery is fire-and-forget: failures are logged but do not affect job status
 - No retries in v1.4 (tracked in [#278](https://github.com/lykinsbd/naas/issues/278))
 
+## Dead Letter Queue
+
+Failed jobs are retained in RQ's `FailedJobRegistry` for `JOB_TTL_FAILED` (7 days default). Use these endpoints to inspect and replay them.
+
+### List Failed Jobs
+
+```bash
+curl -k -u "admin:password" https://naas.example.com/v1/jobs/failed
+```
+
+```json
+{
+  "jobs": [
+    {
+      "job_id": "abc-123",
+      "host": "192.168.1.1",
+      "platform": "cisco_ios",
+      "port": 22,
+      "failed_at": "2026-03-20T19:00:00+00:00",
+      "error": "NetMikoTimeoutException: timed out",
+      "func": "naas.library.netmiko_lib.netmiko_send_command"
+    }
+  ],
+  "total": 1
+}
+```
+
+**Security:** Credentials are never included in the response. Error messages have credential values redacted.
+
+### Replay a Failed Job
+
+Re-enqueue a failed job using your current credentials (stored credentials are never used):
+
+```bash
+curl -k -u "admin:password" -X POST \
+  https://naas.example.com/v1/jobs/abc-123/replay
+```
+
+Returns a standard `202 Accepted` with a new `job_id`. The replayed job uses the caller's credentials, not the original submitter's.
+
+**Note:** Only the original submitter can replay a job (same auth check as job results).
+
+### Configuration
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `FAILED_JOB_MAX_RETAIN` | `500` | Maximum number of failed jobs to retain in the registry |
+
 ## Job Cancellation
 
 Cancel running or queued jobs using DELETE.

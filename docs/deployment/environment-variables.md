@@ -24,6 +24,7 @@ All NAAS configuration is driven by environment variables. Set these in `docker-
 | --- | --- | --- |
 | `JOB_TTL_SUCCESS` | `86400` | Seconds to retain successful job results in Redis (default: 24h) |
 | `JOB_TTL_FAILED` | `604800` | Seconds to retain failed job results in Redis (default: 7 days) |
+| `FAILED_JOB_MAX_RETAIN` | `500` | Maximum number of failed jobs to retain in the dead letter queue |
 
 ## Worker
 

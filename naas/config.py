@@ -62,6 +62,9 @@ IDEMPOTENCY_TTL: int = int(os.environ.get("IDEMPOTENCY_TTL", 86400))
 # Job deduplication (enabled by default)
 JOB_DEDUP_ENABLED: bool = os.environ.get("JOB_DEDUP_ENABLED", "true").lower() == "true"
 
+# Dead letter queue
+FAILED_JOB_MAX_RETAIN: int = int(os.environ.get("FAILED_JOB_MAX_RETAIN", 500))
+
 # Webhook config
 WEBHOOK_ALLOW_HTTP: bool = os.environ.get("WEBHOOK_ALLOW_HTTP", "false").lower() == "true"
 
