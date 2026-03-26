@@ -16,6 +16,10 @@ services:
     build:
       context: ../..
       dockerfile: Dockerfile
+      cache_from:
+        - type=gha
+      cache_to:
+        - type=gha,mode=max
     ports:
       - "18443:443"
     environment:
@@ -42,6 +46,10 @@ services:
     build:
       context: ../..
       dockerfile: Dockerfile
+      cache_from:
+        - type=gha
+      cache_to:
+        - type=gha,mode=max
     healthcheck:
       test: ["CMD", "sh", "-c", "kill -0 1"]
       interval: 5s
@@ -66,6 +74,10 @@ services:
     build:
       context: ../..
       dockerfile: Dockerfile
+      cache_from:
+        - type=gha
+      cache_to:
+        - type=gha,mode=max
     healthcheck:
       test: ["CMD", "sh", "-c", "kill -0 1"]
       interval: 5s

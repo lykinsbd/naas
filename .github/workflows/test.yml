@@ -60,6 +60,9 @@ jobs:
       - name: Install dependencies
         run: uv sync --extra dev
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Run integration tests
         run: uv run pytest tests/integration -v --tb=short --no-cov
 
