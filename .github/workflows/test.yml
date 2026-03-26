@@ -44,7 +44,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.14"]  # container always runs 3.14; multi-version adds no value
       fail-fast: false
     steps:
       - uses: actions/checkout@v6
