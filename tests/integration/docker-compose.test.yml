@@ -43,7 +43,11 @@ services:
       context: ../..
       dockerfile: Dockerfile
     healthcheck:
-      disable: true
+      test: ["CMD", "sh", "-c", "kill -0 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
     command: ["rq", "worker", "naas-default", "--url", "redis://:test_password@redis:6379"]
     environment:
       - REDIS_HOST=redis
@@ -63,7 +67,11 @@ services:
       context: ../..
       dockerfile: Dockerfile
     healthcheck:
-      disable: true
+      test: ["CMD", "sh", "-c", "kill -0 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
     command: ["rq", "worker", "naas-alt", "--url", "redis://:test_password@redis:6379"]
     environment:
       - REDIS_HOST=redis
