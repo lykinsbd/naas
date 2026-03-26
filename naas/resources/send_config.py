@@ -146,7 +146,7 @@ class SendConfig(Resource):
             failure_ttl=JOB_TTL_FAILED,
             on_success=Callback(on_job_complete),
             on_failure=Callback(on_job_failure),
-            meta={"webhook_url": validated.webhook_url or ""},
+            meta={"webhook_url": validated.webhook_url or "", "context": validated.context},
         )
         job_id = job.id
         current_app.logger.info("%s: Enqueued job for %s@%s:%s", job_id, g.credentials.username, ip_str, validated.port)

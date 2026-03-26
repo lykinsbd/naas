@@ -29,6 +29,7 @@ class TestHealthCheck:
         assert "redis" in data["components"]
         assert "queue" in data["components"]
         assert "workers" in data["components"]
+        assert "failed_jobs" in data["components"]
 
     def test_get_response_values_no_workers(self, client):
         """Healthcheck returns no_workers status when no RQ workers are running."""

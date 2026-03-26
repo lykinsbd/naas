@@ -837,6 +837,16 @@
         "tags": []
       }
     },
+    "/v1/jobs/failed": {
+      "get": {
+        "description": "Returns:     200: {\"jobs\": [...], \"total\": int}     401: Unauthorized",
+        "operationId": "get__v1_jobs_failed",
+        "parameters": [],
+        "responses": {},
+        "summary": "List jobs in the failed (dead letter) registry.",
+        "tags": []
+      }
+    },
     "/v1/jobs/{job_id}": {
       "delete": {
         "description": "Args:     job_id: UUID of the job to cancel.\n\nReturns:     Empty response with 204 status on success.     400 if job_id is not a valid UUID.     403 if credentials do not match the job submitter.     404 if job not found.     409 if job already finished or failed.",
@@ -854,6 +864,26 @@
         ],
         "responses": {},
         "summary": "Cancel a job by job_id.",
+        "tags": []
+      }
+    },
+    "/v1/jobs/{job_id}/replay": {
+      "post": {
+        "description": "The stored credentials are never used \u2014 the caller's Basic Auth credentials are substituted instead.\n\nArgs:     job_id: UUID of the failed job to replay.\n\nReturns:     202: JobResponse (new job enqueued)     401: Unauthorized     403: Caller credentials don't match original job submitter     404: Job not found in failed registry     409: Job is not in failed state",
+        "operationId": "post__v1_jobs_{job_id}_replay",
+        "parameters": [
+          {
+            "description": "",
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {},
+        "summary": "Re-enqueue a failed job using the caller's current credentials.",
         "tags": []
       }
     },
