@@ -87,6 +87,7 @@ nav:
           - "0001: Python Client Integration": adr/0001-python-client-library-integration.md
       - Changelog: changelog.md
       - Release Notes:
+          - v1.4: release-notes/v1.4.md
           - v1.3: release-notes/v1.3.md
           - v1.2: release-notes/v1.2.md
           - v1.1: release-notes/v1.1.md
