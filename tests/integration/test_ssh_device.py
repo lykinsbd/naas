@@ -1,5 +1,7 @@
 """Integration tests for NAAS SSH device interaction via cisshgo mock device."""
 
+import base64
+import json
 import time
 import uuid
 
@@ -694,8 +696,8 @@ class TestWebhookDelivery:
         assert r.status_code == 202, f"Expected 202, got {r.status_code}: {r.text}"
         job_id = r.json()["job_id"]
 
-        # Poll webhook-tester directly for up to 60s (covers job execution + delivery)
-        for _ in range(60):
+        # Poll webhook-tester for up to 15s (job ~1s + callback + HTTP delivery)
+        for _ in range(15):
             time.sleep(1)
             resp = requests.get(
                 f"{WEBHOOK_TESTER_URL}/api/session/{session_id}/requests",
@@ -704,16 +706,13 @@ class TestWebhookDelivery:
             if resp.status_code == 200 and resp.json():
                 break
         else:
-            pytest.fail(f"Webhook for job {job_id} was not received within 60 seconds")
+            pytest.fail(f"Webhook for job {job_id} was not received within 15 seconds")
 
         captured = resp.json()
         assert len(captured) >= 1
 
         # Decode the request body (base64-encoded by webhook-tester)
-        import base64
-        import json as _json
-
-        body = _json.loads(base64.b64decode(captured[0]["request_payload_base64"]))
+        body = json.loads(base64.b64decode(captured[0]["request_payload_base64"]))
         assert body["job_id"] == job_id
         assert body["status"] == "finished"
         assert "enqueued_at" in body
