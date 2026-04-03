@@ -15,7 +15,7 @@ class TestAuditEvents:
         caplog.set_level(logging.INFO)
         emit_audit_event(
             "job.submitted",
-            ip="192.168.1.1",
+            host="192.168.1.1",
             platform="cisco_ios",
             port=22,
             command_count=3,
@@ -39,19 +39,19 @@ class TestAuditEvents:
     def test_device_locked_out_valid(self, caplog):
         """Test device.locked_out event with all required fields."""
         caplog.set_level(logging.INFO)
-        emit_audit_event("device.locked_out", ip="192.168.1.1", failure_count=10)
+        emit_audit_event("device.locked_out", host="192.168.1.1", failure_count=10)
         assert "Audit event" in caplog.text
 
     def test_circuit_opened_valid(self, caplog):
         """Test circuit.opened event with all required fields."""
         caplog.set_level(logging.INFO)
-        emit_audit_event("circuit.opened", ip="192.168.1.1")
+        emit_audit_event("circuit.opened", host="192.168.1.1")
         assert "Audit event" in caplog.text
 
     def test_circuit_closed_valid(self, caplog):
         """Test circuit.closed event with all required fields."""
         caplog.set_level(logging.INFO)
-        emit_audit_event("circuit.closed", ip="192.168.1.1")
+        emit_audit_event("circuit.closed", host="192.168.1.1")
         assert "Audit event" in caplog.text
 
     def test_unknown_event_type(self):
@@ -62,4 +62,4 @@ class TestAuditEvents:
     def test_missing_required_fields(self):
         """Test that missing required fields raise ValueError."""
         with pytest.raises(ValueError, match="Missing required fields"):
-            emit_audit_event("job.submitted", ip="192.168.1.1")
+            emit_audit_event("job.submitted", host="192.168.1.1")

@@ -69,7 +69,7 @@ def main() -> None:
     wait_for_api(NAAS_URL, timeout=60)
 
     payload: dict[str, object] = {
-        "ip": CISSHGO_HOST,
+        "host": CISSHGO_HOST,
         "platform": "cisco_ios",
         "port": CISSHGO_PORT,
         "commands": ["show version"],

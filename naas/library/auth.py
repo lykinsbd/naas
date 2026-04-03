@@ -69,7 +69,7 @@ def _is_locked_out(redis_key: str, redis: Redis, report_failure: bool = False) -
 
     if is_locked and redis_key.startswith("naas_failures_device_"):
         ip = redis_key.replace("naas_failures_device_", "")
-        emit_audit_event("device.locked_out", ip=ip, failure_count=failure_count)
+        emit_audit_event("device.locked_out", host=ip, failure_count=failure_count)
 
     return is_locked
 

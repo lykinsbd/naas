@@ -113,9 +113,9 @@ def _get_circuit_breaker(device_id: str) -> pybreaker.CircuitBreaker:
         class AuditListener(pybreaker.CircuitBreakerListener):
             def state_change(self, cb, old_state, new_state):
                 if new_state.name == "open":
-                    emit_audit_event("circuit.opened", ip=device_id)
+                    emit_audit_event("circuit.opened", host=device_id)
                 elif new_state.name == "closed" and old_state and old_state.name == "open":  # pragma: no cover
-                    emit_audit_event("circuit.closed", ip=device_id)
+                    emit_audit_event("circuit.closed", host=device_id)
 
         breaker.add_listener(AuditListener())
 

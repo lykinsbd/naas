@@ -14,7 +14,7 @@ from redis import Redis
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # cisshgo connection details — fixed IP assigned in docker-compose.test.yml
-# so the NAAS API can accept it (ip field validates as IPv4 address)
+# so the NAAS API can accept it (host field validates as IPv4 address)
 CISSHGO_HOST = "240.11.2.100"
 CISSHGO_PORT = 10022
 CISSHGO_PLATFORM = "cisco_ios"
@@ -97,7 +97,7 @@ def _submit_and_poll(
 
 def _device_payload(commands: list[str], ip: str = CISSHGO_HOST) -> dict:
     return {
-        "ip": ip,
+        "host": ip,
         "platform": CISSHGO_PLATFORM,
         "port": CISSHGO_PORT,
         "commands": commands,
@@ -106,7 +106,7 @@ def _device_payload(commands: list[str], ip: str = CISSHGO_HOST) -> dict:
 
 def _config_payload(config: list[str], ip: str = CISSHGO_HOST) -> dict:
     return {
-        "ip": ip,
+        "host": ip,
         "platform": CISSHGO_PLATFORM,
         "port": CISSHGO_PORT,
         "config": config,
@@ -168,7 +168,7 @@ class TestAuthFailure:
     def test_wrong_password_job_fails(self, api_url, wait_for_api, wait_for_cisshgo, redis_client):
         """Wrong device password results in an auth error in the job result."""
         payload = {
-            "ip": CISSHGO_HOST,
+            "host": CISSHGO_HOST,
             "platform": CISSHGO_PLATFORM,
             "port": CISSHGO_PORT,
             "commands": ["show version"],
@@ -207,7 +207,7 @@ class TestDeviceLockout:
 
         # Next submission should be rejected with 403
         payload = {
-            "ip": locked_ip,
+            "host": locked_ip,
             "platform": CISSHGO_PLATFORM,
             "port": CISSHGO_PORT,
             "commands": ["show version"],
@@ -251,7 +251,7 @@ class TestCircuitBreaker:
         )
 
         payload = {
-            "ip": cb_ip,
+            "host": cb_ip,
             "platform": CISSHGO_PLATFORM,
             "port": CISSHGO_PORT,
             "commands": ["show version"],
@@ -277,7 +277,7 @@ class TestErrorHandling:
     def test_invalid_platform_fails(self, api_url, wait_for_api, wait_for_cisshgo):
         """Job with unsupported platform is rejected at the API level with 422."""
         payload = {
-            "ip": CISSHGO_HOST,
+            "host": CISSHGO_HOST,
             "platform": "not_a_real_platform",
             "port": CISSHGO_PORT,
             "commands": ["show version"],
@@ -295,7 +295,7 @@ class TestErrorHandling:
     def test_unreachable_host_fails(self, api_url, wait_for_api):
         """Job targeting unreachable host completes with connection error in result."""
         payload = {
-            "ip": "192.0.2.254",  # TEST-NET, guaranteed unreachable
+            "host": "192.0.2.254",  # TEST-NET, guaranteed unreachable
             "platform": CISSHGO_PLATFORM,
             "port": CISSHGO_PORT,
             "commands": ["show version"],
@@ -315,24 +315,12 @@ class TestErrorHandling:
 
 
 class TestHostField:
-    """Tests for the new 'host' field and deprecated 'ip' field."""
+    """Tests for the 'host' field."""
 
     def test_host_field_with_ip(self, api_url, wait_for_api, wait_for_cisshgo):
         """Job submitted with 'host' field (IP) succeeds."""
         payload = {
             "host": CISSHGO_HOST,
-            "platform": CISSHGO_PLATFORM,
-            "port": CISSHGO_PORT,
-            "commands": ["show version"],
-        }
-        result = _submit_and_poll(api_url, payload)
-        assert result["status"] == "finished"
-        assert result["results"] is not None
-
-    def test_deprecated_ip_field_still_works(self, api_url, wait_for_api, wait_for_cisshgo):
-        """Job submitted with deprecated 'ip' field still succeeds (backwards compat)."""
-        payload = {
-            "ip": CISSHGO_HOST,
             "platform": CISSHGO_PLATFORM,
             "port": CISSHGO_PORT,
             "commands": ["show version"],
