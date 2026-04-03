@@ -6,11 +6,6 @@ Detailed examples for common NAAS API operations.
     The `delay_factor` parameter was replaced with `read_timeout` (float, seconds).
     Migrate by converting: `delay_factor=2` → `read_timeout=60.0` (approximate).
 
-!!! warning "Deprecation in v1.4: ip field"
-    The `ip` field is deprecated. Use `host` instead — it accepts IPv4, IPv6, and hostnames.
-    The `ip` field still works but will be removed in v2.0.
-    Example: `{"host": "192.168.1.1", ...}` or `{"host": "router1.example.com", ...}`
-
 ## Contents
 
 - [Authentication](#authentication)
@@ -732,8 +727,8 @@ if __name__ == "__main__":
   "validation_error": {
     "json": [
       {
-        "loc": ["ip"],
-        "msg": "value is not a valid IPv4 address",
+        "loc": ["host"],
+        "msg": "value is not a valid IP address or hostname",
         "type": "value_error"
       }
     ]

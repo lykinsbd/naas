@@ -76,26 +76,6 @@ def _handle_device_type(data: dict[str, Any]) -> dict[str, Any]:
     return data
 
 
-def _handle_ip(data: dict[str, Any]) -> dict[str, Any]:
-    """
-    Map deprecated ip parameter to host with warning.
-
-    Args:
-        data: Request data dictionary that may contain ip
-
-    Returns:
-        Modified data dictionary with ip mapped to host
-    """
-    data = data.copy()
-    if "ip" in data:
-        logger.warning("Parameter 'ip' is deprecated, use 'host' instead. Support for 'ip' will be removed in v2.0")
-        if "host" not in data:
-            data["host"] = data.pop("ip")
-        else:
-            data.pop("ip")
-    return data
-
-
 class _BaseCommandRequest(BaseModel):
     """Base model for command request endpoints with common fields and validators."""
 
@@ -135,9 +115,8 @@ class _BaseCommandRequest(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def handle_deprecated_params(cls, data: dict[str, Any]) -> dict[str, Any]:
-        """Support deprecated device_type and ip parameters."""
-        data = _handle_device_type(data)
-        return _handle_ip(data)
+        """Support deprecated device_type parameter."""
+        return _handle_device_type(data)
 
     @field_validator("host")
     @classmethod
@@ -254,9 +233,8 @@ class SendConfigRequest(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def handle_deprecated_params(cls, data: dict[str, Any]) -> dict[str, Any]:
-        """Support deprecated device_type and ip parameters."""
-        data = _handle_device_type(data)
-        return _handle_ip(data)
+        """Support deprecated device_type parameter."""
+        return _handle_device_type(data)
 
     @field_validator("host")
     @classmethod

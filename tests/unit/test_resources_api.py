@@ -32,7 +32,7 @@ class TestSendCommand:
             response = client.post(
                 "/v1/send_command",
                 json={
-                    "ip": "192.168.1.1",
+                    "host": "192.168.1.1",
                     "port": 22,
                     "platform": "cisco_ios",
                     "commands": ["show version"],
@@ -54,7 +54,7 @@ class TestSendCommand:
         response = client.post(
             "/v1/send_command",
             json={
-                "ip": "192.168.1.1",
+                "host": "192.168.1.1",
                 "commands": ["show version"],
             },
         )
@@ -71,7 +71,7 @@ class TestSendCommand:
             with patch("naas.resources.send_command.device_lockout", return_value=True):
                 response = client.post(
                     "/v1/send_command",
-                    json={"ip": "192.168.1.1", "commands": ["show version"]},
+                    json={"host": "192.168.1.1", "commands": ["show version"]},
                     headers={"Authorization": f"Basic {auth}"},
                 )
         assert response.status_code == 403
@@ -103,7 +103,7 @@ class TestSendCommand:
             response = client.post(
                 "/v1/send_command",
                 json={
-                    "ip": "192.168.1.1",
+                    "host": "192.168.1.1",
                     "commands": [],
                 },
                 headers={"Authorization": f"Basic {auth}"},
@@ -121,7 +121,7 @@ class TestSendCommand:
             response = client.post(
                 "/v1/send_command",
                 json={
-                    "ip": "192.0.2.1",
+                    "host": "192.0.2.1",
                     "commands": ["show version", "  ", "show run"],
                 },
                 headers={"Authorization": f"Basic {auth}"},
@@ -139,7 +139,7 @@ class TestSendCommand:
             response = client.post(
                 "/v1/send_command",
                 json={
-                    "ip": "192.168.1.1",
+                    "host": "192.168.1.1",
                     "port": 99999,
                     "commands": ["show version"],
                 },
@@ -158,7 +158,7 @@ class TestSendCommand:
             response = client.post(
                 "/v1/send_command",
                 json={
-                    "ip": "192.0.2.1",
+                    "host": "192.0.2.1",
                     "commands": ["show version"],
                     "platform": "not_a_real_platform",
                 },
@@ -177,44 +177,9 @@ class TestSendCommand:
             response = client.post(
                 "/v1/send_command",
                 json={
-                    "ip": "192.0.2.1",
+                    "host": "192.0.2.1",
                     "commands": ["show version"],
                     "device_type": "arista_eos",
-                },
-                headers={"Authorization": f"Basic {auth}"},
-            )
-
-        assert response.status_code == 202
-
-    def test_send_command_ip_backward_compat(self, app, client):
-        """Test POST with deprecated ip field maps to host."""
-        auth = b64encode(b"testuser:testpass").decode()
-        app.config["redis"].set("naas_cred_salt", b"test-salt")
-
-        with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
-            response = client.post(
-                "/v1/send_command",
-                json={
-                    "ip": "192.0.2.1",
-                    "commands": ["show version"],
-                },
-                headers={"Authorization": f"Basic {auth}"},
-            )
-
-        assert response.status_code == 202
-
-    def test_send_command_ip_ignored_when_host_present(self, app, client):
-        """Test POST with both ip and host uses host."""
-        auth = b64encode(b"testuser:testpass").decode()
-        app.config["redis"].set("naas_cred_salt", b"test-salt")
-
-        with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
-            response = client.post(
-                "/v1/send_command",
-                json={
-                    "host": "192.0.2.1",
-                    "ip": "10.0.0.1",
-                    "commands": ["show version"],
                 },
                 headers={"Authorization": f"Basic {auth}"},
             )
@@ -247,7 +212,7 @@ class TestSendCommand:
             response = client.post(
                 "/v1/send_command",
                 json={
-                    "ip": "192.0.2.1",
+                    "host": "192.0.2.1",
                     "commands": ["show version"],
                     "device_type": "arista_eos",
                     "platform": "cisco_nxos",
@@ -336,7 +301,7 @@ class TestSendCommand:
             response = client.post(
                 "/v1/send_command",
                 json={
-                    "ip": "192.168.1.1",
+                    "host": "192.168.1.1",
                     "port": 22,
                     "platform": "cisco_ios",
                     "commands": ["show version"],
@@ -479,7 +444,7 @@ class TestSendConfig:
             response = client.post(
                 "/v1/send_config",
                 json={
-                    "ip": "192.168.1.1",
+                    "host": "192.168.1.1",
                     "port": 22,
                     "platform": "cisco_ios",
                     "commands": ["interface gi0/1", "description test"],
@@ -504,7 +469,7 @@ class TestSendConfig:
             response = client.post(
                 "/v1/send_config",
                 json={
-                    "ip": "192.0.2.1",
+                    "host": "192.0.2.1",
                     "commands": ["interface gi0/1", "  ", "description test"],
                 },
                 headers={"Authorization": f"Basic {auth}"},
@@ -522,7 +487,7 @@ class TestSendConfig:
             response = client.post(
                 "/v1/send_config",
                 json={
-                    "ip": "192.0.2.1",
+                    "host": "192.0.2.1",
                 },
                 headers={"Authorization": f"Basic {auth}"},
             )
@@ -704,7 +669,7 @@ class TestSendConfig:
             response = client.post(
                 "/v1/send_config",
                 json={
-                    "ip": "192.0.2.1",
+                    "host": "192.0.2.1",
                     "commands": ["interface gi0/1"],
                     "platform": "not_a_real_platform",
                 },
@@ -719,7 +684,7 @@ class TestSendConfig:
         response = client.post(
             "/v1/send_config",
             json={
-                "ip": "192.168.1.1",
+                "host": "192.168.1.1",
                 "commands": ["interface gi0/1"],
             },
         )
@@ -736,7 +701,7 @@ class TestSendConfig:
             with patch("naas.resources.send_config.device_lockout", return_value=True):
                 response = client.post(
                     "/v1/send_config",
-                    json={"ip": "192.168.1.1", "commands": ["interface gi0/1"]},
+                    json={"host": "192.168.1.1", "commands": ["interface gi0/1"]},
                     headers={"Authorization": f"Basic {auth}"},
                 )
         assert response.status_code == 403

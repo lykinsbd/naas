@@ -174,7 +174,7 @@ class SendCommand(Resource):
         # Emit audit event
         emit_audit_event(
             "job.submitted",
-            ip=ip_str,
+            host=ip_str,
             platform=validated.platform,
             port=validated.port,
             command_count=len(validated.commands),

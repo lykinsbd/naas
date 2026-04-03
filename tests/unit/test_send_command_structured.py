@@ -28,7 +28,7 @@ class TestSendCommandStructured:
                     response = client.post(
                         "/v1/send_command_structured",
                         json={
-                            "ip": "192.168.1.1",
+                            "host": "192.168.1.1",
                             "commands": ["show version"],
                         },
                         headers={"Authorization": f"Basic {auth}"},
@@ -55,7 +55,7 @@ class TestSendCommandStructured:
                     response = client.post(
                         "/v1/send_command_structured",
                         json={
-                            "ip": "192.168.1.1",
+                            "host": "192.168.1.1",
                             "commands": ["show custom"],
                             "textfsm_template": "Value TEST (\\S+)\\n\\nStart\\n  ^${TEST}",
                         },
@@ -74,7 +74,7 @@ class TestSendCommandStructured:
             response = client.post(
                 "/v1/send_command_structured",
                 json={
-                    "ip": "192.168.1.1",
+                    "host": "192.168.1.1",
                     "commands": ["show version"],
                 },
                 headers={"Authorization": f"Basic {auth}"},
@@ -99,7 +99,7 @@ class TestSendCommandStructured:
                     response = client.post(
                         "/v1/send_command_structured",
                         json={
-                            "ip": "192.168.1.1",
+                            "host": "192.168.1.1",
                             "commands": ["show interfaces"],
                             "ttp_template": "interface {{ interface }}",
                         },
@@ -127,7 +127,7 @@ class TestSendCommandStructured:
                     response = client.post(
                         "/v1/send_command_structured",
                         json={
-                            "ip": "192.168.1.1",
+                            "host": "192.168.1.1",
                             "commands": ["show version"],
                             "tags": {"change": "CHG001"},
                         },
@@ -144,7 +144,7 @@ class TestSendCommandStructured:
         response = client.post(
             "/v1/send_command_structured",
             json={
-                "ip": "192.168.1.1",
+                "host": "192.168.1.1",
                 "commands": ["show version"],
                 "textfsm_template": "Value TEST (\\S+)",
                 "ttp_template": "interface {{ interface }}",
@@ -170,7 +170,7 @@ class TestSendCommandStructured:
                 with patch("naas.resources.send_command_structured.job_unlocker", return_value=True):
                     response = client.post(
                         "/v1/send_command_structured",
-                        json={"ip": "192.168.1.1", "commands": ["show version"]},
+                        json={"host": "192.168.1.1", "commands": ["show version"]},
                         headers={"Authorization": f"Basic {auth}"},
                     )
 
@@ -193,7 +193,7 @@ class TestSendCommandStructured:
                         with patch("naas.resources.send_command_structured.emit_audit_event"):
                             response = client.post(
                                 "/v1/send_command_structured",
-                                json={"ip": "192.168.1.1", "commands": ["show version"]},
+                                json={"host": "192.168.1.1", "commands": ["show version"]},
                                 headers={"Authorization": f"Basic {auth}"},
                             )
 
@@ -214,7 +214,7 @@ class TestSendCommandStructured:
             with patch("naas.resources.send_command_structured.RQJob.fetch", return_value=existing_job):
                 response = client.post(
                     "/v1/send_command_structured",
-                    json={"ip": "192.168.1.1", "commands": ["show version"]},
+                    json={"host": "192.168.1.1", "commands": ["show version"]},
                     headers={"Authorization": f"Basic {auth}", "X-Idempotency-Key": "my-key"},
                 )
 
@@ -236,7 +236,7 @@ class TestSendCommandStructured:
                         with patch("naas.resources.send_command_structured.emit_audit_event"):
                             response = client.post(
                                 "/v1/send_command_structured",
-                                json={"ip": "192.168.1.1", "commands": ["show version"]},
+                                json={"host": "192.168.1.1", "commands": ["show version"]},
                                 headers={"Authorization": f"Basic {auth}", "X-Idempotency-Key": "stale-key"},
                             )
 

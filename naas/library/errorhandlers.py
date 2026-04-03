@@ -62,7 +62,6 @@ def api_error_generator():
             "status": 422,
             "error": "Invalid type of data in request payload, please see documentation",
         },
-        "InvalidIP": {"status": 422, "error": "Invalid IPv4 address in 'ip' field of payload"},
         "NoWorkersForContext": {"status": 503, "error": "No workers available for the requested context"},
         "QueueFull": {"status": 503, "error": "Queue depth limit reached, please retry later"},
         "InternalServerError": {

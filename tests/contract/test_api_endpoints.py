@@ -76,7 +76,7 @@ class TestSendCommand:
     def test_post_requires_auth(self, client):
         """POST /send_command without auth should return 401."""
         payload = {
-            "ip": "192.0.2.1",
+            "host": "192.0.2.1",
             "commands": ["show version"],
         }
         response = client.post("/send_command", json=payload)
@@ -104,14 +104,14 @@ class TestSendCommand:
 
     def test_post_requires_commands(self, client, auth_headers):
         """POST /send_command without commands should return 422."""
-        payload = {"ip": "192.0.2.1"}
+        payload = {"host": "192.0.2.1"}
         response = client.post("/send_command", json=payload, headers=auth_headers)
         assert response.status_code == 422
 
     def test_post_requires_commands_list(self, client, auth_headers):
         """POST /send_command with non-list commands should return 422."""
         payload = {
-            "ip": "192.0.2.1",
+            "host": "192.0.2.1",
             "commands": "show version",
         }
         response = client.post("/send_command", json=payload, headers=auth_headers)
@@ -136,7 +136,7 @@ class TestSendConfig:
     def test_post_requires_auth(self, client):
         """POST /send_config without auth should return 401."""
         payload = {
-            "ip": "192.0.2.1",
+            "host": "192.0.2.1",
             "commands": ["interface Ethernet1", "description Test"],
         }
         response = client.post("/send_config", json=payload)
@@ -155,14 +155,14 @@ class TestSendConfig:
 
     def test_post_requires_commands(self, client, auth_headers):
         """POST /send_config without commands should return 422."""
-        payload = {"ip": "192.0.2.1"}
+        payload = {"host": "192.0.2.1"}
         response = client.post("/send_config", json=payload, headers=auth_headers)
         assert response.status_code == 422
 
     def test_post_rejects_save_config_non_bool(self, client, auth_headers):
         """POST /send_config should reject save_config as non-bool."""
         payload = {
-            "ip": "192.0.2.1",
+            "host": "192.0.2.1",
             "commands": ["interface Ethernet1"],
             "save_config": "yes",
         }
