@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- towncrier release notes start -->
 
-# NAAS 1.4.0b1 (2026-03-26)
+# NAAS 1.4.0b2 (2026-04-03)
 
 ## ✨ Features
 
@@ -47,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## 🔧 Internal Changes
 
 - Remove black dependency, superseded by ruff format. ([#258](https://github.com/lykinsbd/naas/issues/258))
+- Bump dependencies via Dependabot: types-paramiko, GitHub Actions, requests 2.33.0, cryptography 46.0.6, pygments 2.20.0, and 12 minor/patch updates.
 - Use RELEASE_TOKEN in finalize-release workflow to trigger CI checks on auto-created PRs
 
 # NAAS 1.3.1 (2026-03-06)
