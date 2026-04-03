@@ -14,7 +14,7 @@ NAAS provides structured logging, request tracing, and Prometheus metrics for mo
 All log output is JSON. Each line includes:
 
 | Field | Description |
-|---|---|
+| --- | --- |
 | `timestamp` | ISO 8601 timestamp |
 | `level` | Log level (`INFO`, `DEBUG`, `WARNING`, `ERROR`) |
 | `logger` | Logger name (e.g. `NAAS`) |
@@ -55,7 +55,7 @@ curl -k -X POST https://localhost:8443/v1/send_command \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -H "X-Request-ID: 550e8400-e29b-41d4-a716-446655440000" \
-  -d '{"ip": "192.168.1.1", "platform": "cisco_ios", "commands": ["show version"]}'
+  -d '{"host": "192.168.1.1", "platform": "cisco_ios", "commands": ["show version"]}'
 ```
 
 If omitted, NAAS generates one automatically.
@@ -235,3 +235,41 @@ index=naas logger="naas.audit" | table _time event_type username device_ip statu
 - **Compliance**: Maintain audit trail of network changes
 - **Troubleshooting**: Correlate failures with device/user patterns
 - **Capacity planning**: Analyze job duration and volume trends
+
+## Job Reaper
+
+The job reaper is a background thread that runs in each worker process. It detects jobs that are stuck in the `started` state because their worker died (OOM kill, node failure, SIGKILL) and moves them to the `failed` state.
+
+### Why It Matters
+
+Without the reaper, a dead worker leaves its in-flight jobs stuck in `StartedJobRegistry` until RQ's job timeout expires (up to the full `JOB_TIMEOUT`). During this window:
+
+- The job appears to be running but will never complete
+- The dedup key blocks re-submission of the same job
+- Clients polling for results see `status: started` indefinitely
+
+The reaper detects this within `WORKER_STALE_THRESHOLD` seconds (default 120s) and moves the job to `failed`, clearing the dedup key so the job can be re-submitted.
+
+### Distributed Lock
+
+All workers run the reaper thread, but only one executes per cycle. The reaper acquires a Redis lock (`naas:reaper:lock`) before scanning. If another reaper holds the lock, the current one skips that cycle. The lock TTL equals `JOB_REAPER_INTERVAL`, so it self-heals if the lock holder dies.
+
+### Audit Event
+
+When a job is reaped, a `job.orphaned` audit event is emitted:
+
+```json
+{
+  "event": "job.orphaned",
+  "job_id": "abc-123",
+  "worker_name": "naas_worker_1"
+}
+```
+
+### Configuration
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `JOB_REAPER_ENABLED` | `true` | Enable orphaned job detection |
+| `JOB_REAPER_INTERVAL` | `60` | Seconds between reaper scans |
+| `WORKER_STALE_THRESHOLD` | `120` | Seconds since last heartbeat before worker considered dead |

@@ -1,9 +1,71 @@
 {
   "components": {
     "schemas": {
+      "ContextsResponse.c5eb086": {
+        "description": "Response model for GET /v1/contexts.",
+        "properties": {
+          "contexts": {
+            "description": "Active contexts",
+            "items": {
+              "$ref": "#/components/schemas/ContextsResponse.c5eb086.ContextInfo"
+            },
+            "title": "Contexts",
+            "type": "array"
+          }
+        },
+        "required": [
+          "contexts"
+        ],
+        "title": "ContextsResponse",
+        "type": "object"
+      },
+      "ContextsResponse.c5eb086.ContextInfo": {
+        "description": "Status of a single routing context.",
+        "properties": {
+          "name": {
+            "description": "Context name",
+            "title": "Name",
+            "type": "string"
+          },
+          "queue_depth": {
+            "description": "Number of jobs currently queued",
+            "title": "Queue Depth",
+            "type": "integer"
+          },
+          "workers": {
+            "description": "Number of active workers serving this context",
+            "title": "Workers",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "workers",
+          "queue_depth"
+        ],
+        "title": "ContextInfo",
+        "type": "object"
+      },
       "JobResponse.c5eb086": {
         "description": "Response model for job submission.",
         "properties": {
+          "deduplicated": {
+            "default": false,
+            "description": "True if this response reuses an in-flight duplicate job",
+            "title": "Deduplicated",
+            "type": "boolean"
+          },
+          "enqueued_at": {
+            "description": "ISO 8601 timestamp when job was enqueued",
+            "title": "Enqueued At",
+            "type": "string"
+          },
+          "idempotent": {
+            "default": false,
+            "description": "True if this response reuses an existing job",
+            "title": "Idempotent",
+            "type": "boolean"
+          },
           "job_id": {
             "description": "Unique job identifier",
             "title": "Job Id",
@@ -13,11 +75,24 @@
             "description": "Status message",
             "title": "Message",
             "type": "string"
+          },
+          "queue_position": {
+            "description": "Approximate position in queue (1 = next to run)",
+            "title": "Queue Position",
+            "type": "integer"
+          },
+          "timeout": {
+            "description": "Job timeout in seconds",
+            "title": "Timeout",
+            "type": "integer"
           }
         },
         "required": [
           "job_id",
-          "message"
+          "message",
+          "queue_position",
+          "enqueued_at",
+          "timeout"
         ],
         "title": "JobResponse",
         "type": "object"
@@ -55,6 +130,19 @@
             ],
             "default": null,
             "title": "Status"
+          },
+          "tag": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Filter by tag in 'key:value' format",
+            "title": "Tag"
           }
         },
         "title": "ListJobsQuery",
@@ -72,6 +160,19 @@
             "title": "Commands",
             "type": "array"
           },
+          "conn_timeout": {
+            "default": 10.0,
+            "description": "TCP connection timeout in seconds",
+            "minimum": 1.0,
+            "title": "Conn Timeout",
+            "type": "number"
+          },
+          "context": {
+            "default": "default",
+            "description": "Routing context for multi-segment environments (e.g. 'corp', 'oob-dc1', 'hk-prod')",
+            "title": "Context",
+            "type": "string"
+          },
           "expect_string": {
             "anyOf": [
               {
@@ -85,10 +186,9 @@
             "description": "Regex pattern to match in device output (overrides prompt detection)",
             "title": "Expect String"
           },
-          "ip": {
-            "description": "Device IP address",
-            "format": "ipvanyaddress",
-            "title": "Ip",
+          "host": {
+            "description": "Device IP address or hostname",
+            "title": "Host",
             "type": "string"
           },
           "platform": {
@@ -111,17 +211,46 @@
             "minimum": 1.0,
             "title": "Read Timeout",
             "type": "number"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Optional key-value metadata tags (max 10, keys/values max 64 chars, alphanumeric + hyphens/underscores/colons)",
+            "title": "Tags"
+          },
+          "webhook_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Optional HTTPS URL to POST a job completion notification to (never includes results)",
+            "title": "Webhook Url"
           }
         },
         "required": [
-          "ip",
+          "host",
           "commands"
         ],
         "title": "SendCommandRequest",
         "type": "object"
       },
       "SendCommandStructuredRequest.c5eb086": {
-        "description": "Request model for structured send_command with TextFSM parsing.\n\nReturns parsed output as list[dict] per command. Falls back to raw string\nif no template is found.",
+        "description": "Request model for structured send_command with TextFSM or TTP parsing.\n\nReturns parsed output as list[dict] per command. Falls back to raw string\nif no template is found.",
         "properties": {
           "commands": {
             "description": "Commands to execute",
@@ -132,10 +261,22 @@
             "title": "Commands",
             "type": "array"
           },
-          "ip": {
-            "description": "Device IP address",
-            "format": "ipvanyaddress",
-            "title": "Ip",
+          "conn_timeout": {
+            "default": 10.0,
+            "description": "TCP connection timeout in seconds",
+            "minimum": 1.0,
+            "title": "Conn Timeout",
+            "type": "number"
+          },
+          "context": {
+            "default": "default",
+            "description": "Routing context for multi-segment environments (e.g. 'corp', 'oob-dc1', 'hk-prod')",
+            "title": "Context",
+            "type": "string"
+          },
+          "host": {
+            "description": "Device IP address or hostname",
+            "title": "Host",
             "type": "string"
           },
           "platform": {
@@ -158,6 +299,22 @@
             "minimum": 1.0,
             "title": "Read Timeout",
             "type": "number"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Optional key-value metadata tags (max 10, keys/values max 64 chars, alphanumeric + hyphens/underscores/colons)",
+            "title": "Tags"
           },
           "textfsm_template": {
             "anyOf": [
@@ -171,10 +328,36 @@
             "default": null,
             "description": "Custom TextFSM template (uses ntc-templates if not provided)",
             "title": "Textfsm Template"
+          },
+          "ttp_template": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "TTP template string or ttp://<path> reference (mutually exclusive with textfsm_template)",
+            "title": "Ttp Template"
+          },
+          "webhook_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Optional HTTPS URL to POST a job completion notification to (never includes results)",
+            "title": "Webhook Url"
           }
         },
         "required": [
-          "ip",
+          "host",
           "commands"
         ],
         "title": "SendCommandStructuredRequest",
@@ -223,10 +406,22 @@
             "description": "Configuration commands",
             "title": "Config"
           },
-          "ip": {
-            "description": "Device IP address",
-            "format": "ipvanyaddress",
-            "title": "Ip",
+          "conn_timeout": {
+            "default": 10.0,
+            "description": "TCP connection timeout in seconds",
+            "minimum": 1.0,
+            "title": "Conn Timeout",
+            "type": "number"
+          },
+          "context": {
+            "default": "default",
+            "description": "Routing context for multi-segment environments",
+            "title": "Context",
+            "type": "string"
+          },
+          "host": {
+            "description": "Device IP address or hostname",
+            "title": "Host",
             "type": "string"
           },
           "platform": {
@@ -255,10 +450,39 @@
             "description": "Save configuration after applying",
             "title": "Save Config",
             "type": "boolean"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Optional key-value metadata tags (max 10, keys/values max 64 chars)",
+            "title": "Tags"
+          },
+          "webhook_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Optional HTTPS URL to POST a job completion notification to (never includes results)",
+            "title": "Webhook Url"
           }
         },
         "required": [
-          "ip"
+          "host"
         ],
         "title": "SendConfigRequest",
         "type": "object"
@@ -493,6 +717,37 @@
         "tags": []
       }
     },
+    "/v1/contexts": {
+      "get": {
+        "description": ":return: ContextsResponse with per-context status",
+        "operationId": "get__v1_contexts",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContextsResponse.c5eb086"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError.6a07bef"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "List all configured contexts with active worker counts and queue depths.",
+        "tags": []
+      }
+    },
     "/v1/healthcheck": {
       "get": {
         "description": "Returns:     dict: Health status with the following structure:         {             \"status\": str,  # \"healthy\", \"degraded\", or \"no_workers\"             \"version\": str,  # NAAS version             \"uptime_seconds\": int,  # Seconds since API start             \"components\": {                 \"redis\": {\"status\": str},  # \"healthy\" or \"unhealthy\"                 \"queue\": {\"status\": str, \"depth\": int},  # Queue status and job count                 \"workers\": {                     \"status\": str,  # \"healthy\" or \"no_workers\"                     \"count\": int,  # Number of worker pods/hosts                     \"active_jobs\": int  # Jobs currently processing                 }             }         }",
@@ -556,10 +811,39 @@
               "default": null,
               "title": "Status"
             }
+          },
+          {
+            "description": "Filter by tag in 'key:value' format",
+            "in": "query",
+            "name": "tag",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Filter by tag in 'key:value' format",
+              "title": "Tag"
+            }
           }
         ],
         "responses": {},
         "summary": "List jobs with pagination and filtering. Query parameters: - page: Page number (default: 1) - per_page: Results per page (default: 20, max: 100) - status: Filter by status (finished, failed, started, queued) :return: Dict with jobs list and pagination info",
+        "tags": []
+      }
+    },
+    "/v1/jobs/failed": {
+      "get": {
+        "description": "Returns:     200: {\"jobs\": [...], \"total\": int}     401: Unauthorized",
+        "operationId": "get__v1_jobs_failed",
+        "parameters": [],
+        "responses": {},
+        "summary": "List jobs in the failed (dead letter) registry.",
         "tags": []
       }
     },
@@ -580,6 +864,26 @@
         ],
         "responses": {},
         "summary": "Cancel a job by job_id.",
+        "tags": []
+      }
+    },
+    "/v1/jobs/{job_id}/replay": {
+      "post": {
+        "description": "The stored credentials are never used \u2014 the caller's Basic Auth credentials are substituted instead.\n\nArgs:     job_id: UUID of the failed job to replay.\n\nReturns:     202: JobResponse (new job enqueued)     401: Unauthorized     403: Caller credentials don't match original job submitter     404: Job not found in failed registry     409: Job is not in failed state",
+        "operationId": "post__v1_jobs_{job_id}_replay",
+        "parameters": [
+          {
+            "description": "",
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {},
+        "summary": "Re-enqueue a failed job using the caller's current credentials.",
         "tags": []
       }
     },

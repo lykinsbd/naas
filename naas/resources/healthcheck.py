@@ -5,6 +5,7 @@ import time
 from flask import current_app
 from flask_restful import Resource
 from redis.exceptions import RedisError
+from rq.registry import FailedJobRegistry
 
 from naas import __version__
 from naas.library.worker_cache import get_cached_workers
@@ -64,5 +65,6 @@ class HealthCheck(Resource):
                 "redis": {"status": redis_status},
                 "queue": {"status": "healthy", "depth": len(q)},
                 "workers": {"status": worker_status, "count": worker_count, "active_jobs": active_jobs},
+                "failed_jobs": len(FailedJobRegistry(connection=redis)) if redis_status == "healthy" else 0,
             },
         }

@@ -20,7 +20,7 @@ curl -X POST https://naas.example.com/v1/send_command \
   -u admin:password \
   -H "Content-Type: application/json" \
   -d '{
-    "ip": "192.168.1.1",
+    "host": "192.168.1.1",
     "platform": "cisco_ios",
     "commands": ["show version", "show interfaces"]
   }'

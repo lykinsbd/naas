@@ -13,11 +13,14 @@ def docker_compose():
     print("\n🐳 Starting Docker Compose stack...")
     # Start services
     result = subprocess.run(
-        ["docker", "compose", "-f", compose_file, "up", "-d", "--build"],
-        check=True,
+        ["docker", "compose", "-f", compose_file, "up", "-d", "--build", "--wait"],
         capture_output=True,
         text=True,
     )
+    if result.returncode != 0:
+        print(f"Docker Compose stderr:\n{result.stderr}")
+        print(f"Docker Compose stdout:\n{result.stdout}")
+        raise RuntimeError(f"docker compose up failed (exit {result.returncode})")
     if result.stderr:
         print(f"Docker Compose output: {result.stderr}")
 

@@ -6,6 +6,11 @@ Detailed examples for common NAAS API operations.
     The `delay_factor` parameter was replaced with `read_timeout` (float, seconds).
     Migrate by converting: `delay_factor=2` → `read_timeout=60.0` (approximate).
 
+!!! warning "Deprecation in v1.4: ip field"
+    The `ip` field is deprecated. Use `host` instead — it accepts IPv4, IPv6, and hostnames.
+    The `ip` field still works but will be removed in v2.0.
+    Example: `{"host": "192.168.1.1", ...}` or `{"host": "router1.example.com", ...}`
+
 ## Contents
 
 - [Authentication](#authentication)
@@ -37,6 +42,22 @@ curl -k -H "Authorization: Basic $(echo -n 'username:password' | base64)" \
 
 Execute show commands on network devices.
 
+### Enqueue Response (202 Accepted)
+
+```json
+{
+  "job_id": "550e8400-e29b-41d4-a716-446655440000",
+  "message": "Job enqueued",
+  "queue_position": 1,
+  "enqueued_at": "2026-03-20T19:00:00+00:00",
+  "timeout": 60
+}
+```
+
+- `queue_position` — approximate position in queue (1 = next to run, may change as jobs complete)
+- `enqueued_at` — ISO 8601 timestamp when job was accepted
+- `timeout` — maximum seconds the job will run before being killed
+
 ### Basic Example
 
 ```bash
@@ -44,7 +65,7 @@ curl -k -X POST https://localhost:8443/v1/send_command \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -d '{
-    "ip": "192.168.1.1",
+    "host": "192.168.1.1",
     "platform": "cisco_ios",
     "commands": ["show version", "show ip interface brief"]
   }'
@@ -57,7 +78,7 @@ curl -k -X POST https://localhost:8443/v1/send_command \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -d '{
-    "ip": "192.168.1.1",
+    "host": "192.168.1.1",
     "port": 2222,
     "platform": "cisco_ios",
     "commands": ["show version"]
@@ -71,7 +92,7 @@ curl -k -X POST https://localhost:8443/v1/send_command \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -d '{
-    "ip": "192.168.1.1",
+    "host": "192.168.1.1",
     "platform": "cisco_ios",
     "enable": "enable_password",
     "commands": ["show running-config"]
@@ -88,7 +109,7 @@ curl -k -X POST https://localhost:8443/v1/send_command \
   -H "Content-Type: application/json" \
   -H "X-Request-ID: my-custom-id-12345" \
   -d '{
-    "ip": "192.168.1.1",
+    "host": "192.168.1.1",
     "platform": "cisco_ios",
     "commands": ["show version"]
   }'
@@ -103,7 +124,7 @@ curl -k -X POST https://localhost:8443/v1/send_command \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -d '{
-    "ip": "192.168.1.1",
+    "host": "192.168.1.1",
     "platform": "cisco_ios",
     "commands": ["show version"],
     "expect_string": "router.*#"
@@ -117,6 +138,27 @@ curl -k -X POST https://localhost:8443/v1/send_command \
 - Devices with custom prompt formats
 
 **Note:** This is an advanced feature. Most users should rely on automatic prompt detection.
+
+### Connection Timeout
+
+Control the TCP connection timeout with `conn_timeout` (default: `10.0` seconds):
+
+```bash
+curl -k -X POST https://localhost:8443/v1/send_command \
+  -u "admin:password" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "host": "192.168.1.1",
+    "platform": "cisco_ios",
+    "commands": ["show version"],
+    "conn_timeout": 5.0
+  }'
+```
+
+- `conn_timeout` — seconds to wait for the TCP connection to be established before failing
+- `read_timeout` — seconds to wait for a command response after connection is established (default: `30.0`)
+
+Reduce `conn_timeout` for faster failure detection on unreachable hosts. Increase it for devices on high-latency links.
 
 ### Supported Platforms
 
@@ -144,7 +186,7 @@ curl -k -X POST https://localhost:8443/v1/send_config \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -d '{
-    "ip": "192.168.1.1",
+    "host": "192.168.1.1",
     "platform": "cisco_ios",
     "commands": [
       "interface GigabitEthernet0/1",
@@ -163,7 +205,7 @@ curl -k -X POST https://localhost:8443/v1/send_config \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -d '{
-    "ip": "192.168.1.1",
+    "host": "192.168.1.1",
     "platform": "cisco_ios",
     "commands": [
       "interface GigabitEthernet0/1",
@@ -182,7 +224,7 @@ curl -k -X POST https://localhost:8443/v1/send_config \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -d '{
-    "ip": "192.168.1.1",
+    "host": "192.168.1.1",
     "platform": "juniper_junos",
     "commands": [
       "set interfaces ge-0/0/1 description \"Configured via NAAS\""
@@ -190,6 +232,128 @@ curl -k -X POST https://localhost:8443/v1/send_config \
     "commit": true
   }'
 ```
+
+## Job Deduplication
+
+NAAS automatically deduplicates in-flight jobs. If you submit the same command to the same device while a previous identical job is still running or queued, NAAS returns the existing job_id instead of enqueuing a new one.
+
+Two jobs are considered duplicates when they share the same `host`, `platform`, `commands`, and username.
+
+### Detecting a Deduplicated Response
+
+```json
+{
+  "job_id": "abc-123",
+  "message": "Job enqueued",
+  "deduplicated": true,
+  "queue_position": 0,
+  "enqueued_at": "2026-03-24T18:00:00+00:00",
+  "timeout": 60
+}
+```
+
+When `deduplicated: true`, the `job_id` refers to the existing in-flight job. Poll it normally to get results.
+
+### Disabling Deduplication
+
+Set `JOB_DEDUP_ENABLED=false` to disable deduplication globally. Useful for testing or when you intentionally want parallel identical jobs.
+
+### Idempotency Keys
+
+For client-controlled deduplication (e.g., safe retries on network failure), use `X-Idempotency-Key`:
+
+```bash
+curl -k -X POST https://localhost:8443/v1/send_command \
+  -H "X-Idempotency-Key: my-unique-key-abc123" \
+  -u "admin:password" \
+  -d '{"host": "192.168.1.1", "platform": "cisco_ios", "commands": ["show version"]}'
+```
+
+Repeat requests with the same key within 24 hours return the original job_id with `idempotent: true`. Unlike server-side dedup, idempotency keys are opt-in and key-based (not content-based).
+
+## Webhooks
+
+Instead of polling for results, you can provide a `webhook_url` to receive a notification when the job completes.
+
+```bash
+curl -k -u admin:admin -X POST https://naas.example.com/v1/send_command \
+  -H "Content-Type: application/json" \
+  -d '{
+    "host": "192.168.1.1",
+    "platform": "cisco_ios",
+    "commands": ["show version"],
+    "webhook_url": "https://my-app.example.com/naas-callback"
+  }'
+```
+
+When the job finishes (success or failure), NAAS POSTs a notification to your URL:
+
+```json
+{
+  "job_id": "abc-123",
+  "status": "finished",
+  "enqueued_at": "2026-03-20T19:00:00+00:00",
+  "completed_at": "2026-03-20T19:00:05+00:00"
+}
+```
+
+Use `job_id` to fetch the full results from `GET /v1/jobs/{job_id}`.
+
+### Security
+
+- `webhook_url` must be HTTPS (HTTP is rejected)
+- The payload contains **only job metadata** — results and credentials are never included
+- Your webhook endpoint must be reachable from the NAAS worker network
+- Webhook delivery is fire-and-forget: failures are logged but do not affect job status
+- No retries in v1.4 (tracked in [#278](https://github.com/lykinsbd/naas/issues/278))
+
+## Dead Letter Queue
+
+Failed jobs are retained in RQ's `FailedJobRegistry` for `JOB_TTL_FAILED` (7 days default). Use these endpoints to inspect and replay them.
+
+### List Failed Jobs
+
+```bash
+curl -k -u "admin:password" https://naas.example.com/v1/jobs/failed
+```
+
+```json
+{
+  "jobs": [
+    {
+      "job_id": "abc-123",
+      "host": "192.168.1.1",
+      "platform": "cisco_ios",
+      "port": 22,
+      "failed_at": "2026-03-20T19:00:00+00:00",
+      "error": "NetMikoTimeoutException: timed out",
+      "func": "naas.library.netmiko_lib.netmiko_send_command"
+    }
+  ],
+  "total": 1
+}
+```
+
+**Security:** Credentials are never included in the response. Error messages have credential values redacted.
+
+### Replay a Failed Job
+
+Re-enqueue a failed job using your current credentials (stored credentials are never used):
+
+```bash
+curl -k -u "admin:password" -X POST \
+  https://naas.example.com/v1/jobs/abc-123/replay
+```
+
+Returns a standard `202 Accepted` with a new `job_id`. The replayed job uses the caller's credentials, not the original submitter's.
+
+**Note:** Only the original submitter can replay a job (same auth check as job results).
+
+### Configuration
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `FAILED_JOB_MAX_RETAIN` | `500` | Maximum number of failed jobs to retain in the registry |
 
 ## Job Cancellation
 
@@ -215,7 +379,7 @@ curl -k -X DELETE https://localhost:8443/v1/send_command/{job_id} \
 JOB_ID=$(curl -k -X POST https://localhost:8443/v1/send_command \
   -u "admin:password" \
   -H "Content-Type: application/json" \
-  -d '{"ip": "192.168.1.1", "platform": "cisco_ios", "commands": ["show version"]}' \
+  -d '{"host": "192.168.1.1", "platform": "cisco_ios", "commands": ["show version"]}' \
   | jq -r '.job_id')
 
 # Cancel it
@@ -249,7 +413,7 @@ The `X-Request-ID` header in the 202 response contains the job ID:
 # Capture job ID from response header
 JOB_ID=$(curl -k -s -D - -X POST https://localhost:8443/v1/send_command \
   -u "admin:password" -H "Content-Type: application/json" \
-  -d '{"ip": "192.168.1.1", "platform": "cisco_ios", "commands": ["show version"]}' \
+  -d '{"host": "192.168.1.1", "platform": "cisco_ios", "commands": ["show version"]}' \
   | grep -i x-request-id | awk '{print $2}' | tr -d '\r')
 ```
 
@@ -340,6 +504,57 @@ Response:
 }
 ```
 
+## Job Tags
+
+Attach key-value metadata to any job for filtering and auditing. Tags are stored in job metadata and returned in job results and list responses.
+
+### Submitting Tags
+
+```bash
+curl -k -X POST https://localhost:8443/v1/send_command \
+  -u "admin:password" \
+  -d '{
+    "host": "192.168.1.1",
+    "platform": "cisco_ios",
+    "commands": ["show version"],
+    "tags": {"team": "network-ops", "env": "prod", "ticket": "CHG-12345"}
+  }'
+```
+
+### Constraints
+
+- Maximum 10 tags per job
+- Keys and values: alphanumeric, hyphens, underscores, colons (max 64 characters each)
+- Tags are optional — omit the field entirely if not needed
+
+### Filtering by Tag
+
+Use `?tag=key:value` on the list jobs endpoint:
+
+```bash
+# All jobs tagged team:network-ops
+curl -k -u "admin:password" "https://localhost:8443/v1/jobs?tag=team:network-ops"
+
+# Combine with status and pagination
+curl -k -u "admin:password" "https://localhost:8443/v1/jobs?tag=env:prod&status=failed&per_page=50"
+```
+
+Tags are included in each job object in the response:
+
+```json
+{
+  "jobs": [
+    {
+      "job_id": "550e8400-e29b-41d4-a716-446655440000",
+      "status": "finished",
+      "created_at": "2026-02-22T19:00:00+00:00",
+      "ended_at": "2026-02-22T19:00:05+00:00",
+      "tags": {"team": "network-ops", "env": "prod", "ticket": "CHG-12345"}
+    }
+  ]
+}
+```
+
 ## Connection Pooling
 
 NAAS automatically reuses SSH connections to improve performance and reduce load on network devices.
@@ -404,7 +619,7 @@ response = requests.post(
     auth=AUTH,
     verify=False,
     json={
-        "ip": "192.168.1.1",
+        "host": "192.168.1.1",
         "platform": "cisco_ios",
         "commands": ["show version"]
     }
@@ -446,7 +661,7 @@ async def send_command(session, device_ip, commands):
     async with session.post(
         "https://localhost:8443/v1/send_command",
         json={
-            "ip": device_ip,
+            "host": device_ip,
             "platform": "cisco_ios",
             "commands": commands
         },
@@ -552,7 +767,7 @@ def send_command_safe(ip, commands):
             auth=HTTPBasicAuth("admin", "password"),
             verify=False,
             json={
-                "ip": ip,
+                "host": ip,
                 "platform": "cisco_ios",
                 "commands": commands
             },
@@ -573,6 +788,28 @@ def send_command_safe(ip, commands):
 
     return None
 ```
+
+## API Client Collections
+
+Each NAAS release includes downloadable API client collections on the [GitHub Releases page](https://github.com/lykinsbd/naas/releases):
+
+- `naas-vX.Y.Z.postman_collection.json` — Postman collection with all endpoints
+- `naas-vX.Y.Z.openapi.json` — OpenAPI spec for import into any compatible tool
+
+### Postman
+
+1. Download `naas-vX.Y.Z.postman_collection.json` from the release
+2. In Postman: **Import** → select the file
+3. Set environment variables: `base_url`, `username`, `password`
+
+### Insomnia
+
+1. Download `naas-vX.Y.Z.openapi.json` from the release
+2. In Insomnia: **Create** → **Import** → select the file
+
+### Bruno / Other Tools
+
+Import `naas-vX.Y.Z.openapi.json` — any OpenAPI 3.x compatible client works.
 
 ## Next steps
 

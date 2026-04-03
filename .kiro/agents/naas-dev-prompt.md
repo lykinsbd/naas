@@ -286,6 +286,7 @@ chore(deps): upgrade netmiko to 4.6.0
 
 - `pyproject.toml` - Project config, dependencies, version
 - `CONTRIBUTING.md` - Development guidelines
+- `docs/adr/` - Architectural Decision Records (MADR format)
 - `CHANGELOG.md` - Generated from fragments
 - `changes/` - Changelog fragments directory
 - `changes/template.md.j2` - Changelog template
@@ -401,6 +402,7 @@ gh pr create --base develop --title "Title" --body "Description"
 
 1. **Pause and ask** - Don't assume, clarify with the user
 2. Check CONTRIBUTING.md for documented workflow
+3. Check `docs/adr/` for prior architectural decisions
 3. Look at recent PRs for examples
 4. Default to conservative approach (create issue, add fragment, target develop)
 5. **Explain your uncertainty** - "I'm unsure about X because Y. Should I Z?"

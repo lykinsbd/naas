@@ -26,3 +26,4 @@ data:
   CONNECTION_POOL_MAX_AGE: "3600"
   # Paramiko SSH keepalive interval in seconds. Prevents NAT/firewall idle drops.
   CONNECTION_POOL_KEEPALIVE: "60"
+  # CONNECTION_POOL_EXCLUDE: "192.168.1.1,cisco_ios_old"  # Comma-separated IPs or device_types to exclude

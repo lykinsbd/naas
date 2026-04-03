@@ -50,6 +50,20 @@ class TestConnectionPoolGet:
         """Returns None when salt not set."""
         assert pool_no_salt.get("1.2.3.4", 22, "user", "pass", "cisco_ios") is None
 
+    def test_get_excluded_ip_returns_none(self, pool, mock_conn):
+        """Returns None when IP is in exclusion list."""
+        pool.release("1.2.3.4", 22, "user", "pass", "cisco_ios", mock_conn)
+        with patch("naas.library.connection_pool.CONNECTION_POOL_EXCLUDE", frozenset({"1.2.3.4"})):
+            result = pool.get("1.2.3.4", 22, "user", "pass", "cisco_ios")
+        assert result is None
+
+    def test_get_excluded_platform_returns_none(self, pool, mock_conn):
+        """Returns None when platform is in exclusion list."""
+        pool.release("1.2.3.4", 22, "user", "pass", "cisco_ios", mock_conn)
+        with patch("naas.library.connection_pool.CONNECTION_POOL_EXCLUDE", frozenset({"cisco_ios"})):
+            result = pool.get("1.2.3.4", 22, "user", "pass", "cisco_ios")
+        assert result is None
+
     def test_get_hit_returns_connection(self, pool, mock_conn):
         """Returns pooled connection on cache hit."""
         pool.release("1.2.3.4", 22, "user", "pass", "cisco_ios", mock_conn)

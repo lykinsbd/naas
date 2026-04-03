@@ -8,6 +8,7 @@ _EVENT_SCHEMAS = {
     "job.submitted": {"ip", "platform", "port", "command_count", "user_hash", "request_id"},
     "job.completed": {"request_id", "status", "duration_ms"},
     "job.cancelled": {"request_id", "cancelled_by_hash"},
+    "job.orphaned": {"request_id", "worker_name"},
     "device.locked_out": {"ip", "failure_count"},
     "circuit.opened": {"ip"},
     "circuit.closed": {"ip"},

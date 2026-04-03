@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from naas.config import (
+    CONNECTION_POOL_EXCLUDE,
     CONNECTION_POOL_IDLE_TIMEOUT,
     CONNECTION_POOL_MAX_AGE,
     CONNECTION_POOL_MAX_SIZE,
@@ -85,6 +86,10 @@ class ConnectionPool:
         cred_hash = self._cred_hash(username, password)
         if cred_hash is None:
             logger.debug("Pool skipping: salt not set")
+            return None
+
+        if ip in CONNECTION_POOL_EXCLUDE or platform in CONNECTION_POOL_EXCLUDE:
+            logger.debug("Pool skipping: %s (%s) is in exclusion list", ip, platform)
             return None
 
         key = (ip, port, cred_hash, platform)

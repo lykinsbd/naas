@@ -104,7 +104,7 @@ targeting the `naas-api` Service and mount the resulting secret into the API pod
 The manifests include conservative defaults suitable for a small deployment:
 
 | Component | Memory request | Memory limit | CPU request | CPU limit |
-|-----------|---------------|--------------|-------------|-----------|
+| ----------- | --------------- | -------------- | ------------- | ----------- |
 | API | 256Mi | 768Mi | 100m | 500m |
 | Worker | 128Mi | 512Mi | 100m | 500m |
 | Redis | 64Mi | 256Mi | 50m | 200m |
@@ -128,7 +128,7 @@ NAAS reuses SSH connections across sequential jobs to the same device, reducing 
 overhead on network equipment. Pooling is enabled by default.
 
 | Variable | Default | Description |
-|----------|---------|-------------|
+| ---------- | --------- | ------------- |
 | `CONNECTION_POOL_ENABLED` | `true` | Set to `false` to disable pooling for all devices |
 | `CONNECTION_POOL_MAX_SIZE` | `10` | Max pooled connections per worker process |
 | `CONNECTION_POOL_IDLE_TIMEOUT` | `300` | Evict connections idle for this many seconds |
@@ -162,7 +162,7 @@ Prometheus instance to scrape port `443` (HTTPS) with the appropriate TLS config
 use a `ServiceMonitor` if running the Prometheus Operator.
 
 | Metric | Type | Description |
-|--------|------|-------------|
+| -------- | ------ | ------------- |
 | `naas_http_requests_total` | Counter | Total HTTP requests by endpoint, method, and status code |
 | `naas_http_request_duration_seconds` | Histogram | Request latency by endpoint |
 | `naas_queue_depth` | Gauge | Number of jobs waiting in the RQ queue |

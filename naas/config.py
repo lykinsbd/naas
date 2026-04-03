@@ -43,6 +43,35 @@ CONNECTION_POOL_MAX_SIZE = int(os.environ.get("CONNECTION_POOL_MAX_SIZE", 10))
 CONNECTION_POOL_IDLE_TIMEOUT = int(os.environ.get("CONNECTION_POOL_IDLE_TIMEOUT", 300))  # 5 minutes
 CONNECTION_POOL_MAX_AGE = int(os.environ.get("CONNECTION_POOL_MAX_AGE", 3600))  # 1 hour
 CONNECTION_POOL_KEEPALIVE = int(os.environ.get("CONNECTION_POOL_KEEPALIVE", 60))  # seconds
+CONNECTION_POOL_EXCLUDE: frozenset[str] = frozenset(
+    e.strip() for e in os.environ.get("CONNECTION_POOL_EXCLUDE", "").split(",") if e.strip()
+)
+
+# Context routing config
+NAAS_CONTEXTS: frozenset[str] = frozenset(
+    c.strip() for c in os.environ.get("NAAS_CONTEXTS", "default").split(",") if c.strip()
+)
+WORKER_CONTEXTS: list[str] = [c.strip() for c in os.environ.get("WORKER_CONTEXTS", "default").split(",") if c.strip()]
+
+# Queue depth limit (0 = disabled)
+MAX_QUEUE_DEPTH: int = int(os.environ.get("MAX_QUEUE_DEPTH", 0))
+
+# Idempotency key TTL in seconds (24h default)
+IDEMPOTENCY_TTL: int = int(os.environ.get("IDEMPOTENCY_TTL", 86400))
+
+# Job deduplication (enabled by default)
+JOB_DEDUP_ENABLED: bool = os.environ.get("JOB_DEDUP_ENABLED", "true").lower() == "true"
+
+# Dead letter queue
+FAILED_JOB_MAX_RETAIN: int = int(os.environ.get("FAILED_JOB_MAX_RETAIN", 500))
+
+# Webhook config
+WEBHOOK_ALLOW_HTTP: bool = os.environ.get("WEBHOOK_ALLOW_HTTP", "false").lower() == "true"
+
+# Job reaper config
+JOB_REAPER_ENABLED: bool = os.environ.get("JOB_REAPER_ENABLED", "true").lower() == "true"
+JOB_REAPER_INTERVAL: int = int(os.environ.get("JOB_REAPER_INTERVAL", 60))
+WORKER_STALE_THRESHOLD: int = int(os.environ.get("WORKER_STALE_THRESHOLD", 120))
 
 
 def app_configure(app):
@@ -88,6 +117,6 @@ def app_configure(app):
     # all connection pool keys and in-flight job auth checks.
     redis.setnx("naas_cred_salt", "".join(random.choice(string.ascii_lowercase) for _ in range(10)))
 
-    # Initialize an rq Queue and store it for later
-    q = Queue("naas", connection=redis)
+    # Initialize an rq Queue and store it for later (default context queue)
+    q = Queue("naas-default", connection=redis)
     app.config["q"] = q

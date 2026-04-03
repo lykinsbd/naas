@@ -20,6 +20,7 @@ from time import sleep
 from redis import Redis
 from rq import Queue, Worker
 
+from naas.config import WORKER_CONTEXTS
 from naas.library.netmiko_lib import netmiko_send_command, netmiko_send_config  # noqa F401
 
 logger = getLogger("naas_worker")
@@ -97,8 +98,8 @@ def arg_parsing() -> Namespace:
         "--queues",
         type=str,
         nargs="+",
-        default="naas",
-        help="What queue(s) are we are working out of?  Default: naas",
+        default=[f"naas-{c}" for c in WORKER_CONTEXTS],
+        help=f"Queue(s) to work from. Default: derived from WORKER_CONTEXTS env var ({WORKER_CONTEXTS})",
     )
     argparser.add_argument(
         "-r", "--redis", type=str, default="redis", help="What Redis server are we using? Defualt: redis"
@@ -166,6 +167,11 @@ def worker_launch(
         pool.set_salt(salt.decode())
     else:
         logger.warning("naas_cred_salt not found in Redis — connection pooling will be disabled until salt is set")
+
+    # Start job reaper background thread
+    from naas.library.reaper import start_reaper
+
+    start_reaper(redis_conn)
 
     # Setup signal handlers for graceful shutdown
     def request_stop(signum, frame):

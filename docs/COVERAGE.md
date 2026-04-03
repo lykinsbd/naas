@@ -10,7 +10,7 @@
 ## Coverage Breakdown
 
 | Module | Coverage |
-|--------|----------|
+| -------- | ---------- |
 | `naas/__init__.py` | 100% |
 | `naas/app.py` | 100% |
 | `naas/config.py` | 100% |

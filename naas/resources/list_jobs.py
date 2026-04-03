@@ -100,10 +100,18 @@ class ListJobs(Resource):
                 "status": job.get_status(),
                 "created_at": job.created_at.isoformat() if job.created_at else None,
                 "ended_at": job.ended_at.isoformat() if job.ended_at else None,
+                "tags": getattr(job, "meta", {}).get("tags") if isinstance(getattr(job, "meta", {}), dict) else None,
             }
             for job in Job.fetch_many(job_ids, connection=redis_conn)
             if job is not None
         ]
+
+        # Filter by tag if requested (key:value format)
+        if query.tag:
+            tag_parts = query.tag.split(":", 1)
+            if len(tag_parts) == 2:
+                tag_key, tag_val = tag_parts
+                jobs = [j for j in jobs if j.get("tags") and j["tags"].get(tag_key) == tag_val]
 
         # Calculate pagination
         total_pages = (total_count + query.per_page - 1) // query.per_page if total_count > 0 else 0

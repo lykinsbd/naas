@@ -2,6 +2,8 @@
 
 from flask import current_app, request
 from flask_restful import Resource
+from rq.exceptions import NoSuchJobError
+from rq.job import Job
 from werkzeug.exceptions import Conflict, Forbidden
 
 from naas import __base_response__
@@ -38,17 +40,17 @@ class CancelJob(Resource):
         ):  # pragma: no cover  # v.has_auth() above guarantees auth is present; guard exists for type narrowing
             raise Forbidden
 
-        creds = Credentials(username=auth.username, password=auth.password)
-        if not job_unlocker(salted_creds=creds.salted_hash(), job_id=job_id):
-            raise Forbidden
-
-        q = current_app.config["q"]
-        job = q.fetch_job(job_id)
-
-        if job is None:
+        # Check job exists before auth check (404 > 403)
+        try:
+            job = Job.fetch(job_id, connection=current_app.config["redis"])
+        except NoSuchJobError:
             r = {"job_id": job_id, "status": "not_found"}
             r.update(__base_response__)
             return r, 404
+
+        creds = Credentials(username=auth.username, password=auth.password)
+        if not job_unlocker(salted_creds=creds.salted_hash(), job_id=job_id):
+            raise Forbidden
 
         job_status = job.get_status()
         if job_status in ("finished", "failed"):

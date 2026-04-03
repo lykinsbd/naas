@@ -15,7 +15,7 @@ jobs:
     # Only run for final releases (not pre-releases like v1.3.0b1, v1.3.0rc1)
     if: "!contains(github.ref_name, 'b') && !contains(github.ref_name, 'rc')"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: main
           fetch-depth: 0
@@ -46,7 +46,7 @@ jobs:
     # Only run for patch releases (v1.3.1, v1.3.2, etc.) - not initial releases (v1.3.0)
     if: "!contains(github.ref_name, 'b') && !contains(github.ref_name, 'rc') && contains(github.ref_name, '.')"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: main
           fetch-depth: 0
@@ -85,13 +85,13 @@ jobs:
     runs-on: ubuntu-latest
     needs: sync-to-develop
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: develop
           fetch-depth: 0
 
       - name: Setup uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v7
 
       - name: Bump develop to next alpha
         run: |

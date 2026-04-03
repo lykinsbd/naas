@@ -5,7 +5,7 @@ from naas.library.selfsigned import generate_selfsigned_cert
 # Setup basic attributes of our web-server
 bind = "0.0.0.0:443"
 chdir = "/app"
-workers = 8
+workers = int(environ.get("GUNICORN_WORKERS", 8))
 worker_class = "gthread"
 threads = 32
 timeout = 300

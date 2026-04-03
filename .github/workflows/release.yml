@@ -19,7 +19,7 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       is_prerelease: ${{ steps.version.outputs.is_prerelease }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -81,18 +81,18 @@ jobs:
     if: needs.check-version.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           token: ${{ secrets.RELEASE_TOKEN }}
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v7
 
       - name: Install dependencies
         run: uv sync --extra dev
@@ -176,6 +176,21 @@ jobs:
             mv .changelog-final.md .changelog-excerpt.md
           fi
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Generate API client collections
+        run: |
+          VERSION="${{ needs.check-version.outputs.version }}"
+          # Generate Postman collection from OpenAPI spec
+          npx --yes openapi-to-postmanv2 \
+            -s docs/swagger/openapi.json \
+            -o "naas-v${VERSION}.postman_collection.json"
+          # Copy OpenAPI spec with versioned filename
+          cp docs/swagger/openapi.json "naas-v${VERSION}.openapi.json"
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -183,3 +198,6 @@ jobs:
           body_path: .changelog-excerpt.md
           draft: false
           prerelease: ${{ needs.check-version.outputs.is_prerelease }}
+          files: |
+            naas-v${{ needs.check-version.outputs.version }}.postman_collection.json
+            naas-v${{ needs.check-version.outputs.version }}.openapi.json

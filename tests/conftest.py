@@ -19,7 +19,9 @@ def app():
             mock_job = MagicMock()
             mock_job.id = "test-job-id"
             mock_job.meta = {}
+            mock_job.enqueued_at.isoformat.return_value = "2026-01-01T00:00:00+00:00"
             mock_queue.return_value.enqueue.return_value = mock_job
+            mock_queue.return_value.job_ids = []
 
             # Make fetch_job return None for new job IDs (not duplicates)
             def fetch_job_side_effect(job_id):
@@ -33,7 +35,21 @@ def app():
 
             flask_app.config["TESTING"] = True
             flask_app.config["q"] = mock_queue.return_value
-            yield flask_app
+
+            # Patch Job.fetch to delegate to q.fetch_job so existing tests work
+            # (get_results now uses Job.fetch instead of q.fetch_job for cross-queue support)
+            def _mock_job_fetch(jid, connection):
+                job = mock_queue.return_value.fetch_job(jid)
+                if job is None:
+                    from rq.exceptions import NoSuchJobError
+
+                    raise NoSuchJobError(jid)
+                return job
+
+            with patch("naas.resources.get_results.Job.fetch", side_effect=_mock_job_fetch):
+                with patch("naas.library.auth.Job.fetch", side_effect=_mock_job_fetch):
+                    with patch("naas.resources.cancel_job.Job.fetch", side_effect=_mock_job_fetch):
+                        yield flask_app
 
 
 @pytest.fixture

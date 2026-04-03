@@ -44,6 +44,9 @@ class TestSendCommand:
         assert response.status_code == 202
         assert response.json["job_id"] is not None
         assert response.json["message"] == "Job enqueued"
+        assert "queue_position" in response.json
+        assert "enqueued_at" in response.json
+        assert "timeout" in response.json
         assert response.headers["X-Request-ID"] == response.json["job_id"]
 
     def test_send_command_post_no_auth(self, client):
@@ -74,7 +77,7 @@ class TestSendCommand:
         assert response.status_code == 403
 
     def test_send_command_invalid_ip(self, app, client):
-        """Test POST with invalid IP returns 422."""
+        """Test POST with invalid host returns 422."""
         auth = b64encode(b"testuser:testpass").decode()
         app.config["redis"].set("naas_cred_salt", b"test-salt")
 
@@ -82,7 +85,7 @@ class TestSendCommand:
             response = client.post(
                 "/v1/send_command",
                 json={
-                    "ip": "not-an-ip",
+                    "host": "not a valid host!",
                     "commands": ["show version"],
                 },
                 headers={"Authorization": f"Basic {auth}"},
@@ -183,6 +186,58 @@ class TestSendCommand:
 
         assert response.status_code == 202
 
+    def test_send_command_ip_backward_compat(self, app, client):
+        """Test POST with deprecated ip field maps to host."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
+            response = client.post(
+                "/v1/send_command",
+                json={
+                    "ip": "192.0.2.1",
+                    "commands": ["show version"],
+                },
+                headers={"Authorization": f"Basic {auth}"},
+            )
+
+        assert response.status_code == 202
+
+    def test_send_command_ip_ignored_when_host_present(self, app, client):
+        """Test POST with both ip and host uses host."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
+            response = client.post(
+                "/v1/send_command",
+                json={
+                    "host": "192.0.2.1",
+                    "ip": "10.0.0.1",
+                    "commands": ["show version"],
+                },
+                headers={"Authorization": f"Basic {auth}"},
+            )
+
+        assert response.status_code == 202
+
+    def test_send_command_hostname(self, app, client):
+        """Test POST with hostname instead of IP."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
+            response = client.post(
+                "/v1/send_command",
+                json={
+                    "host": "router1.example.com",
+                    "commands": ["show version"],
+                },
+                headers={"Authorization": f"Basic {auth}"},
+            )
+
+        assert response.status_code == 202
+
     def test_send_command_device_type_ignored_when_platform_present(self, app, client):
         """Test POST with both device_type and platform uses platform."""
         auth = b64encode(b"testuser:testpass").decode()
@@ -201,6 +256,75 @@ class TestSendCommand:
             )
 
         assert response.status_code == 202
+
+    def test_send_command_with_tags(self, app, client):
+        """Test POST with tags stores them in job meta."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
+            response = client.post(
+                "/v1/send_command",
+                json={
+                    "host": "192.0.2.1",
+                    "commands": ["show version"],
+                    "tags": {"change": "CHG001", "site": "nyc-dc1"},
+                },
+                headers={"Authorization": f"Basic {auth}"},
+            )
+
+        assert response.status_code == 202
+        # Verify tags were saved to job meta
+        mock_job = app.config["q"].enqueue.return_value
+        assert mock_job.meta["tags"] == {"change": "CHG001", "site": "nyc-dc1"}
+
+    def test_send_command_invalid_tags_too_many(self, app, client):
+        """Test POST with more than 10 tags returns 422."""
+        auth = b64encode(b"testuser:testpass").decode()
+
+        response = client.post(
+            "/v1/send_command",
+            json={
+                "host": "192.0.2.1",
+                "commands": ["show version"],
+                "tags": {f"key{i}": f"val{i}" for i in range(11)},
+            },
+            headers={"Authorization": f"Basic {auth}"},
+        )
+
+        assert response.status_code == 422
+
+    def test_send_command_invalid_tags_bad_key(self, app, client):
+        """Test POST with invalid tag key (spaces) returns 422."""
+        auth = b64encode(b"testuser:testpass").decode()
+
+        response = client.post(
+            "/v1/send_command",
+            json={
+                "host": "192.0.2.1",
+                "commands": ["show version"],
+                "tags": {"invalid key!": "value"},
+            },
+            headers={"Authorization": f"Basic {auth}"},
+        )
+
+        assert response.status_code == 422
+
+    def test_send_command_invalid_tags_bad_value(self, app, client):
+        """Test POST with invalid tag value (spaces) returns 422."""
+        auth = b64encode(b"testuser:testpass").decode()
+
+        response = client.post(
+            "/v1/send_command",
+            json={
+                "host": "192.0.2.1",
+                "commands": ["show version"],
+                "tags": {"key": "invalid value!"},
+            },
+            headers={"Authorization": f"Basic {auth}"},
+        )
+
+        assert response.status_code == 422
 
     def test_send_command_with_request_id(self, app, client):
         """Test POST with custom X-Request-ID uses that ID."""
@@ -226,6 +350,105 @@ class TestSendCommand:
             print(f"Response: {response.get_json()}")
         assert response.status_code == 202
         # Just verify it accepted the request - the X-Request-ID handling is tested
+
+    def test_idempotency_key_returns_existing_job(self, app, client):
+        """POST with X-Idempotency-Key returns existing job_id on repeat."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        existing_job = MagicMock()
+        existing_job.id = "existing-job-id"
+        existing_job.enqueued_at.isoformat.return_value = "2026-01-01T00:00:00+00:00"
+
+        with patch("naas.resources.send_command.get_idempotent_job_id", return_value="existing-job-id"):
+            with patch("naas.resources.send_command.RQJob.fetch", return_value=existing_job):
+                response = client.post(
+                    "/v1/send_command",
+                    json={"host": "192.0.2.1", "commands": ["show version"]},
+                    headers={"Authorization": f"Basic {auth}", "X-Idempotency-Key": "my-key"},
+                )
+
+        assert response.status_code == 202
+        assert response.json["job_id"] == "existing-job-id"
+        assert response.json["idempotent"] is True
+        # Should NOT have enqueued a new job
+        app.config["q"].enqueue.assert_not_called()
+
+    def test_idempotency_key_enqueues_new_job_first_time(self, app, client):
+        """POST with X-Idempotency-Key enqueues normally on first call."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.resources.send_command.get_idempotent_job_id", return_value=None):
+            with patch("naas.resources.send_command.store_idempotency_key") as mock_store:
+                response = client.post(
+                    "/v1/send_command",
+                    json={"host": "192.0.2.1", "commands": ["show version"]},
+                    headers={"Authorization": f"Basic {auth}", "X-Idempotency-Key": "new-key"},
+                )
+
+        assert response.status_code == 202
+        assert response.json["idempotent"] is False
+        mock_store.assert_called_once()
+
+    def test_idempotency_key_enqueues_new_when_job_gone(self, app, client):
+        """POST with X-Idempotency-Key enqueues new job if stored job no longer exists."""
+        from rq.exceptions import NoSuchJobError
+
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.resources.send_command.get_idempotent_job_id", return_value="gone-job-id"):
+            with patch("naas.resources.send_command.RQJob.fetch", side_effect=NoSuchJobError):
+                response = client.post(
+                    "/v1/send_command",
+                    json={"host": "192.0.2.1", "commands": ["show version"]},
+                    headers={"Authorization": f"Basic {auth}", "X-Idempotency-Key": "stale-key"},
+                )
+
+        assert response.status_code == 202
+        assert response.json["idempotent"] is False  # New job was enqueued
+
+    def test_dedup_returns_existing_job(self, app, client):
+        """POST returns existing job_id when duplicate is in-flight."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        dup_job = MagicMock()
+        dup_job.id = "dup-job-id"
+        dup_job.enqueued_at.isoformat.return_value = "2026-01-01T00:00:00+00:00"
+
+        with patch("naas.resources.send_command.get_duplicate_job_id", return_value="dup-job-id"):
+            with patch("naas.resources.send_command.RQJob.fetch", return_value=dup_job):
+                with patch("naas.resources.send_command.job_unlocker", return_value=True):
+                    response = client.post(
+                        "/v1/send_command",
+                        json={"host": "192.0.2.1", "commands": ["show version"]},
+                        headers={"Authorization": f"Basic {auth}"},
+                    )
+
+        assert response.status_code == 202
+        assert response.json["job_id"] == "dup-job-id"
+        assert response.json["deduplicated"] is True
+        app.config["q"].enqueue.assert_not_called()
+
+    def test_dedup_enqueues_new_when_job_gone(self, app, client):
+        """POST enqueues new job when dedup key exists but job is gone."""
+        from rq.exceptions import NoSuchJobError
+
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.resources.send_command.get_duplicate_job_id", return_value="gone-dup-id"):
+            with patch("naas.resources.send_command.RQJob.fetch", side_effect=NoSuchJobError):
+                response = client.post(
+                    "/v1/send_command",
+                    json={"host": "192.0.2.1", "commands": ["show version"]},
+                    headers={"Authorization": f"Basic {auth}"},
+                )
+
+        assert response.status_code == 202
+        assert response.json["deduplicated"] is False
 
 
 class TestSendConfig:
@@ -307,6 +530,171 @@ class TestSendConfig:
         assert response.status_code == 422
         assert isinstance(response.json, list)
 
+    def test_send_config_hostname(self, app, client):
+        """Test POST with hostname instead of IP."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
+            response = client.post(
+                "/v1/send_config",
+                json={
+                    "host": "switch1.example.com",
+                    "commands": ["interface Gi0/1", "no shutdown"],
+                },
+                headers={"Authorization": f"Basic {auth}"},
+            )
+
+        assert response.status_code == 202
+
+    def test_send_config_with_tags(self, app, client):
+        """Test POST with tags stores them in job meta."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
+            response = client.post(
+                "/v1/send_config",
+                json={
+                    "host": "192.0.2.1",
+                    "commands": ["interface Gi0/1"],
+                    "tags": {"change": "CHG002"},
+                },
+                headers={"Authorization": f"Basic {auth}"},
+            )
+
+        assert response.status_code == 202
+        mock_job = app.config["q"].enqueue.return_value
+        assert mock_job.meta["tags"] == {"change": "CHG002"}
+
+    def test_send_config_invalid_tags(self, app, client):
+        """Test POST with invalid tags returns 422."""
+        auth = b64encode(b"testuser:testpass").decode()
+
+        for bad_tags in [
+            {f"key{i}": f"val{i}" for i in range(11)},  # too many
+            {"invalid key!": "value"},  # bad key
+            {"key": "invalid value!"},  # bad value
+        ]:
+            response = client.post(
+                "/v1/send_config",
+                json={"host": "192.0.2.1", "commands": ["interface Gi0/1"], "tags": bad_tags},
+                headers={"Authorization": f"Basic {auth}"},
+            )
+            assert response.status_code == 422
+
+    def test_send_config_invalid_host(self, app, client):
+        """Test POST with invalid host returns 422."""
+        auth = b64encode(b"testuser:testpass").decode()
+
+        response = client.post(
+            "/v1/send_config",
+            json={
+                "host": "not a valid host!",
+                "commands": ["interface Gi0/1"],
+            },
+            headers={"Authorization": f"Basic {auth}"},
+        )
+
+        assert response.status_code == 422
+
+    def test_send_config_idempotency_key_returns_existing_job(self, app, client):
+        """POST with X-Idempotency-Key returns existing job_id on repeat."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        existing_job = MagicMock()
+        existing_job.id = "existing-config-job"
+        existing_job.enqueued_at.isoformat.return_value = "2026-01-01T00:00:00+00:00"
+
+        with patch("naas.resources.send_config.get_idempotent_job_id", return_value="existing-config-job"):
+            with patch("naas.resources.send_config.RQJob.fetch", return_value=existing_job):
+                response = client.post(
+                    "/v1/send_config",
+                    json={"host": "192.0.2.1", "commands": ["interface Gi0/1"]},
+                    headers={"Authorization": f"Basic {auth}", "X-Idempotency-Key": "config-key"},
+                )
+
+        assert response.status_code == 202
+        assert response.json["job_id"] == "existing-config-job"
+        assert response.json["idempotent"] is True
+        app.config["q"].enqueue.assert_not_called()
+
+    def test_send_config_idempotency_key_enqueues_new_job(self, app, client):
+        """POST with X-Idempotency-Key enqueues normally on first call."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.resources.send_config.get_idempotent_job_id", return_value=None):
+            with patch("naas.resources.send_config.store_idempotency_key") as mock_store:
+                response = client.post(
+                    "/v1/send_config",
+                    json={"host": "192.0.2.1", "commands": ["interface Gi0/1"]},
+                    headers={"Authorization": f"Basic {auth}", "X-Idempotency-Key": "new-config-key"},
+                )
+
+        assert response.status_code == 202
+        assert response.json["idempotent"] is False
+        mock_store.assert_called_once()
+
+    def test_send_config_idempotency_key_enqueues_new_when_job_gone(self, app, client):
+        """POST with X-Idempotency-Key enqueues new job if stored job no longer exists."""
+        from rq.exceptions import NoSuchJobError
+
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.resources.send_config.get_idempotent_job_id", return_value="gone-job-id"):
+            with patch("naas.resources.send_config.RQJob.fetch", side_effect=NoSuchJobError):
+                response = client.post(
+                    "/v1/send_config",
+                    json={"host": "192.0.2.1", "commands": ["interface Gi0/1"]},
+                    headers={"Authorization": f"Basic {auth}", "X-Idempotency-Key": "stale-config-key"},
+                )
+
+        assert response.status_code == 202
+        assert response.json["idempotent"] is False
+
+    def test_send_config_dedup_returns_existing_job(self, app, client):
+        """POST returns existing job_id when duplicate config job is in-flight."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        dup_job = MagicMock()
+        dup_job.id = "dup-config-job"
+        dup_job.enqueued_at.isoformat.return_value = "2026-01-01T00:00:00+00:00"
+
+        with patch("naas.resources.send_config.get_duplicate_job_id", return_value="dup-config-job"):
+            with patch("naas.resources.send_config.RQJob.fetch", return_value=dup_job):
+                with patch("naas.resources.send_config.job_unlocker", return_value=True):
+                    response = client.post(
+                        "/v1/send_config",
+                        json={"host": "192.0.2.1", "commands": ["interface Gi0/1"]},
+                        headers={"Authorization": f"Basic {auth}"},
+                    )
+
+        assert response.status_code == 202
+        assert response.json["deduplicated"] is True
+        app.config["q"].enqueue.assert_not_called()
+
+    def test_send_config_dedup_enqueues_new_when_job_gone(self, app, client):
+        """POST enqueues new job when dedup key exists but job is gone."""
+        from rq.exceptions import NoSuchJobError
+
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.resources.send_config.get_duplicate_job_id", return_value="gone-dup-id"):
+            with patch("naas.resources.send_config.RQJob.fetch", side_effect=NoSuchJobError):
+                response = client.post(
+                    "/v1/send_config",
+                    json={"host": "192.0.2.1", "commands": ["interface Gi0/1"]},
+                    headers={"Authorization": f"Basic {auth}"},
+                )
+
+        assert response.status_code == 202
+        assert response.json["deduplicated"] is False
+
     def test_send_config_invalid_platform(self, app, client):
         """Test POST with invalid platform returns 422."""
         auth = b64encode(b"testuser:testpass").decode()
@@ -371,6 +759,22 @@ class TestGetResults:
 
         assert response.status_code == 404
         assert response.json["status"] == "not_found"
+
+    def test_get_results_no_such_job_error(self, app, client):
+        """Test GET returns 404 when Job.fetch raises NoSuchJobError."""
+        from rq.exceptions import NoSuchJobError
+
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.resources.get_results.job_unlocker", return_value=True):
+            with patch("naas.resources.get_results.Job.fetch", side_effect=NoSuchJobError):
+                response = client.get(
+                    "/v1/send_command/00000000-0000-0000-0000-000000000000",
+                    headers={"Authorization": f"Basic {auth}"},
+                )
+
+        assert response.status_code == 404
 
     def test_get_results_queued(self, app, client):
         """Test GET with queued job returns status."""
@@ -456,6 +860,31 @@ class TestGetResults:
         assert response.status_code == 200
         assert response.json["detected_platform"] == "cisco_nxos"
         assert "_detected_platform" not in response.json["results"]
+
+    def test_get_results_with_tags(self, app, client):
+        """Test GET returns tags from job metadata."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        job_id = "55555555-5555-5555-5555-555555555555"
+        job = MagicMock()
+        job.get_status = lambda: "finished"
+        job.result = ({"show version": "output"}, None)
+        job.meta = {"tags": {"change": "CHG001", "site": "nyc"}}
+
+        def fetch_side_effect(job_id_param):
+            return job if job_id_param == job_id else None
+
+        app.config["q"].fetch_job.side_effect = fetch_side_effect
+
+        with patch("naas.resources.get_results.job_unlocker", return_value=True):
+            response = client.get(
+                f"/v1/send_command/{job_id}",
+                headers={"Authorization": f"Basic {auth}"},
+            )
+
+        assert response.status_code == 200
+        assert response.json["tags"] == {"change": "CHG001", "site": "nyc"}
 
     def test_get_results_no_auth(self, client):
         """Test GET without auth returns 401."""
@@ -613,3 +1042,37 @@ class TestCancelJob:
             )
 
         assert response.status_code == 403
+
+
+class TestWebhookUrlInEnqueue:
+    def test_send_command_stores_webhook_url_in_meta(self, app, client):
+        """POST with webhook_url stores it in job.meta."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
+            response = client.post(
+                "/v1/send_command",
+                json={"host": "192.0.2.1", "commands": ["show version"], "webhook_url": "https://example.com/cb"},
+                headers={"Authorization": f"Basic {auth}"},
+            )
+
+        assert response.status_code == 202
+        enqueue_kwargs = app.config["q"].enqueue.call_args[1]
+        assert enqueue_kwargs.get("meta", {}).get("webhook_url") == "https://example.com/cb"
+
+    def test_send_config_stores_webhook_url_in_meta(self, app, client):
+        """POST send_config with webhook_url stores it in job.meta."""
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
+            response = client.post(
+                "/v1/send_config",
+                json={"host": "192.0.2.1", "commands": ["interface Gi0/1"], "webhook_url": "https://example.com/cb"},
+                headers={"Authorization": f"Basic {auth}"},
+            )
+
+        assert response.status_code == 202
+        enqueue_kwargs = app.config["q"].enqueue.call_args[1]
+        assert enqueue_kwargs.get("meta", {}).get("webhook_url") == "https://example.com/cb"

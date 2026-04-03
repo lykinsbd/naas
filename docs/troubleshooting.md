@@ -122,7 +122,7 @@ Common issues and solutions for NAAS deployment and operation.
 
    ```json
    {
-     "ip": "192.168.1.1",
+     "host": "192.168.1.1",
      "platform": "cisco_ios",
      "enable": "enable_password",
      "commands": ["show version"]
@@ -319,7 +319,7 @@ Common issues and solutions for NAAS deployment and operation.
 
    ```json
    {
-     "ip": "192.168.1.1",
+     "host": "192.168.1.1",
      "platform": "cisco_ios",
      "read_timeout": 60.0,
      "commands": ["show version"]
@@ -337,7 +337,7 @@ Common issues and solutions for NAAS deployment and operation.
 
    ```json
    {
-     "ip": "192.168.1.1",
+     "host": "192.168.1.1",
      "platform": "cisco_ios",
      "expect_string": "Success rate",
      "commands": ["ping 8.8.8.8"]
@@ -355,7 +355,7 @@ Common issues and solutions for NAAS deployment and operation.
 
    ```json
    {
-     "ip": "192.168.1.1",
+     "host": "192.168.1.1",
      "platform": "autodetect",
      "commands": ["show version"]
    }
@@ -449,7 +449,7 @@ curl -k https://localhost:8443/healthcheck
 curl -k -v -X POST https://localhost:8443/v1/send_command \
   -u "admin:password" \
   -H "Content-Type: application/json" \
-  -d '{"ip": "192.168.1.1", "platform": "cisco_ios", "commands": ["show version"]}'
+  -d '{"host": "192.168.1.1", "platform": "cisco_ios", "commands": ["show version"]}'
 ```
 
 ### Container Shell Access
@@ -531,7 +531,7 @@ CONNECTION_POOL_MAX_SIZE: "5"  # Default is 10
 
 ```json
 {
-  "ip": "192.168.1.1",
+  "host": "192.168.1.1",
   "platform": "cisco_ios",
   "commands": ["show custom"],
   "textfsm_template": "Value FIELD (\\S+)\\n\\nStart\\n  ^${FIELD} -> Record"
@@ -560,7 +560,7 @@ Or check [ntc-templates](https://github.com/networktocode/ntc-templates/tree/mas
 
 ```json
 {
-  "ip": "192.168.1.1",
+  "host": "192.168.1.1",
   "platform": "cisco_ios",
   "commands": ["show version"]
 }

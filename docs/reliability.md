@@ -28,7 +28,7 @@ When a circuit is open, the job completes immediately with `status: failed` and 
 ### Configuration
 
 | Variable | Default | Description |
-|---|---|---|
+| --- | --- | --- |
 | `CIRCUIT_BREAKER_ENABLED` | `true` | Disable entirely if needed |
 | `CIRCUIT_BREAKER_THRESHOLD` | `5` | Failures before circuit opens |
 | `CIRCUIT_BREAKER_TIMEOUT` | `300` | Seconds before recovery attempt |
@@ -69,7 +69,7 @@ Workers handle `SIGTERM` gracefully. When a shutdown signal is received:
 This prevents job loss during container restarts, deployments, and scaling events.
 
 | Variable | Default | Description |
-|---|---|---|
+| --- | --- | --- |
 | `SHUTDOWN_TIMEOUT` | `60` | Seconds to wait for in-flight job before force-exit |
 
 ## Job TTL
@@ -77,8 +77,50 @@ This prevents job loss during container restarts, deployments, and scaling event
 Job results are retained in Redis for a configurable period to prevent unbounded memory growth:
 
 | Variable | Default | Description |
-|---|---|---|
+| --- | --- | --- |
 | `JOB_TTL_SUCCESS` | `86400` | Seconds to retain successful results (24h) |
 | `JOB_TTL_FAILED` | `604800` | Seconds to retain failed results (7 days) |
 
 Failed jobs are retained longer by default to aid post-incident investigation.
+
+## Queue Backpressure
+
+When `MAX_QUEUE_DEPTH` is set, NAAS rejects new jobs with `503 Service Unavailable` once the queue reaches the configured limit. This prevents unbounded queue growth during traffic spikes or worker outages.
+
+### How it works
+
+1. Before enqueuing a job, NAAS checks the current queue depth
+2. If the queue has reached `MAX_QUEUE_DEPTH`, the request is rejected immediately
+3. The check runs before deduplication, so duplicate detection does not bypass the limit
+
+### What the caller sees
+
+```http
+HTTP/1.1 503 Service Unavailable
+Content-Type: application/json
+
+{"error": "Queue depth limit reached, please retry later", "status": 503}
+```
+
+NAAS also returns `503` with a `Retry-After: 10` header when Redis itself is unavailable:
+
+```http
+HTTP/1.1 503 Service Unavailable
+Retry-After: 10
+Content-Type: application/json
+
+{"error": "Queue backend unavailable", "status": 503}
+```
+
+### Client retry guidance
+
+- Implement exponential backoff starting at 1–2 seconds
+- Respect the `Retry-After` header when present
+- Set a maximum retry count to avoid infinite loops
+- Monitor for sustained 503s — they may indicate a capacity or worker health issue
+
+### Configuration
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `MAX_QUEUE_DEPTH` | `0` (unlimited) | Maximum jobs allowed in queue before 503 |

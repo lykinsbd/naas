@@ -81,7 +81,7 @@ For devices requiring enable mode:
 
 ```json
 {
-  "ip": "192.168.1.1",
+  "host": "192.168.1.1",
   "platform": "cisco_ios",
   "enable": "enable_password",
   "commands": ["show running-config"]

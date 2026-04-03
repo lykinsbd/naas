@@ -2,6 +2,8 @@
 
 from flask import current_app, request
 from flask_restful import Resource
+from rq.exceptions import NoSuchJobError
+from rq.job import Job
 from werkzeug.exceptions import Forbidden
 
 from naas import __base_response__
@@ -39,8 +41,10 @@ class GetResults(Resource):
             raise Forbidden
 
         # Fetch your job, and return the job status and results (if it's finished)
-        q = current_app.config["q"]
-        job = q.fetch_job(job_id)
+        try:
+            job = Job.fetch(job_id, connection=current_app.config["redis"])
+        except NoSuchJobError:
+            job = None
 
         if job is None:
             r = JobResultResponse(job_id=job_id, status="not_found").model_dump()
@@ -60,6 +64,11 @@ class GetResults(Resource):
                 r["detected_platform"] = result_dict.pop("_detected_platform")
         elif job_status == "failed":
             r["error"] = str(job.exc_info).strip() if job.exc_info else "Job failed"
+
+        # Include tags if present in job metadata
+        tags = getattr(job, "meta", {}).get("tags") if isinstance(getattr(job, "meta", {}), dict) else None
+        if tags:
+            r["tags"] = tags
 
         r.update(__base_response__)
         return r

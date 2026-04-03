@@ -246,6 +246,25 @@ class TestNetmikoSendCommandStructured:
             call_kwargs = mock_conn.send_command.call_args[1]
             assert call_kwargs["textfsm_template"] == template
 
+    def test_structured_with_ttp_template(self):
+        """Test structured command with TTP template."""
+        creds = Credentials(username="testuser", password="testpass")
+        template = "interface {{ interface }}\n ip address {{ ip }} {{ mask }}"
+
+        with patch("naas.library.netmiko_lib.netmiko.ConnectHandler") as mock_handler:
+            mock_conn = MagicMock()
+            mock_conn.send_command.return_value = [[{"interface": "Gi0/0", "ip": "10.0.0.1", "mask": "255.255.255.0"}]]
+            mock_handler.return_value = mock_conn
+
+            result, error = netmiko_send_command_structured(
+                "192.168.1.1", creds, "cisco_ios", ["show interfaces"], ttp_template=template
+            )
+
+            assert error is None
+            call_kwargs = mock_conn.send_command.call_args[1]
+            assert call_kwargs["use_ttp"] is True
+            assert call_kwargs["ttp_template"] == template
+
     def test_structured_timeout_error(self):
         """Test structured command timeout handling."""
         creds = Credentials(username="testuser", password="testpass")

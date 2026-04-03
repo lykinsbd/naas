@@ -29,6 +29,7 @@ class TestHealthCheck:
         assert "redis" in data["components"]
         assert "queue" in data["components"]
         assert "workers" in data["components"]
+        assert "failed_jobs" in data["components"]
 
     def test_get_response_values_no_workers(self, client):
         """Healthcheck returns no_workers status when no RQ workers are running."""
@@ -81,3 +82,18 @@ class TestHealthCheck:
         data = response.get_json()
         assert data["status"] == "degraded"
         assert data["components"]["redis"]["status"] == "unhealthy"
+
+
+class TestRedisErrorHandler:
+    """Tests for global Redis error handler."""
+
+    def test_redis_error_returns_503(self, client):
+        """RedisError on any endpoint returns 503 with Retry-After header."""
+        from redis.exceptions import RedisError
+
+        with patch("naas.resources.healthcheck.get_cached_workers", side_effect=RedisError("connection lost")):
+            response = client.get("/healthcheck")
+
+        assert response.status_code == 503
+        assert response.headers.get("Retry-After") == "10"
+        assert response.get_json()["error"] == "Queue backend unavailable"
