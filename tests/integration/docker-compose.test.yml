@@ -98,6 +98,24 @@ services:
       redis:
         condition: service_healthy
 
+  vault:
+    image: hashicorp/vault:1.17
+    ports:
+      - "18200:8200"
+    environment:
+      - VAULT_DEV_ROOT_TOKEN_ID=test-root-token
+      - VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200
+    cap_add:
+      - IPC_LOCK
+    networks:
+      - naas-test
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--quiet", "http://127.0.0.1:8200/v1/sys/health"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+      start_period: 5s
+
   cisshgo:
     image: ghcr.io/tbotnz/cisshgo:v0.2.0
     command: ["-listeners", "2", "-startingPort", "10022"]

@@ -49,6 +49,9 @@ dev = [
     "requests>=2.31.0",
     "towncrier>=23.11.0",
 ]
+vault = [
+    "hvac>=2.1.0",
+]
 
 [build-system]
 requires = ["hatchling"]
