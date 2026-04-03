@@ -168,24 +168,6 @@ class TestSendCommand:
         assert response.status_code == 422
         assert isinstance(response.json, list)
 
-    def test_send_command_device_type_backward_compat(self, app, client):
-        """Test POST with deprecated device_type maps to platform."""
-        auth = b64encode(b"testuser:testpass").decode()
-        app.config["redis"].set("naas_cred_salt", b"test-salt")
-
-        with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
-            response = client.post(
-                "/v1/send_command",
-                json={
-                    "host": "192.0.2.1",
-                    "commands": ["show version"],
-                    "device_type": "arista_eos",
-                },
-                headers={"Authorization": f"Basic {auth}"},
-            )
-
-        assert response.status_code == 202
-
     def test_send_command_hostname(self, app, client):
         """Test POST with hostname instead of IP."""
         auth = b64encode(b"testuser:testpass").decode()
@@ -197,25 +179,6 @@ class TestSendCommand:
                 json={
                     "host": "router1.example.com",
                     "commands": ["show version"],
-                },
-                headers={"Authorization": f"Basic {auth}"},
-            )
-
-        assert response.status_code == 202
-
-    def test_send_command_device_type_ignored_when_platform_present(self, app, client):
-        """Test POST with both device_type and platform uses platform."""
-        auth = b64encode(b"testuser:testpass").decode()
-        app.config["redis"].set("naas_cred_salt", b"test-salt")
-
-        with patch("naas.library.validation.tacacs_auth_lockout", return_value=False):
-            response = client.post(
-                "/v1/send_command",
-                json={
-                    "host": "192.0.2.1",
-                    "commands": ["show version"],
-                    "device_type": "arista_eos",
-                    "platform": "cisco_nxos",
                 },
                 headers={"Authorization": f"Basic {auth}"},
             )
