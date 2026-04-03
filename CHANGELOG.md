@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- towncrier release notes start -->
 
+# NAAS 1.4.0 (2026-04-03)
+
+## 🐛 Bug Fixes
+
+- Fix release automation overwriting ruff target-version in pyproject.toml. ([#322](https://github.com/lykinsbd/naas/issues/322))
+
 # NAAS 1.3.1 (2026-03-06)
 
 ## 📚 Documentation
