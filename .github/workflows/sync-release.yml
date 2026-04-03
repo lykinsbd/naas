@@ -94,6 +94,8 @@ jobs:
         uses: astral-sh/setup-uv@v7
 
       - name: Bump develop to next alpha
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           # Extract current version from tag
           VERSION="${GITHUB_REF_NAME#v}"
@@ -103,14 +105,21 @@ jobs:
           MINOR=$(echo $VERSION | cut -d. -f2)
           NEXT_MINOR=$((MINOR + 1))
           NEXT_VERSION="${MAJOR}.${NEXT_MINOR}.0a1"
+          BRANCH="chore/bump-develop-v${NEXT_VERSION}"
 
-          # Update pyproject.toml
+          # Create branch, bump version, and open PR
+          git checkout -b "$BRANCH"
           sed -i "s/^version = \".*\"/version = \"${NEXT_VERSION}\"/" pyproject.toml
           uv lock
 
-          # Commit and push
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add pyproject.toml uv.lock
           git commit -m "chore: bump develop to v${NEXT_VERSION}"
-          git push
+          git push -u origin "$BRANCH"
+
+          gh pr create \
+            --base develop \
+            --head "$BRANCH" \
+            --title "chore: bump develop to v${NEXT_VERSION}" \
+            --body "Automated version bump after v${VERSION} release."
