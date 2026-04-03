@@ -504,6 +504,57 @@ Response:
 }
 ```
 
+## Job Tags
+
+Attach key-value metadata to any job for filtering and auditing. Tags are stored in job metadata and returned in job results and list responses.
+
+### Submitting Tags
+
+```bash
+curl -k -X POST https://localhost:8443/v1/send_command \
+  -u "admin:password" \
+  -d '{
+    "host": "192.168.1.1",
+    "platform": "cisco_ios",
+    "commands": ["show version"],
+    "tags": {"team": "network-ops", "env": "prod", "ticket": "CHG-12345"}
+  }'
+```
+
+### Constraints
+
+- Maximum 10 tags per job
+- Keys and values: alphanumeric, hyphens, underscores, colons (max 64 characters each)
+- Tags are optional — omit the field entirely if not needed
+
+### Filtering by Tag
+
+Use `?tag=key:value` on the list jobs endpoint:
+
+```bash
+# All jobs tagged team:network-ops
+curl -k -u "admin:password" "https://localhost:8443/v1/jobs?tag=team:network-ops"
+
+# Combine with status and pagination
+curl -k -u "admin:password" "https://localhost:8443/v1/jobs?tag=env:prod&status=failed&per_page=50"
+```
+
+Tags are included in each job object in the response:
+
+```json
+{
+  "jobs": [
+    {
+      "job_id": "550e8400-e29b-41d4-a716-446655440000",
+      "status": "finished",
+      "created_at": "2026-02-22T19:00:00+00:00",
+      "ended_at": "2026-02-22T19:00:05+00:00",
+      "tags": {"team": "network-ops", "env": "prod", "ticket": "CHG-12345"}
+    }
+  ]
+}
+```
+
 ## Connection Pooling
 
 NAAS automatically reuses SSH connections to improve performance and reduce load on network devices.
