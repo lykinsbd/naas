@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- towncrier release notes start -->
 
-# NAAS 1.4.0b2 (2026-04-03)
+# NAAS 1.4.0rc1 (2026-04-03)
 
 ## ✨ Features
 
@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add Postman collection and OpenAPI spec as release artifacts. Document API client import instructions for Postman, Insomnia, and Bruno. ([#92](https://github.com/lykinsbd/naas/issues/92))
 - Establish ADR process using MADR format. Add docs/adr/ directory with template and first ADR for Python client library integration strategy. ([#265](https://github.com/lykinsbd/naas/issues/265))
+- Add user documentation for job tags and queue backpressure. ([#316](https://github.com/lykinsbd/naas/issues/316))
 - Fix MD060 table column style violations across documentation files.
 
 ## 🧪 Testing & CI/CD
