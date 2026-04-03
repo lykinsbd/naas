@@ -166,10 +166,6 @@ NAAS supports all [Netmiko platforms](https://github.com/ktbyers/netmiko/blob/de
 - `hp_procurve` - HP ProCurve
 - And many more...
 
-!!! warning "Deprecated: `device_type`"
-    The `device_type` field is deprecated and will be removed in v2.0. Use `platform` instead.
-    Both fields are accepted in v1.x, but `device_type` logs a deprecation warning.
-
 ## Send Configuration
 
 Push configuration changes to devices.

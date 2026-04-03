@@ -53,29 +53,6 @@ def _validate_webhook_url(v: str | None) -> str | None:
     return v
 
 
-def _handle_device_type(data: dict[str, Any]) -> dict[str, Any]:
-    """
-    Map deprecated device_type parameter to platform with warning.
-
-    Args:
-        data: Request data dictionary that may contain device_type
-
-    Returns:
-        Modified data dictionary with device_type mapped to platform
-    """
-    data = data.copy()  # Avoid mutating caller's dict
-    if "device_type" in data:
-        logger.warning(
-            "Parameter 'device_type' is deprecated, use 'platform' instead. "
-            "Support for 'device_type' will be removed in v2.0"
-        )
-        if "platform" not in data:
-            data["platform"] = data.pop("device_type")
-        else:
-            data.pop("device_type")
-    return data
-
-
 class _BaseCommandRequest(BaseModel):
     """Base model for command request endpoints with common fields and validators."""
 
@@ -111,12 +88,6 @@ class _BaseCommandRequest(BaseModel):
     def validate_webhook_url(cls, v: str | None) -> str | None:
         """Validate webhook_url is a valid HTTPS URL."""
         return _validate_webhook_url(v)
-
-    @model_validator(mode="before")
-    @classmethod
-    def handle_deprecated_params(cls, data: dict[str, Any]) -> dict[str, Any]:
-        """Support deprecated device_type parameter."""
-        return _handle_device_type(data)
 
     @field_validator("host")
     @classmethod
@@ -229,12 +200,6 @@ class SendConfigRequest(BaseModel):
     def validate_webhook_url(cls, v: str | None) -> str | None:
         """Validate webhook_url is a valid HTTPS URL."""
         return _validate_webhook_url(v)
-
-    @model_validator(mode="before")
-    @classmethod
-    def handle_deprecated_params(cls, data: dict[str, Any]) -> dict[str, Any]:
-        """Support deprecated device_type parameter."""
-        return _handle_device_type(data)
 
     @field_validator("host")
     @classmethod
