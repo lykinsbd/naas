@@ -105,7 +105,7 @@ jobs:
           NEXT_VERSION="${MAJOR}.${NEXT_MINOR}.0a1"
 
           # Update pyproject.toml
-          sed -i "s/version = \".*\"/version = \"${NEXT_VERSION}\"/" pyproject.toml
+          sed -i "s/^version = \".*\"/version = \"${NEXT_VERSION}\"/" pyproject.toml
           uv lock
 
           # Commit and push

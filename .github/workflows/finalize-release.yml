@@ -54,7 +54,7 @@ jobs:
           git checkout -b release/finalize-$FINAL_VERSION
 
           # Update pyproject.toml
-          sed -i "s/version = \".*\"/version = \"${FINAL_VERSION}\"/" pyproject.toml
+          sed -i "s/^version = \".*\"/version = \"${FINAL_VERSION}\"/" pyproject.toml
           uv lock
 
           # Commit
