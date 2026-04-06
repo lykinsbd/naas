@@ -58,9 +58,18 @@ if TYPE_CHECKING:
 logger = logging.getLogger(name="NAAS")
 
 
+def _resolve_credentials(credentials: "Credentials | bytes") -> "Credentials":
+    """Decrypt credentials if encrypted, otherwise return as-is."""
+    if isinstance(credentials, bytes):
+        from naas.library.encryption import decrypt_credentials
+
+        return decrypt_credentials(credentials)
+    return credentials
+
+
 def netmiko_send_command(
     ip: str,
-    credentials: "Credentials",
+    credentials: "Credentials | bytes",
     device_type: str,
     commands: "Sequence[str]",
     port: int = 22,
@@ -84,6 +93,7 @@ def netmiko_send_command(
     :param request_id: Correlation ID from the originating API request for end-to-end log tracing
     :return: A Tuple of a dict of the results (if any) and a string describing the error (if any)
     """
+    credentials = _resolve_credentials(credentials)
     if CIRCUIT_BREAKER_ENABLED:
         return with_circuit_breaker(  # type: ignore[no-any-return]  # pybreaker has no stubs; with_circuit_breaker returns Any
             ip,
@@ -241,7 +251,7 @@ def _netmiko_send_command_impl(
 
 def netmiko_send_command_structured(
     ip: str,
-    credentials: "Credentials",
+    credentials: "Credentials | bytes",
     device_type: str,
     commands: "Sequence[str]",
     port: int = 22,
@@ -260,6 +270,7 @@ def netmiko_send_command_structured(
     """
     use_textfsm = ttp_template is None
     use_ttp = ttp_template is not None
+    credentials = _resolve_credentials(credentials)
     if CIRCUIT_BREAKER_ENABLED:
         return with_circuit_breaker(  # type: ignore[no-any-return]
             ip,
@@ -300,7 +311,7 @@ def netmiko_send_command_structured(
 
 def netmiko_send_config(
     ip: str,
-    credentials: "Credentials",
+    credentials: "Credentials | bytes",
     device_type: str,
     commands: "Sequence[str]",
     port: int = 22,
@@ -326,6 +337,7 @@ def netmiko_send_config(
     :param request_id: Correlation ID from the originating API request for end-to-end log tracing
     :return: A Tuple of a dict of the results (if any) and a string describing the error (if any)
     """
+    credentials = _resolve_credentials(credentials)
     if CIRCUIT_BREAKER_ENABLED:
         return with_circuit_breaker(  # type: ignore[no-any-return]  # pybreaker has no stubs; with_circuit_breaker returns Any
             ip,

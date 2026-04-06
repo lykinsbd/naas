@@ -75,6 +75,14 @@ def valid_post(f):
                 enable=request.json.get("enable", None),
             )
 
+        # Encrypt credentials for Redis storage if enabled
+        from naas.config import CREDENTIAL_ENCRYPTION_ENABLED
+
+        if CREDENTIAL_ENCRYPTION_ENABLED:
+            from naas.library.encryption import encrypt_credentials
+
+            g.encrypted_credentials = encrypt_credentials(g.credentials)
+
         return f(*args, **kwargs)
 
     return wrapper

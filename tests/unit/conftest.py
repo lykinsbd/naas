@@ -4,6 +4,12 @@ import pytest
 
 
 @pytest.fixture(autouse=True)
+def _disable_credential_encryption(monkeypatch):
+    """Disable credential encryption in unit tests (no secrets backend key available)."""
+    monkeypatch.setattr("naas.config.CREDENTIAL_ENCRYPTION_ENABLED", False)
+
+
+@pytest.fixture(autouse=True)
 def mock_device_lockout(monkeypatch):
     """Prevent device_lockout from connecting to Redis in unit tests."""
     monkeypatch.setattr("naas.library.auth.device_lockout", lambda **kwargs: False)

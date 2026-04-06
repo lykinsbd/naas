@@ -1,9 +1,13 @@
 """Pytest configuration for contract tests."""
 
+import os
 from unittest.mock import MagicMock, patch
 
 import pytest
 from fakeredis import FakeStrictRedis
+
+# Ensure encryption key is available for app startup (contract tests don't test encryption)
+os.environ.setdefault("NAAS_ENCRYPTION_KEY", "IaypjfWWRlCStgKgneWQDfteGYNdO70FSepbfHdC6yY=")  # noqa: S105
 
 
 @pytest.fixture(scope="session", autouse=True)

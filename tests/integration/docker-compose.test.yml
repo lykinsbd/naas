@@ -31,6 +31,7 @@ services:
       - GUNICORN_WORKERS=2
       - WEBHOOK_ALLOW_HTTP=true
       - NAAS_JWT_SECRET=integration-test-jwt-secret
+      - NAAS_ENCRYPTION_KEY=IaypjfWWRlCStgKgneWQDfteGYNdO70FSepbfHdC6yY=
       - NAAS_ADMIN_SECRET=integration-test-admin-secret
     networks:
       - naas-test
@@ -66,6 +67,7 @@ services:
       - APP_ENVIRONMENT=test
       - WORKER_CONTEXTS=default
       - WEBHOOK_ALLOW_HTTP=true
+      - NAAS_ENCRYPTION_KEY=IaypjfWWRlCStgKgneWQDfteGYNdO70FSepbfHdC6yY=
     networks:
       - naas-test
     depends_on:
@@ -94,6 +96,7 @@ services:
       - APP_ENVIRONMENT=test
       - WORKER_CONTEXTS=alt
       - WEBHOOK_ALLOW_HTTP=true
+      - NAAS_ENCRYPTION_KEY=IaypjfWWRlCStgKgneWQDfteGYNdO70FSepbfHdC6yY=
     networks:
       - naas-test
     depends_on:
