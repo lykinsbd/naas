@@ -164,3 +164,29 @@ def list_api_keys() -> list[dict[str, str]]:
                 }
             )
     return result
+
+
+def rotate_api_key(key_id: str) -> dict[str, str | list[str]] | None:
+    """Rotate an API key: create a new key with the same role/contexts, revoke the old one.
+
+    Args:
+        key_id: The key ID to rotate.
+
+    Returns:
+        New key dict (same as create_api_key), or None if key_id not found.
+    """
+    redis: Redis = current_app.config["redis"]
+    meta: dict[bytes, bytes] = redis.hgetall(f"{KEY_META_PREFIX}{key_id}")  # type: ignore[assignment]
+    if not meta:
+        return None
+
+    role = meta[b"role"].decode()
+    contexts = json.loads(meta[b"contexts"].decode())
+    created_by = meta[b"created_by"].decode()
+
+    new_key = create_api_key(role=role, contexts=contexts, created_by=created_by)
+    revoke_api_key(key_id)
+
+    emit_audit_event("apikey.rotated", old_key_id=key_id, new_key_id=str(new_key["key_id"]), rotated_by=created_by)
+
+    return new_key

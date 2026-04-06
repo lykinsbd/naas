@@ -8,7 +8,7 @@ from flask_restful import Resource
 
 from naas import __base_response__
 from naas.config import NAAS_ADMIN_SECRET
-from naas.library.api_keys import create_api_key, list_api_keys, revoke_api_key
+from naas.library.api_keys import create_api_key, list_api_keys, revoke_api_key, rotate_api_key
 from naas.library.errorhandlers import NoAuth
 
 
@@ -53,4 +53,17 @@ class ApiKey(Resource):
         _require_admin_auth()
         if revoke_api_key(key_id):
             return "", 204
+        return {"error": f"Key '{key_id}' not found", **__base_response__}, 404
+
+
+class ApiKeyRotate(Resource):
+    """Resource for rotating a single API key."""
+
+    @staticmethod
+    def post(key_id: str):
+        """Rotate an API key. Returns a new token, revokes the old key."""
+        _require_admin_auth()
+        result = rotate_api_key(key_id)
+        if result:
+            return {**result, **__base_response__}, 201
         return {"error": f"Key '{key_id}' not found", **__base_response__}, 404
