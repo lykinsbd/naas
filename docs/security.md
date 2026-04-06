@@ -264,21 +264,89 @@ limiter = Limiter(
 
 ## Monitoring and Auditing
 
-### Enable Logging
+### Structured Audit Events
 
-Configure logging:
+NAAS emits structured JSON audit events at INFO level via the `NAAS` logger. Each
+event includes an `event_type` field for filtering.
+
+#### Authentication Events
+
+| Event | Fields | Description |
+| --- | --- | --- |
+| `auth.success` | `method`, `identity` | Successful authentication (Basic or Bearer) |
+| `auth.failure` | `method`, `reason` | Failed authentication attempt |
+
+#### Authorization Events
+
+| Event | Fields | Description |
+| --- | --- | --- |
+| `auth.context_denied` | `identity`, `context`, `allowed_contexts` | Context authorization failure |
+| `auth.rbac_denied` | `identity`, `role`, `required_role`, `endpoint` | Insufficient role |
+
+#### API Key Management Events
+
+| Event | Fields | Description |
+| --- | --- | --- |
+| `apikey.created` | `key_id`, `role`, `contexts`, `created_by` | New API key created |
+| `apikey.revoked` | `key_id`, `revoked_by` | API key revoked |
+
+#### Job Lifecycle Events
+
+| Event | Fields | Description |
+| --- | --- | --- |
+| `job.submitted` | `host`, `platform`, `port`, `command_count`, `user_hash`, `request_id` | Job enqueued |
+| `job.completed` | `request_id`, `status`, `duration_ms` | Job finished |
+| `job.cancelled` | `request_id`, `cancelled_by_hash` | Job cancelled |
+| `job.orphaned` | `request_id`, `worker_name` | Orphaned job reaped |
+
+#### Device Events
+
+| Event | Fields | Description |
+| --- | --- | --- |
+| `device.locked_out` | `host`, `failure_count` | Device locked after repeated failures |
+| `circuit.opened` | `host` | Circuit breaker opened |
+| `circuit.closed` | `host` | Circuit breaker closed |
+
+**Data privacy**: Audit events never contain passwords, command output, or API key
+tokens. Only usernames, key IDs, and operational metadata are logged.
+
+### Filtering Audit Events
+
+Audit events are mixed with operational logs in the JSON output stream. Filter on
+the `event_type` field:
 
 ```bash
-# Production logging
-export APP_ENVIRONMENT=production
-docker compose up -d
+# All audit events
+docker compose logs api | jq 'select(.event_type)'
 
-# Logs include:
-# - Authentication attempts
-# - API requests
-# - Job execution
-# - Errors and exceptions
+# Auth failures only
+docker compose logs api | jq 'select(.event_type == "auth.failure")'
+
+# All security events
+docker compose logs api | jq 'select(.event_type | startswith("auth."))'
 ```
+
+### SIEM Integration
+
+Ship structured JSON logs to your SIEM using any log shipper (Fluentd, Vector,
+Filebeat). Filter on `event_type` to route audit events to a dedicated index.
+
+### Tamper-Evident Logging
+
+For compliance, ship logs to an append-only store:
+
+- **AWS**: CloudWatch Logs with retention policy
+- **S3**: With Object Lock enabled
+- **Syslog**: Forward to a hardened syslog server
+
+### Recommended Alerts
+
+| Event | Alert condition | Indicates |
+| --- | --- | --- |
+| `auth.failure` | >10 in 5 minutes | Brute force attempt |
+| `auth.rbac_denied` | Any occurrence | Privilege escalation attempt |
+| `apikey.created` | Any occurrence | New API key (verify expected) |
+| `device.locked_out` | Any occurrence | Device under attack or misconfigured |
 
 ### Log Aggregation
 
@@ -303,32 +371,7 @@ services:
 
 ### Monitor Authentication Failures
 
-Track failed authentication attempts:
-
-```bash
-# Check logs for auth failures
-docker compose logs api | grep "Authentication failed"
-
-# Set up alerts for repeated failures
-# (integrate with your monitoring system)
-```
-
-### Audit Trail
-
-NAAS logs include:
-
-- Request ID (X-Request-ID header)
-- Username (from Basic Auth)
-- Target device IP
-- Commands executed
-- Timestamps
-- Success/failure status
-
-Example log entry:
-
-```text
-2026-02-22 19:00:00 INFO [550e8400-e29b-41d4-a716-446655440000] admin@192.168.1.1:22 - Executing: show version
-```
+Set up alerts for `auth.failure` events (see [Recommended Alerts](#recommended-alerts) above).
 
 ## Container Security
 

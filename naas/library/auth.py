@@ -6,7 +6,7 @@ from hashlib import sha512
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from flask import current_app
+from flask import current_app, request
 from redis import Redis
 from rq.job import Job
 
@@ -155,6 +155,15 @@ def require_role(minimum_role: str):
             if ROLE_RANK.get(user_role, 0) < ROLE_RANK[minimum_role]:
                 from werkzeug.exceptions import Forbidden
 
+                from naas.library.audit import emit_audit_event
+
+                emit_audit_event(
+                    "auth.rbac_denied",
+                    identity=g.jwt_claims.get("sub", "unknown"),
+                    role=user_role,
+                    required_role=minimum_role,
+                    endpoint=request.path,
+                )
                 raise Forbidden
             return f(*args, **kwargs)
 

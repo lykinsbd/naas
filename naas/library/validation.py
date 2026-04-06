@@ -9,6 +9,7 @@ from flask import current_app, g, request
 from werkzeug.exceptions import BadRequest
 
 from naas.library.api_keys import validate_api_key
+from naas.library.audit import emit_audit_event
 from naas.library.auth import tacacs_auth_lockout
 from naas.library.errorhandlers import DuplicateRequestID, LockedOut, NoAuth, NoJSON
 
@@ -46,9 +47,11 @@ class Validate:
             try:
                 g.jwt_claims = validate_api_key(token)
                 g.auth_method = "bearer"
+                emit_audit_event("auth.success", method="bearer", identity=g.jwt_claims["sub"])
                 return
             except jwt.InvalidTokenError as exc:
                 current_app.logger.error("Invalid API key: %s", exc)
+                emit_audit_event("auth.failure", method="bearer", reason=str(exc))
                 raise NoAuth
 
         # Basic auth path (existing behaviour)
@@ -58,8 +61,10 @@ class Validate:
             or request.authorization.password is None
         ):
             current_app.logger.error("user did not pass authentication information")
+            emit_audit_event("auth.failure", method="none", reason="missing credentials")
             raise NoAuth
         g.auth_method = "basic"
+        emit_audit_event("auth.success", method="basic", identity=request.authorization.username)
 
     @staticmethod
     def locked_out() -> None:
