@@ -8,6 +8,7 @@ from flask import g, request
 from werkzeug.exceptions import Forbidden, UnprocessableEntity
 
 from naas.library import validation
+from naas.library.audit import emit_audit_event
 from naas.library.auth import Credentials
 
 
@@ -59,6 +60,12 @@ def valid_post(f):
             context = body.get("context", "default")
             allowed = g.jwt_claims.get("contexts", [])
             if "*" not in allowed and context not in allowed:
+                emit_audit_event(
+                    "auth.context_denied",
+                    identity=g.jwt_claims["sub"],
+                    context=context,
+                    allowed_contexts=",".join(allowed),
+                )
                 raise Forbidden(f"API key not authorized for context '{context}'")
         else:
             # Basic auth: device credentials from Authorization header

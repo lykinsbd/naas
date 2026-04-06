@@ -14,6 +14,7 @@ from flask import current_app
 from redis import Redis
 
 from naas.config import API_KEY_DEFAULT_TTL, API_KEY_MAX_TTL
+from naas.library.audit import emit_audit_event
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +81,8 @@ def create_api_key(
     if ttl > 0:
         redis.expire(f"{KEY_META_PREFIX}{key_id}", ttl)
 
+    emit_audit_event("apikey.created", key_id=key_id, role=role, contexts=",".join(contexts), created_by=created_by)
+
     return {
         "key_id": key_id,
         "token": token,
@@ -133,6 +136,7 @@ def revoke_api_key(key_id: str) -> bool:
     redis.delete(f"{KEY_META_PREFIX}{key_id}")
 
     logger.info("Revoked API key %s", key_id)
+    emit_audit_event("apikey.revoked", key_id=key_id, revoked_by="admin")
     return True
 
 
