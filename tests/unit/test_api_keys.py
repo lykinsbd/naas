@@ -301,3 +301,69 @@ class TestRBAC:
             headers={"Authorization": f"Bearer {token}"},
         )
         assert response.status_code == 202
+
+
+@pytest.mark.usefixtures("_mock_secrets")
+class TestContextAuthz:
+    """Tests for context-based authorization."""
+
+    def _make_token(self, app, contexts):
+        with app.app_context():
+            return create_api_key(role="operator", contexts=contexts)["token"]
+
+    def test_wildcard_allows_any_context(self, app, client):
+        token = self._make_token(app, ["*"])
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+        response = client.post(
+            "/v1/send_command",
+            json={
+                "host": "192.168.1.1",
+                "commands": ["show version"],
+                "username": "u",
+                "password": "p",
+                "context": "anything",
+            },
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 202
+
+    def test_matching_context_allowed(self, app, client):
+        token = self._make_token(app, ["oob-dc1"])
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+        response = client.post(
+            "/v1/send_command",
+            json={
+                "host": "192.168.1.1",
+                "commands": ["show version"],
+                "username": "u",
+                "password": "p",
+                "context": "oob-dc1",
+            },
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 202
+
+    def test_wrong_context_forbidden(self, app, client):
+        token = self._make_token(app, ["oob-dc1"])
+        response = client.post(
+            "/v1/send_command",
+            json={
+                "host": "192.168.1.1",
+                "commands": ["show version"],
+                "username": "u",
+                "password": "p",
+                "context": "prod",
+            },
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 403
+
+    def test_default_context_when_omitted(self, app, client):
+        token = self._make_token(app, ["default"])
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+        response = client.post(
+            "/v1/send_command",
+            json={"host": "192.168.1.1", "commands": ["show version"], "username": "u", "password": "p"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 202
