@@ -120,3 +120,8 @@ def app_configure(app):
     # Initialize an rq Queue and store it for later (default context queue)
     q = Queue("naas-default", connection=redis)
     app.config["q"] = q
+
+    # Initialize secrets backend
+    from naas.library.secrets import get_secrets_backend
+
+    app.config["secrets"] = get_secrets_backend()

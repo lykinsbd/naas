@@ -613,6 +613,18 @@ wheels = [
 ]
 
 [[package]]
+name = "hvac"
+version = "2.4.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e2/57/b46c397fb3842cfb02a44609aa834c887f38dd75f290c2fc5a34da4b2fee/hvac-2.4.0.tar.gz", hash = "sha256:e0056ad9064e7923e874e6769015b032580b639e29246f5ab1044f7959c1c7e0", size = 332543, upload-time = "2025-10-30T12:57:47.512Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/55/33/71e45a6bd6875f44a26f99da31c63b6840123e88bedf2c0b1ce429b8be12/hvac-2.4.0-py3-none-any.whl", hash = "sha256:008db5efd8c2f77bd37d2368ea5f713edceae1c65f11fd608393179478649e0f", size = 155921, upload-time = "2025-10-30T12:57:46.253Z" },
+]
+
+[[package]]
 name = "identify"
 version = "2.6.16"
 source = { registry = "https://pypi.org/simple" }
@@ -1124,6 +1136,9 @@ dev = [
     { name = "ruff" },
     { name = "towncrier" },
 ]
+vault = [
+    { name = "hvac" },
+]
 
 [package.dev-dependencies]
 dev = [
@@ -1142,6 +1157,7 @@ requires-dist = [
     { name = "flask", specifier = ">=1.1.1" },
     { name = "flask-restful", specifier = ">=0.3.8" },
     { name = "gunicorn", specifier = ">=20.0.4" },
+    { name = "hvac", marker = "extra == 'vault'", specifier = ">=2.1.0" },
     { name = "ipython", marker = "extra == 'dev'", specifier = ">=8.0.0" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.13.0" },
     { name = "netmiko", specifier = ">=3.0.0" },
@@ -1170,7 +1186,7 @@ requires-dist = [
     { name = "ttp", specifier = ">=0.10.0" },
     { name = "ttp-templates", specifier = ">=0.4.0" },
 ]
-provides-extras = ["dev"]
+provides-extras = ["dev", "vault"]
 
 [package.metadata.requires-dev]
 dev = [
