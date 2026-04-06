@@ -1,6 +1,6 @@
 # Secrets Backend Abstraction
 
-* Status: Proposed
+* Status: Accepted
 * Date: 2026-04-03
 
 ## Context and Problem Statement
