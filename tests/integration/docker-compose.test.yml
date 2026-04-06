@@ -121,6 +121,21 @@ services:
       retries: 10
       start_period: 5s
 
+  localstack:
+    image: localstack/localstack:3
+    ports:
+      - "14566:4566"
+    environment:
+      - SERVICES=secretsmanager
+    networks:
+      - naas-test
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+      start_period: 5s
+
   cisshgo:
     image: ghcr.io/tbotnz/cisshgo:v0.2.0
     command: ["-listeners", "2", "-startingPort", "10022"]

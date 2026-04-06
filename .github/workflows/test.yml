@@ -82,7 +82,7 @@ jobs:
         run: uv python install ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: uv sync --extra dev --extra vault
+        run: uv sync --extra dev --extra vault --extra aws
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
