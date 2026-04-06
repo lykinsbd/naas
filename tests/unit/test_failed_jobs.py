@@ -177,3 +177,47 @@ class TestReplayJob:
         assert response.status_code == 202
         assert response.json["job_id"] == "new-replay-job-id"
         assert response.json["message"] == "Job replayed"
+
+    def test_replay_encrypts_credentials_when_enabled(self, app, client, monkeypatch):
+        """POST replay encrypts credentials when CREDENTIAL_ENCRYPTION_ENABLED=true."""
+        from unittest.mock import MagicMock, patch
+
+        from cryptography.fernet import Fernet
+
+        monkeypatch.setattr("naas.config.CREDENTIAL_ENCRYPTION_ENABLED", True)
+        key = Fernet.generate_key().decode()
+        mock_backend = MagicMock()
+        mock_backend.get_secret.return_value = key
+        app.config["secrets"] = mock_backend
+        # Reset cached fernet
+        import naas.library.encryption as enc
+
+        enc._fernet = None
+
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        mock_job = MagicMock()
+        mock_job.get_status.return_value.value = "failed"
+        mock_job.kwargs = {"ip": "192.0.2.1", "device_type": "cisco_ios", "commands": ["show version"]}
+        mock_job.meta = {"context": "default", "webhook_url": ""}
+        mock_job.func = MagicMock()
+
+        new_job = MagicMock()
+        new_job.id = "new-replay-job-id"
+        new_job.enqueued_at.isoformat.return_value = "2026-01-01T00:00:00+00:00"
+
+        with patch("naas.resources.failed_jobs.Job.fetch", return_value=mock_job):
+            with patch("naas.resources.failed_jobs.job_unlocker", return_value=True):
+                with patch("naas.resources.failed_jobs.get_queue_for_context", return_value=(app.config["q"], 0)):
+                    app.config["q"].enqueue.return_value = new_job
+                    response = client.post(
+                        "/v1/jobs/00000000-0000-0000-0000-000000000000/replay",
+                        headers={"Authorization": f"Basic {auth}"},
+                    )
+
+        assert response.status_code == 202
+        # Verify credentials were encrypted (bytes, not Credentials object)
+        enqueue_call = app.config["q"].enqueue.call_args
+        assert isinstance(enqueue_call.kwargs["credentials"], bytes)
+        enc._fernet = None

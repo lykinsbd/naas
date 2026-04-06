@@ -77,6 +77,7 @@ WORKER_STALE_THRESHOLD: int = int(os.environ.get("WORKER_STALE_THRESHOLD", 120))
 API_KEY_DEFAULT_TTL: int = int(os.environ.get("API_KEY_DEFAULT_TTL", 7776000))  # 90 days
 API_KEY_MAX_TTL: int = int(os.environ.get("API_KEY_MAX_TTL", 0))  # 0 = unlimited
 NAAS_ADMIN_SECRET: str = os.environ.get("NAAS_ADMIN_SECRET", "")
+CREDENTIAL_ENCRYPTION_ENABLED: bool = os.environ.get("CREDENTIAL_ENCRYPTION_ENABLED", "true").lower() == "true"
 
 
 def app_configure(app):
@@ -130,3 +131,11 @@ def app_configure(app):
     from naas.library.secrets import get_secrets_backend
 
     app.config["secrets"] = get_secrets_backend()
+
+    # Warn if credential encryption is disabled
+    if not CREDENTIAL_ENCRYPTION_ENABLED:
+        import logging
+
+        logging.getLogger("NAAS").warning(
+            "CREDENTIAL_ENCRYPTION_ENABLED=false — credentials stored in plaintext in Redis"
+        )

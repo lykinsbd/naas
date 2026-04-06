@@ -132,7 +132,7 @@ class SendCommand(Resource):
             ip=ip_str,
             port=validated.port,
             device_type=validated.platform,
-            credentials=g.credentials,
+            credentials=getattr(g, "encrypted_credentials", g.credentials),
             commands=validated.commands,
             read_timeout=validated.read_timeout,
             conn_timeout=validated.conn_timeout,

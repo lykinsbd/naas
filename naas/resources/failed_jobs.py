@@ -135,7 +135,14 @@ class ReplayJob(Resource):
 
         # Build new kwargs: original params but caller's credentials
         original_kwargs = dict(job.kwargs or {})
-        original_kwargs["credentials"] = caller_creds
+        from naas.config import CREDENTIAL_ENCRYPTION_ENABLED
+
+        if CREDENTIAL_ENCRYPTION_ENABLED:
+            from naas.library.encryption import encrypt_credentials
+
+            original_kwargs["credentials"] = encrypt_credentials(caller_creds)
+        else:
+            original_kwargs["credentials"] = caller_creds
 
         # Determine routing context from original job meta
         context = job.meta.get("context", "default") if isinstance(job.meta, dict) else "default"

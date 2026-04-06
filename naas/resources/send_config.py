@@ -134,7 +134,7 @@ class SendConfig(Resource):
             ip=ip_str,
             port=validated.port,
             device_type=validated.platform,
-            credentials=g.credentials,
+            credentials=getattr(g, "encrypted_credentials", g.credentials),
             commands=validated.config,
             save_config=validated.save_config,
             commit=validated.commit,
