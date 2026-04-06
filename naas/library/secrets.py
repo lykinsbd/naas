@@ -97,6 +97,60 @@ class VaultSecretsBackend:
         return data[name]
 
 
+class AWSSecretsBackend:
+    """Read secrets from AWS Secrets Manager.
+
+    Requires the ``boto3`` package: ``pip install naas[aws]``
+    """
+
+    def __init__(self, secret_name: str, region: str, endpoint_url: str | None = None) -> None:
+        """Initialize AWS Secrets Manager client.
+
+        Args:
+            secret_name: Name of the secret in AWS Secrets Manager.
+            region: AWS region name.
+            endpoint_url: Optional endpoint URL (for LocalStack/testing).
+        """
+        try:
+            import boto3
+        except ImportError:
+            raise ImportError("AWSSecretsBackend requires 'boto3'. Install with: pip install naas[aws]") from None
+
+        kwargs: dict = {"region_name": region}
+        if endpoint_url:
+            kwargs["endpoint_url"] = endpoint_url
+        self._client = boto3.client("secretsmanager", **kwargs)
+        self._secret_name = secret_name
+        self._cache: dict[str, str] | None = None
+
+    def _load(self) -> dict[str, str]:
+        """Load and cache the secret value as a JSON dict."""
+        if self._cache is not None:
+            return self._cache
+        import json
+
+        response = self._client.get_secret_value(SecretId=self._secret_name)
+        self._cache = json.loads(response["SecretString"])
+        return self._cache
+
+    def get_secret(self, name: str) -> str:
+        """Retrieve a key from the AWS Secrets Manager secret.
+
+        Args:
+            name: Key within the JSON secret.
+
+        Returns:
+            The secret value.
+
+        Raises:
+            KeyError: If the key is not found.
+        """
+        data = self._load()
+        if name not in data:
+            raise KeyError(f"Secret '{name}' not found in AWS secret '{self._secret_name}'")
+        return data[name]
+
+
 def get_secrets_backend() -> SecretsBackend:
     """Create a secrets backend based on SECRETS_BACKEND config.
 
@@ -121,4 +175,13 @@ def get_secrets_backend() -> SecretsBackend:
         logger.info("Using HashiCorp Vault secrets backend at %s", url)
         return VaultSecretsBackend(url=url, token=token, path=path)
 
-    raise ValueError(f"Unknown SECRETS_BACKEND: '{backend}'. Valid options: env, vault")
+    if backend == "aws":
+        secret_name = os.environ.get("AWS_SECRET_NAME", "")
+        region = os.environ.get("AWS_REGION", "")
+        if not secret_name or not region:
+            raise ValueError("AWSSecretsBackend requires AWS_SECRET_NAME and AWS_REGION environment variables")
+        endpoint_url = os.environ.get("AWS_ENDPOINT_URL", None)
+        logger.info("Using AWS Secrets Manager backend (secret=%s, region=%s)", secret_name, region)
+        return AWSSecretsBackend(secret_name=secret_name, region=region, endpoint_url=endpoint_url)
+
+    raise ValueError(f"Unknown SECRETS_BACKEND: '{backend}'. Valid options: env, vault, aws")

@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from naas.library.secrets import EnvSecretsBackend, VaultSecretsBackend, get_secrets_backend
+from naas.library.secrets import AWSSecretsBackend, EnvSecretsBackend, VaultSecretsBackend, get_secrets_backend
 
 
 class TestEnvSecretsBackend:
@@ -91,4 +91,60 @@ class TestGetSecretsBackend:
     def test_unknown_backend_raises(self, monkeypatch):
         monkeypatch.setattr("naas.library.secrets.SECRETS_BACKEND", "unknown")
         with pytest.raises(ValueError, match="Unknown SECRETS_BACKEND"):
+            get_secrets_backend()
+
+
+class TestAWSSecretsBackend:
+    """Tests for AWSSecretsBackend."""
+
+    def test_init_raises_without_boto3(self):
+        with patch.dict("sys.modules", {"boto3": None}):
+            with pytest.raises(ImportError, match="boto3"):
+                AWSSecretsBackend(secret_name="my-secret", region="us-east-1")
+
+    def test_get_secret_returns_value(self):
+        mock_boto3 = MagicMock()
+        mock_client = MagicMock()
+        mock_client.get_secret_value.return_value = {"SecretString": '{"MY_KEY": "my_value"}'}
+        mock_boto3.client.return_value = mock_client
+        with patch.dict("sys.modules", {"boto3": mock_boto3}):
+            backend = AWSSecretsBackend(secret_name="my-secret", region="us-east-1")
+            assert backend.get_secret("MY_KEY") == "my_value"
+
+    def test_get_secret_raises_key_error(self):
+        mock_boto3 = MagicMock()
+        mock_client = MagicMock()
+        mock_client.get_secret_value.return_value = {"SecretString": "{}"}
+        mock_boto3.client.return_value = mock_client
+        with patch.dict("sys.modules", {"boto3": mock_boto3}):
+            backend = AWSSecretsBackend(secret_name="my-secret", region="us-east-1")
+            with pytest.raises(KeyError, match="not found in AWS secret"):
+                backend.get_secret("MISSING")
+
+    def test_caches_secret_value(self):
+        mock_boto3 = MagicMock()
+        mock_client = MagicMock()
+        mock_client.get_secret_value.return_value = {"SecretString": '{"K": "V"}'}
+        mock_boto3.client.return_value = mock_client
+        with patch.dict("sys.modules", {"boto3": mock_boto3}):
+            backend = AWSSecretsBackend(secret_name="my-secret", region="us-east-1")
+            backend.get_secret("K")
+            backend.get_secret("K")
+            mock_client.get_secret_value.assert_called_once()
+
+    def test_factory_creates_aws_backend(self, monkeypatch):
+        monkeypatch.setattr("naas.library.secrets.SECRETS_BACKEND", "aws")
+        monkeypatch.setenv("AWS_SECRET_NAME", "my-secret")
+        monkeypatch.setenv("AWS_REGION", "us-east-1")
+        monkeypatch.setenv("AWS_ENDPOINT_URL", "http://localhost:4566")
+        mock_boto3 = MagicMock()
+        with patch.dict("sys.modules", {"boto3": mock_boto3}):
+            backend = get_secrets_backend()
+            assert isinstance(backend, AWSSecretsBackend)
+
+    def test_factory_raises_without_config(self, monkeypatch):
+        monkeypatch.setattr("naas.library.secrets.SECRETS_BACKEND", "aws")
+        monkeypatch.delenv("AWS_SECRET_NAME", raising=False)
+        monkeypatch.delenv("AWS_REGION", raising=False)
+        with pytest.raises(ValueError, match="AWS_SECRET_NAME and AWS_REGION"):
             get_secrets_backend()
