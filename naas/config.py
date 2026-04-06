@@ -73,6 +73,11 @@ JOB_REAPER_ENABLED: bool = os.environ.get("JOB_REAPER_ENABLED", "true").lower() 
 JOB_REAPER_INTERVAL: int = int(os.environ.get("JOB_REAPER_INTERVAL", 60))
 WORKER_STALE_THRESHOLD: int = int(os.environ.get("WORKER_STALE_THRESHOLD", 120))
 
+# API key config
+API_KEY_DEFAULT_TTL: int = int(os.environ.get("API_KEY_DEFAULT_TTL", 7776000))  # 90 days
+API_KEY_MAX_TTL: int = int(os.environ.get("API_KEY_MAX_TTL", 0))  # 0 = unlimited
+NAAS_ADMIN_SECRET: str = os.environ.get("NAAS_ADMIN_SECRET", "")
+
 
 def app_configure(app):
     # Configure our environment

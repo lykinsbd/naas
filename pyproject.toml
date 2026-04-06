@@ -33,6 +33,7 @@ dependencies = [
     "textfsm>=1.1.0",
     "ttp>=0.10.0",
     "ttp-templates>=0.4.0",
+    "pyjwt>=2.12.1",
 ]
 
 [project.optional-dependencies]

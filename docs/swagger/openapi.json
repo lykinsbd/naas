@@ -173,6 +173,19 @@
             "title": "Context",
             "type": "string"
           },
+          "enable": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Enable password (optional, defaults to password)",
+            "title": "Enable"
+          },
           "expect_string": {
             "anyOf": [
               {
@@ -190,6 +203,19 @@
             "description": "Device IP address or hostname",
             "title": "Host",
             "type": "string"
+          },
+          "password": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Device password (required for API key auth)",
+            "title": "Password"
           },
           "platform": {
             "default": "cisco_ios",
@@ -227,6 +253,19 @@
             "default": null,
             "description": "Optional key-value metadata tags (max 10, keys/values max 64 chars, alphanumeric + hyphens/underscores/colons)",
             "title": "Tags"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Device username (required for API key auth)",
+            "title": "Username"
           },
           "webhook_url": {
             "anyOf": [
@@ -274,10 +313,36 @@
             "title": "Context",
             "type": "string"
           },
+          "enable": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Enable password (optional, defaults to password)",
+            "title": "Enable"
+          },
           "host": {
             "description": "Device IP address or hostname",
             "title": "Host",
             "type": "string"
+          },
+          "password": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Device password (required for API key auth)",
+            "title": "Password"
           },
           "platform": {
             "default": "cisco_ios",
@@ -341,6 +406,19 @@
             "default": null,
             "description": "TTP template string or ttp://<path> reference (mutually exclusive with textfsm_template)",
             "title": "Ttp Template"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Device username (required for API key auth)",
+            "title": "Username"
           },
           "webhook_url": {
             "anyOf": [
@@ -419,10 +497,36 @@
             "title": "Context",
             "type": "string"
           },
+          "enable": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Enable password (optional, defaults to password)",
+            "title": "Enable"
+          },
           "host": {
             "description": "Device IP address or hostname",
             "title": "Host",
             "type": "string"
+          },
+          "password": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Device password (required for API key auth)",
+            "title": "Password"
           },
           "platform": {
             "default": "cisco_ios",
@@ -466,6 +570,19 @@
             "default": null,
             "description": "Optional key-value metadata tags (max 10, keys/values max 64 chars)",
             "title": "Tags"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Device username (required for API key auth)",
+            "title": "Username"
           },
           "webhook_url": {
             "anyOf": [
@@ -714,6 +831,44 @@
         ],
         "responses": {},
         "summary": "Given the requested job_id, return status and/or any results if finished. :param job_id: :return: A dict of job status and/or results if finished.",
+        "tags": []
+      }
+    },
+    "/v1/api-keys": {
+      "get": {
+        "description": "",
+        "operationId": "get__v1_api-keys",
+        "parameters": [],
+        "responses": {},
+        "summary": "List all active API keys (metadata only, not tokens).",
+        "tags": []
+      },
+      "post": {
+        "description": "",
+        "operationId": "post__v1_api-keys",
+        "parameters": [],
+        "responses": {},
+        "summary": "Create a new API key. Returns the JWT token once.",
+        "tags": []
+      }
+    },
+    "/v1/api-keys/{key_id}": {
+      "delete": {
+        "description": "",
+        "operationId": "delete__v1_api-keys_{key_id}",
+        "parameters": [
+          {
+            "description": "",
+            "in": "path",
+            "name": "key_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {},
+        "summary": "Revoke an API key.",
         "tags": []
       }
     },

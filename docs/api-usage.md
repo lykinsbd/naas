@@ -9,6 +9,7 @@ Detailed examples for common NAAS API operations.
 ## Contents
 
 - [Authentication](#authentication)
+- [API Key Management](#api-key-management)
 - [Send Command](#send-command)
 - [Send Configuration](#send-configuration)
 - [Job Cancellation](#job-cancellation)
@@ -20,7 +21,16 @@ Detailed examples for common NAAS API operations.
 
 ## Authentication
 
-NAAS uses HTTP Basic Authentication. The API passes credentials through to the network device.
+NAAS supports two authentication methods: HTTP Basic and API key (Bearer JWT).
+
+### Basic Authentication
+
+!!! warning "Deprecation notice"
+    Basic auth will be **disabled by default** in v3.0. Migrate to API key
+    authentication for programmatic access. Basic auth will remain available
+    as an opt-in configuration option.
+
+The original auth method. Credentials are passed through to the network device.
 
 ```bash
 # Using curl with -u flag
@@ -32,6 +42,87 @@ curl -k -H "Authorization: Basic $(echo -n 'username:password' | base64)" \
 ```
 
 **Important**: Always use HTTPS. Credentials are transmitted to the network device.
+
+### API Key Authentication
+
+API keys are JWTs that authenticate the caller to NAAS independently of device credentials.
+Device credentials are provided in the request body instead of the Authorization header.
+
+```bash
+# Send a command using an API key
+curl -k -X POST https://localhost:8443/v1/send_command \
+  -H "Authorization: Bearer eyJhbG..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "host": "192.168.1.1",
+    "platform": "cisco_ios",
+    "commands": ["show version"],
+    "username": "admin",
+    "password": "device_password"
+  }'
+```
+
+When using API key auth, `username` and `password` are **required** in the request body.
+`enable` is optional (defaults to the password value).
+
+**Key differences from Basic auth:**
+
+- API key identifies the caller; device credentials are separate
+- API key users are not subject to TACACS lockout
+- Keys embed role and context claims (for future RBAC support)
+
+## API Key Management
+
+Create, list, and revoke API keys. Keys are returned once at creation — store them securely.
+
+All key management endpoints require **Basic auth** — API keys cannot be used to manage
+other keys. The Basic auth password must match the `NAAS_ADMIN_SECRET` environment variable.
+If `NAAS_ADMIN_SECRET` is not set, key management is disabled.
+
+### Create a Key
+
+```bash
+curl -k -X POST https://localhost:8443/v1/api-keys \
+  -u "admin:$NAAS_ADMIN_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{"role": "admin", "ttl": 7776000}'
+```
+
+Response:
+
+```json
+{
+  "key_id": "k-a1b2c3d4e5f6",
+  "token": "eyJhbG...",
+  "role": "admin",
+  "contexts": ["*"],
+  "expires_at": "2026-07-04T00:00:00Z"
+}
+```
+
+| Parameter | Default | Description |
+| --- | --- | --- |
+| `role` | `admin` | Role: `admin`, `operator`, or `viewer` |
+| `contexts` | `["*"]` | Allowed routing contexts |
+| `ttl` | `7776000` (90 days) | Expiration in seconds, `0` for no expiry |
+| `created_by` | `system` | Creator identity (for audit) |
+
+### List Keys
+
+```bash
+curl -k -u "admin:$NAAS_ADMIN_SECRET" https://localhost:8443/v1/api-keys
+```
+
+Returns metadata only — tokens are never shown after creation.
+
+### Revoke a Key
+
+```bash
+curl -k -X DELETE -u "admin:$NAAS_ADMIN_SECRET" \
+  https://localhost:8443/v1/api-keys/k-a1b2c3d4e5f6
+```
+
+Revoked keys are immediately rejected on subsequent requests.
 
 ## Send Command
 
