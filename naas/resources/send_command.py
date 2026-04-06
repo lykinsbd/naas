@@ -10,7 +10,7 @@ from spectree import Response
 from naas import __base_response__
 from naas.config import JOB_TIMEOUT, JOB_TTL_FAILED, JOB_TTL_SUCCESS
 from naas.library.audit import emit_audit_event
-from naas.library.auth import device_lockout, job_locker, job_unlocker
+from naas.library.auth import device_lockout, job_locker, job_unlocker, require_role
 from naas.library.callbacks import on_job_complete, on_job_failure
 from naas.library.context import get_queue_for_context
 from naas.library.decorators import valid_post
@@ -28,6 +28,7 @@ class SendCommand(Resource):
         return __base_response__
 
     @valid_post
+    @require_role("operator")
     @spec.validate(json=SendCommandRequest, resp=Response(HTTP_202=JobResponse))
     def post(self):
         """

@@ -7,13 +7,14 @@ from rq.job import Job
 from werkzeug.exceptions import Forbidden
 
 from naas import __base_response__
-from naas.library.auth import Credentials, job_unlocker
+from naas.library.auth import Credentials, job_unlocker, require_role
 from naas.library.validation import Validate
 from naas.models import JobResultResponse
 
 
 class GetResults(Resource):
     @staticmethod
+    @require_role("viewer")
     def get(job_id: str):
         """
         Given the requested job_id, return status and/or any results if finished.

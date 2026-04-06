@@ -1,9 +1,12 @@
 """Unit tests for GET /v1/contexts endpoint."""
 
+from base64 import b64encode
 from unittest.mock import MagicMock, patch
 
 
 class TestContexts:
+    _auth_header = {"Authorization": f"Basic {b64encode(b'user:pass').decode()}"}
+
     def test_get_contexts(self, client):
         """GET /v1/contexts returns list of configured contexts with worker counts."""
         mock_worker = MagicMock()
@@ -12,7 +15,7 @@ class TestContexts:
         with patch("naas.resources.contexts.Worker.all", return_value=[mock_worker]):
             with patch("naas.resources.contexts.Queue") as mock_queue_cls:
                 mock_queue_cls.return_value.__len__ = lambda self: 3
-                response = client.get("/v1/contexts")
+                response = client.get("/v1/contexts", headers=self._auth_header)
 
         assert response.status_code == 200
         data = response.get_json()

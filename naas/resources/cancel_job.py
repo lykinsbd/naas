@@ -8,7 +8,7 @@ from werkzeug.exceptions import Conflict, Forbidden
 
 from naas import __base_response__
 from naas.library.audit import emit_audit_event
-from naas.library.auth import Credentials, job_unlocker
+from naas.library.auth import Credentials, job_unlocker, require_role
 from naas.library.validation import Validate
 
 
@@ -16,9 +16,9 @@ class CancelJob(Resource):
     """Resource for cancelling jobs."""
 
     @staticmethod
+    @require_role("operator")
     def delete(job_id: str):
         """
-        Cancel a job by job_id.
 
         Args:
             job_id: UUID of the job to cancel.

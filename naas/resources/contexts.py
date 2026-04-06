@@ -6,11 +6,13 @@ from rq import Queue, Worker
 from spectree import Response
 
 from naas.config import NAAS_CONTEXTS
+from naas.library.auth import require_role
 from naas.models import ContextInfo, ContextsResponse
 from naas.spec import spec
 
 
 class Contexts(Resource):
+    @require_role("viewer")
     @spec.validate(resp=Response(HTTP_200=ContextsResponse))
     def get(self):
         """
