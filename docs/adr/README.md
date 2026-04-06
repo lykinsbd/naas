@@ -37,4 +37,5 @@ Do **not** write an ADR for:
 | [0002](0002-secrets-backend-abstraction.md) | Secrets backend abstraction | Accepted |
 | [0003](0003-api-key-authentication.md) | API key authentication | Accepted |
 | [0004](0004-role-based-access-control.md) | Role-based access control | Accepted |
-| [0005](0005-structured-audit-event-logging.md) | Structured audit event logging | Proposed |
+| [0005](0005-structured-audit-event-logging.md) | Structured audit event logging | Accepted |
+| [0006](0006-credential-encryption-at-rest.md) | Credential encryption at rest | Proposed |
