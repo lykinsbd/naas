@@ -5,7 +5,7 @@ from functools import wraps
 from uuid import uuid4
 
 from flask import g, request
-from werkzeug.exceptions import UnprocessableEntity
+from werkzeug.exceptions import Forbidden, UnprocessableEntity
 
 from naas.library import validation
 from naas.library.auth import Credentials
@@ -55,6 +55,11 @@ def valid_post(f):
                 password=password,
                 enable=body.get("enable"),
             )
+            # Context authorization: check JWT contexts claim
+            context = body.get("context", "default")
+            allowed = g.jwt_claims.get("contexts", [])
+            if "*" not in allowed and context not in allowed:
+                raise Forbidden(f"API key not authorized for context '{context}'")
         else:
             # Basic auth: device credentials from Authorization header
             g.credentials = Credentials(
