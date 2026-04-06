@@ -76,6 +76,9 @@ class _BaseCommandRequest(BaseModel):
         default=None,
         description="Optional HTTPS URL to POST a job completion notification to (never includes results)",
     )
+    username: str | None = Field(default=None, description="Device username (required for API key auth)")
+    password: str | None = Field(default=None, description="Device password (required for API key auth)")
+    enable: str | None = Field(default=None, description="Enable password (optional, defaults to password)")
 
     @field_validator("tags")
     @classmethod
@@ -188,6 +191,9 @@ class SendConfigRequest(BaseModel):
         default=None,
         description="Optional HTTPS URL to POST a job completion notification to (never includes results)",
     )
+    username: str | None = Field(default=None, description="Device username (required for API key auth)")
+    password: str | None = Field(default=None, description="Device password (required for API key auth)")
+    enable: str | None = Field(default=None, description="Enable password (optional, defaults to password)")
 
     @field_validator("tags")
     @classmethod

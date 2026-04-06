@@ -5,6 +5,7 @@ from functools import wraps
 from uuid import uuid4
 
 from flask import g, request
+from werkzeug.exceptions import UnprocessableEntity
 
 from naas.library import validation
 from naas.library.auth import Credentials
@@ -42,11 +43,25 @@ def valid_post(f):
         v.is_duplicate_job(g.request_id)
 
         # Create a credentials object, and store it on the g object
-        g.credentials = Credentials(
-            username=request.authorization.username,
-            password=request.authorization.password,
-            enable=request.json.get("enable", None),
-        )
+        if g.auth_method == "bearer":
+            # JWT auth: device credentials come from request body
+            body = request.json
+            username = body.get("username")
+            password = body.get("password")
+            if not username or not password:
+                raise UnprocessableEntity("username and password are required in request body when using API key auth")
+            g.credentials = Credentials(
+                username=username,
+                password=password,
+                enable=body.get("enable"),
+            )
+        else:
+            # Basic auth: device credentials from Authorization header
+            g.credentials = Credentials(
+                username=request.authorization.username,
+                password=request.authorization.password,
+                enable=request.json.get("enable", None),
+            )
 
         return f(*args, **kwargs)
 

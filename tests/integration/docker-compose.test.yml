@@ -30,6 +30,8 @@ services:
       - NAAS_CONTEXTS=default,alt
       - GUNICORN_WORKERS=2
       - WEBHOOK_ALLOW_HTTP=true
+      - NAAS_JWT_SECRET=integration-test-jwt-secret
+      - NAAS_ADMIN_SECRET=integration-test-admin-secret
     networks:
       - naas-test
     depends_on:

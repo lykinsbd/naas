@@ -4,9 +4,11 @@
 
 from uuid import UUID
 
-from flask import current_app, request
+import jwt
+from flask import current_app, g, request
 from werkzeug.exceptions import BadRequest
 
+from naas.library.api_keys import validate_api_key
 from naas.library.auth import tacacs_auth_lockout
 from naas.library.errorhandlers import DuplicateRequestID, LockedOut, NoAuth, NoJSON
 
@@ -31,7 +33,25 @@ class Validate:
 
     @staticmethod
     def has_auth() -> None:
-        """Ensure that the request has provided authorization headers (basic with username and password)."""
+        """Ensure the request has valid authentication (Basic or Bearer JWT).
+
+        Sets ``g.auth_method`` to ``"basic"`` or ``"bearer"`` and, for Bearer,
+        stores decoded claims on ``g.jwt_claims``.
+        """
+        auth_header = request.headers.get("Authorization", "")
+
+        # Bearer JWT path
+        if auth_header.startswith("Bearer "):
+            token = auth_header.removeprefix("Bearer ")
+            try:
+                g.jwt_claims = validate_api_key(token)
+                g.auth_method = "bearer"
+                return
+            except jwt.InvalidTokenError as exc:
+                current_app.logger.error("Invalid API key: %s", exc)
+                raise NoAuth
+
+        # Basic auth path (existing behaviour)
         if (
             not request.authorization
             or request.authorization.username is None
@@ -39,10 +59,13 @@ class Validate:
         ):
             current_app.logger.error("user did not pass authentication information")
             raise NoAuth
+        g.auth_method = "basic"
 
     @staticmethod
     def locked_out() -> None:
         """Validate if this user is locked out from accessing the API."""
+        if getattr(g, "auth_method", None) == "bearer":
+            return  # JWT-authenticated users are not subject to TACACS lockout
         if request.authorization and request.authorization.username:
             if tacacs_auth_lockout(username=request.authorization.username, redis=current_app.config["redis"]):
                 current_app.logger.error(f"{request.authorization.username} is currently locked out.")
