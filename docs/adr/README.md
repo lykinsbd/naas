@@ -34,4 +34,5 @@ Do **not** write an ADR for:
 | ADR | Title | Status |
 | --- | --- | --- |
 | [0001](0001-python-client-library-integration.md) | Python client library integration strategy | Accepted |
-| [0002](0002-secrets-backend-abstraction.md) | Secrets backend abstraction | Proposed |
+| [0002](0002-secrets-backend-abstraction.md) | Secrets backend abstraction | Accepted |
+| [0003](0003-api-key-authentication.md) | API key authentication | Proposed |
