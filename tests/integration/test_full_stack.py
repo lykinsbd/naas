@@ -57,6 +57,6 @@ def test_send_command_job_creation(api_url, wait_for_api):
 
 def test_get_results_not_found(api_url, wait_for_api):
     """Test getting results for non-existent job returns 400 (bad request format)."""
-    response = requests.get(f"{api_url}/send_command/nonexistent", verify=False)
+    response = requests.get(f"{api_url}/send_command/nonexistent", auth=("admin", "admin"), verify=False)
     # Invalid job ID format returns 400
     assert response.status_code == 400

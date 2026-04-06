@@ -264,3 +264,40 @@ class TestBearerAuth:
                 headers={"Authorization": f"Basic {auth}"},
             )
         assert response.status_code == 202
+
+
+@pytest.mark.usefixtures("_mock_secrets")
+class TestRBAC:
+    """Tests for role-based access control enforcement."""
+
+    def _make_token(self, app, role):
+        with app.app_context():
+            return create_api_key(role=role)["token"]
+
+    def test_viewer_cannot_send_command(self, app, client):
+        token = self._make_token(app, "viewer")
+        response = client.post(
+            "/v1/send_command",
+            json={"host": "192.168.1.1", "commands": ["show version"], "username": "u", "password": "p"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 403
+
+    def test_viewer_cannot_send_config(self, app, client):
+        token = self._make_token(app, "viewer")
+        response = client.post(
+            "/v1/send_config",
+            json={"host": "192.168.1.1", "config": ["no shutdown"], "username": "u", "password": "p"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 403
+
+    def test_operator_can_send_command(self, app, client):
+        token = self._make_token(app, "operator")
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+        response = client.post(
+            "/v1/send_command",
+            json={"host": "192.168.1.1", "commands": ["show version"], "username": "u", "password": "p"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 202

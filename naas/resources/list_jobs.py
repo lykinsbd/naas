@@ -6,6 +6,7 @@ from rq.job import Job
 from rq.registry import FailedJobRegistry, FinishedJobRegistry, StartedJobRegistry
 
 from naas import __base_response__
+from naas.library.auth import require_role
 from naas.library.validation import Validate
 from naas.models import ListJobsQuery
 from naas.spec import spec
@@ -13,6 +14,7 @@ from naas.spec import spec
 
 class ListJobs(Resource):
     @staticmethod
+    @require_role("viewer")
     @spec.validate(query=ListJobsQuery)
     def get():
         """

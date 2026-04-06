@@ -10,7 +10,7 @@ from rq.registry import FailedJobRegistry
 
 from naas import __base_response__
 from naas.config import FAILED_JOB_MAX_RETAIN, JOB_TIMEOUT, JOB_TTL_FAILED, JOB_TTL_SUCCESS
-from naas.library.auth import Credentials, job_locker, job_unlocker
+from naas.library.auth import Credentials, job_locker, job_unlocker, require_role
 from naas.library.callbacks import on_job_complete, on_job_failure
 from naas.library.context import get_queue_for_context
 from naas.library.sanitize import sanitize_error
@@ -40,6 +40,7 @@ class FailedJobs(Resource):
     """GET /v1/jobs/failed — list jobs in the failed registry."""
 
     @staticmethod
+    @require_role("operator")
     def get():
         """
         List jobs in the failed (dead letter) registry.
@@ -81,6 +82,7 @@ class ReplayJob(Resource):
     """POST /v1/jobs/{job_id}/replay — re-enqueue a failed job."""
 
     @staticmethod
+    @require_role("operator")
     def post(job_id: str):
         """
         Re-enqueue a failed job using the caller's current credentials.

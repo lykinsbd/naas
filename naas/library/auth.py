@@ -1,6 +1,7 @@
 # Auth related functions
 
 from datetime import datetime, timedelta
+from functools import wraps
 from hashlib import sha512
 from typing import TYPE_CHECKING
 from uuid import uuid4
@@ -126,3 +127,37 @@ class Credentials:
         salt_shaker = sha512(pork.encode())
         salted_pork = salt_shaker.hexdigest()  # Particularly nice
         return salted_pork
+
+
+# Role hierarchy — higher rank = more permissions
+ROLE_RANK: dict[str, int] = {"viewer": 0, "operator": 1, "admin": 2}
+
+
+def require_role(minimum_role: str):
+    """Decorator to enforce a minimum role for JWT-authenticated requests.
+
+    Basic auth users are implicitly admin (backward compatibility).
+    Calls has_auth() if auth has not yet been established on this request.
+    """
+
+    def decorator(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            from flask import g
+
+            if not hasattr(g, "auth_method"):
+                from naas.library.validation import Validate
+
+                Validate.has_auth()
+            if getattr(g, "auth_method", "basic") == "basic":
+                return f(*args, **kwargs)
+            user_role = g.jwt_claims.get("role", "viewer")
+            if ROLE_RANK.get(user_role, 0) < ROLE_RANK[minimum_role]:
+                from werkzeug.exceptions import Forbidden
+
+                raise Forbidden
+            return f(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
