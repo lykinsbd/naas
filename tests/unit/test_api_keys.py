@@ -303,7 +303,7 @@ class TestRBAC:
     def test_viewer_cannot_send_command(self, app, client):
         token = self._make_token(app, "viewer")
         response = client.post(
-            "/v1/send_command",
+            "/v2/send-command",
             json={"host": "192.168.1.1", "commands": ["show version"], "username": "u", "password": "p"},
             headers={"Authorization": f"Bearer {token}"},
         )
@@ -312,7 +312,7 @@ class TestRBAC:
     def test_viewer_cannot_send_config(self, app, client):
         token = self._make_token(app, "viewer")
         response = client.post(
-            "/v1/send_config",
+            "/v2/send-config",
             json={"host": "192.168.1.1", "config": ["no shutdown"], "username": "u", "password": "p"},
             headers={"Authorization": f"Bearer {token}"},
         )
@@ -325,6 +325,35 @@ class TestRBAC:
             "/v1/send_command",
             json={"host": "192.168.1.1", "commands": ["show version"], "username": "u", "password": "p"},
             headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 202
+
+    def test_v1_viewer_bypasses_rbac(self, app, client):
+        token = self._make_token(app, "viewer")
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+        response = client.post(
+            "/v1/send_command",
+            json={"host": "192.168.1.1", "commands": ["show version"], "username": "u", "password": "p"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 202
+
+    def test_v2_operator_passes_rbac(self, app, client):
+        token = self._make_token(app, "operator")
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+        response = client.post(
+            "/v2/send-command",
+            json={"host": "192.168.1.1", "commands": ["show version"], "username": "u", "password": "p"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 202
+
+    def test_v2_basic_auth_passes_rbac(self, app, client):
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+        response = client.post(
+            "/v2/send-command",
+            json={"host": "192.168.1.1", "commands": ["show version"]},
+            headers={"Authorization": "Basic dGVzdDp0ZXN0"},
         )
         assert response.status_code == 202
 
@@ -372,7 +401,7 @@ class TestContextAuthz:
     def test_wrong_context_forbidden(self, app, client):
         token = self._make_token(app, ["oob-dc1"])
         response = client.post(
-            "/v1/send_command",
+            "/v2/send-command",
             json={
                 "host": "192.168.1.1",
                 "commands": ["show version"],
@@ -393,3 +422,27 @@ class TestContextAuthz:
             headers={"Authorization": f"Bearer {token}"},
         )
         assert response.status_code == 202
+
+
+class TestV2RejectsDeprecatedFields:
+    """Tests that /v2/ routes reject ip and device_type fields."""
+
+    def test_v2_rejects_ip_field(self, app, client):
+        with app.app_context():
+            response = client.post(
+                "/v2/send-command",
+                json={"ip": "192.168.1.1", "commands": ["show version"]},
+                headers={"Authorization": "Basic dGVzdDp0ZXN0"},
+            )
+        assert response.status_code == 422
+        assert "ip" in response.json["message"].lower()
+
+    def test_v2_rejects_device_type_field(self, app, client):
+        with app.app_context():
+            response = client.post(
+                "/v2/send-command",
+                json={"host": "192.168.1.1", "commands": ["show version"], "device_type": "cisco_nxos"},
+                headers={"Authorization": "Basic dGVzdDp0ZXN0"},
+            )
+        assert response.status_code == 422
+        assert "device_type" in response.json["message"].lower()

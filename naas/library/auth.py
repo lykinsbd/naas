@@ -138,6 +138,7 @@ def require_role(minimum_role: str):
 
     Basic auth users are implicitly admin (backward compatibility).
     Calls has_auth() if auth has not yet been established on this request.
+    RBAC is only enforced on /v2/ routes.
     """
 
     def decorator(f):
@@ -145,10 +146,15 @@ def require_role(minimum_role: str):
         def wrapper(*args, **kwargs):
             from flask import g
 
+            from naas.library.versioning import is_v2_request
+
             if not hasattr(g, "auth_method"):
                 from naas.library.validation import Validate
 
                 Validate.has_auth()
+            # Skip RBAC on non-v2 routes
+            if not is_v2_request():
+                return f(*args, **kwargs)
             if getattr(g, "auth_method", "basic") == "basic":
                 return f(*args, **kwargs)
             user_role = g.jwt_claims.get("role", "viewer")

@@ -10,6 +10,7 @@ from werkzeug.exceptions import Forbidden, UnprocessableEntity
 from naas.library import validation
 from naas.library.audit import emit_audit_event
 from naas.library.auth import Credentials
+from naas.library.versioning import is_v2_request
 
 
 def valid_post(f):
@@ -32,6 +33,14 @@ def valid_post(f):
         v.has_auth()
         v.locked_out()
         v.is_json()
+
+        # Reject deprecated fields on v2 routes
+        if is_v2_request():
+            body = request.json
+            if "ip" in body:
+                raise UnprocessableEntity("'ip' field is not accepted on /v2/ routes. Use 'host' instead.")
+            if "device_type" in body:
+                raise UnprocessableEntity("'device_type' field is not accepted on /v2/ routes. Use 'platform' instead.")
 
         # Capture or create the x-request-id, and store it on the g object
         if "x-request-id" not in v.headers.keys():
@@ -56,17 +65,18 @@ def valid_post(f):
                 password=password,
                 enable=body.get("enable"),
             )
-            # Context authorization: check JWT contexts claim
-            context = body.get("context", "default")
-            allowed = g.jwt_claims.get("contexts", [])
-            if "*" not in allowed and context not in allowed:
-                emit_audit_event(
-                    "auth.context_denied",
-                    identity=g.jwt_claims["sub"],
-                    context=context,
-                    allowed_contexts=",".join(allowed),
-                )
-                raise Forbidden(f"API key not authorized for context '{context}'")
+            # Context authorization: check JWT contexts claim (v2 only)
+            if is_v2_request():
+                context = body.get("context", "default")
+                allowed = g.jwt_claims.get("contexts", [])
+                if "*" not in allowed and context not in allowed:
+                    emit_audit_event(
+                        "auth.context_denied",
+                        identity=g.jwt_claims["sub"],
+                        context=context,
+                        allowed_contexts=",".join(allowed),
+                    )
+                    raise Forbidden(f"API key not authorized for context '{context}'")
         else:
             # Basic auth: device credentials from Authorization header
             g.credentials = Credentials(

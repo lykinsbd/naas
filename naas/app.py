@@ -110,6 +110,26 @@ api.add_resource(ApiKeys, "/v1/api-keys")
 api.add_resource(ApiKey, "/v1/api-keys/<string:key_id>")
 api.add_resource(ApiKeyRotate, "/v1/api-keys/<string:key_id>/rotate")
 
+# v2 routes (hyphenated, RBAC/context auth enforced)
+api.add_resource(SendCommand, "/v2/send-command", endpoint="send_command_v2")
+api.add_resource(SendCommandStructured, "/v2/send-command-structured", endpoint="send_command_structured_v2")
+api.add_resource(SendConfig, "/v2/send-config", endpoint="send_config_v2")
+api.add_resource(
+    GetResults,
+    "/v2/send-command/<string:job_id>",
+    "/v2/send-config/<string:job_id>",
+    "/v2/send-command-structured/<string:job_id>",
+    endpoint="get_results_v2",
+)
+api.add_resource(ListJobs, "/v2/jobs", endpoint="list_jobs_v2")
+api.add_resource(FailedJobs, "/v2/jobs/failed", endpoint="failed_jobs_v2")
+api.add_resource(CancelJob, "/v2/jobs/<string:job_id>", endpoint="cancel_job_v2")
+api.add_resource(ReplayJob, "/v2/jobs/<string:job_id>/replay", endpoint="replay_job_v2")
+api.add_resource(Contexts, "/v2/contexts", endpoint="contexts_v2")
+api.add_resource(ApiKeys, "/v2/api-keys", endpoint="api_keys_v2")
+api.add_resource(ApiKey, "/v2/api-keys/<string:key_id>", endpoint="api_key_v2")
+api.add_resource(ApiKeyRotate, "/v2/api-keys/<string:key_id>/rotate", endpoint="api_key_rotate_v2")
+
 # Legacy unversioned routes (deprecated aliases — kept for backward compatibility)
 _LEGACY_PREFIXES = ("/send_command", "/send_config")
 
