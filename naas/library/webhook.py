@@ -1,6 +1,6 @@
 """
 webhook.py
-Fire-and-forget HTTP POST notification on job completion.
+HTTP POST notification on job completion with retry support.
 Payload contains only job metadata — never results or credentials.
 """
 
@@ -11,9 +11,9 @@ import logging
 
 import requests
 
-logger = logging.getLogger(__name__)
+from naas.config import WEBHOOK_TIMEOUT
 
-_WEBHOOK_TIMEOUT = 10  # seconds
+logger = logging.getLogger(__name__)
 
 
 def _sign_payload(payload_bytes: bytes, secret: str) -> str:
@@ -21,12 +21,12 @@ def _sign_payload(payload_bytes: bytes, secret: str) -> str:
     return "sha256=" + hmac.new(secret.encode(), payload_bytes, hashlib.sha256).hexdigest()
 
 
-def fire_webhook(url: str, job_id: str, status: str, enqueued_at: str, completed_at: str, secret: str = "") -> None:
-    """
-    POST a job completion notification to the given URL.
+class WebhookDeliveryError(Exception):
+    """Raised when webhook delivery fails (triggers RQ retry)."""
 
-    Fire-and-forget: errors are logged but never propagate to the caller.
-    The payload contains only job metadata — results and credentials are never included.
+
+def deliver_webhook(url: str, job_id: str, status: str, enqueued_at: str, completed_at: str, secret: str = "") -> None:
+    """POST a job completion notification. Raises on failure for RQ retry.
 
     Args:
         url: HTTPS URL to POST to
@@ -47,8 +47,9 @@ def fire_webhook(url: str, job_id: str, status: str, enqueued_at: str, completed
         payload_bytes = json.dumps(payload, separators=(",", ":"), sort_keys=True).encode()
         headers["X-NAAS-Signature"] = _sign_payload(payload_bytes, secret)
     try:
-        response = requests.post(url, json=payload, headers=headers, timeout=_WEBHOOK_TIMEOUT)
+        response = requests.post(url, json=payload, headers=headers, timeout=WEBHOOK_TIMEOUT)
         response.raise_for_status()
         logger.info("Webhook delivered: job_id=%s url=%s status=%d", job_id, url, response.status_code)
     except Exception as e:
         logger.warning("Webhook delivery failed: job_id=%s url=%s error=%s", job_id, url, e)
+        raise WebhookDeliveryError(str(e)) from e

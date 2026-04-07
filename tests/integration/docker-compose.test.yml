@@ -59,7 +59,7 @@ services:
       timeout: 3s
       retries: 3
       start_period: 5s
-    command: ["rq", "worker", "naas-default", "--url", "redis://:test_password@redis:6379"]
+    command: ["rq", "worker", "naas-default", "webhooks", "--url", "redis://:test_password@redis:6379"]
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379

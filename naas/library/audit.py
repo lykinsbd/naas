@@ -12,6 +12,7 @@ _EVENT_SCHEMAS = {
     "apikey.created": {"key_id", "role", "contexts", "created_by"},
     "apikey.revoked": {"key_id", "revoked_by"},
     "apikey.rotated": {"old_key_id", "new_key_id", "rotated_by"},
+    "webhook.failed": {"job_id", "webhook_url", "attempts", "last_error"},
     "job.submitted": {"host", "platform", "port", "command_count", "user_hash", "request_id"},
     "job.completed": {"request_id", "status", "duration_ms"},
     "job.cancelled": {"request_id", "cancelled_by_hash"},
