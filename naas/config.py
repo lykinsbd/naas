@@ -67,6 +67,8 @@ FAILED_JOB_MAX_RETAIN: int = int(os.environ.get("FAILED_JOB_MAX_RETAIN", 500))
 
 # Webhook config
 WEBHOOK_ALLOW_HTTP: bool = os.environ.get("WEBHOOK_ALLOW_HTTP", "false").lower() == "true"
+WEBHOOK_MAX_RETRIES: int = int(os.environ.get("WEBHOOK_MAX_RETRIES", "4"))
+WEBHOOK_TIMEOUT: int = int(os.environ.get("WEBHOOK_TIMEOUT", "10"))
 
 # Job reaper config
 JOB_REAPER_ENABLED: bool = os.environ.get("JOB_REAPER_ENABLED", "true").lower() == "true"
