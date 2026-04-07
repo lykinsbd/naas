@@ -117,3 +117,43 @@ class TestWebhookUrlValidation:
         """SendConfigRequest also validates webhook_url."""
         req = SendConfigRequest(host="192.0.2.1", commands=["interface Gi0/1"], webhook_url="https://example.com/cb")
         assert req.webhook_url == "https://example.com/cb"
+
+
+class TestV1DeprecatedFields:
+    """Tests for v1 backward-compatible ip/device_type field resolution."""
+
+    def test_ip_mapped_to_host(self):
+        req = SendCommandRequest.model_validate({"ip": "192.168.1.1", "commands": ["show version"]})
+        assert req.host == "192.168.1.1"
+
+    def test_device_type_mapped_to_platform(self):
+        req = SendCommandRequest.model_validate(
+            {"host": "192.168.1.1", "commands": ["show version"], "device_type": "cisco_nxos"}
+        )
+        assert req.platform == "cisco_nxos"
+
+    def test_host_takes_precedence_over_ip(self):
+        req = SendCommandRequest.model_validate({"host": "10.0.0.1", "ip": "192.168.1.1", "commands": ["show version"]})
+        assert req.host == "10.0.0.1"
+
+    def test_missing_host_and_ip_raises(self):
+        with pytest.raises(ValidationError, match="host"):
+            SendCommandRequest.model_validate({"commands": ["show version"]})
+
+    def test_send_config_ip_mapped(self):
+        req = SendConfigRequest.model_validate({"ip": "192.168.1.1", "config": ["no shutdown"]})
+        assert req.host == "192.168.1.1"
+
+    def test_send_config_device_type_mapped(self):
+        req = SendConfigRequest.model_validate(
+            {"host": "192.168.1.1", "config": ["no shutdown"], "device_type": "cisco_nxos"}
+        )
+        assert req.platform == "cisco_nxos"
+
+    def test_send_config_missing_host_and_ip_raises(self):
+        with pytest.raises(ValidationError, match="host"):
+            SendConfigRequest.model_validate({"config": ["no shutdown"]})
+
+
+class TestV1RBACSkip:
+    """Test that RBAC is skipped on /v1/ routes."""

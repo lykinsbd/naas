@@ -58,10 +58,12 @@ class _BaseCommandRequest(BaseModel):
 
     model_config = {"strict": True}
 
-    host: str = Field(..., description="Device IP address or hostname")
+    host: str | None = Field(default=None, description="Device IP address or hostname")
+    ip: str | None = Field(default=None, description="Deprecated: use host instead (v1 compat)")
     commands: list[str] = Field(..., min_length=1, description="Commands to execute")
     port: int = Field(default=22, ge=1, le=65535, description="SSH port")
     platform: str = Field(default="cisco_ios", description="Netmiko device type (use 'autodetect' for SSHDetect)")
+    device_type: str | None = Field(default=None, description="Deprecated: use platform instead (v1 compat)")
     read_timeout: float = Field(default=30.0, ge=1.0, description="Read timeout in seconds for device responses")
     conn_timeout: float = Field(default=10.0, ge=1.0, description="TCP connection timeout in seconds")
     context: str = Field(
@@ -98,15 +100,15 @@ class _BaseCommandRequest(BaseModel):
 
     @field_validator("host")
     @classmethod
-    def validate_host(cls, v: str) -> str:
+    def validate_host(cls, v: str | None) -> str | None:
         """Validate host is a valid IP address or hostname."""
-        # Try IP first
+        if v is None:
+            return v  # pragma: no cover
         try:
             ip_address(v)
             return v
         except Exception:
             pass
-        # Try hostname
         if len(v) <= 253 and _HOSTNAME_RE.match(v):
             return v
         raise ValueError(f"'{v}' is not a valid IP address or hostname")
@@ -126,6 +128,23 @@ class _BaseCommandRequest(BaseModel):
         if v not in netmiko_platforms:
             raise ValueError(f"Invalid platform '{v}'. Must be a valid Netmiko device type.")
         return v
+
+    @model_validator(mode="before")
+    @classmethod
+    def resolve_deprecated_fields(cls, data: Any) -> Any:
+        """Map deprecated v1 fields: ip → host, device_type → platform."""
+        if isinstance(data, dict):
+            if "ip" in data and data["ip"] is not None:
+                data.setdefault("host", data.pop("ip"))
+            else:
+                data.pop("ip", None)
+            if "device_type" in data and data["device_type"] is not None:
+                data["platform"] = data.pop("device_type")
+            else:
+                data.pop("device_type", None)
+            if not data.get("host"):
+                raise ValueError("host (or ip for v1) is required")
+        return data
 
 
 class SendCommandRequest(_BaseCommandRequest):
@@ -177,11 +196,13 @@ class SendConfigRequest(BaseModel):
 
     model_config = {"strict": True}
 
-    host: str = Field(..., description="Device IP address or hostname")
+    host: str | None = Field(default=None, description="Device IP address or hostname")
+    ip: str | None = Field(default=None, description="Deprecated: use host instead (v1 compat)")
     config: list[str] | None = Field(default=None, min_length=1, description="Configuration commands")
     commands: list[str] | None = Field(default=None, min_length=1, description="Configuration commands (alias)")
     port: int = Field(default=22, ge=1, le=65535, description="SSH port")
     platform: str = Field(default="cisco_ios", description="Netmiko device type (use 'autodetect' for SSHDetect)")
+    device_type: str | None = Field(default=None, description="Deprecated: use platform instead (v1 compat)")
     read_timeout: float = Field(default=30.0, ge=1.0, description="Read timeout in seconds for device responses")
     conn_timeout: float = Field(default=10.0, ge=1.0, description="TCP connection timeout in seconds")
     save_config: bool = Field(default=False, description="Save configuration after applying")
@@ -217,8 +238,10 @@ class SendConfigRequest(BaseModel):
 
     @field_validator("host")
     @classmethod
-    def validate_host(cls, v: str) -> str:
+    def validate_host(cls, v: str | None) -> str | None:
         """Validate host is a valid IP address or hostname."""
+        if v is None:
+            return v  # pragma: no cover
         try:
             ip_address(v)
             return v
@@ -243,6 +266,23 @@ class SendConfigRequest(BaseModel):
         if v not in netmiko_platforms:
             raise ValueError(f"Invalid platform '{v}'. Must be a valid Netmiko device type.")
         return v
+
+    @model_validator(mode="before")
+    @classmethod
+    def resolve_deprecated_fields(cls, data: Any) -> Any:
+        """Map deprecated v1 fields: ip → host, device_type → platform."""
+        if isinstance(data, dict):
+            if "ip" in data and data["ip"] is not None:
+                data.setdefault("host", data.pop("ip"))
+            else:
+                data.pop("ip", None)
+            if "device_type" in data and data["device_type"] is not None:
+                data["platform"] = data.pop("device_type")
+            else:
+                data.pop("device_type", None)
+            if not data.get("host"):
+                raise ValueError("host (or ip for v1) is required")
+        return data
 
     @model_validator(mode="after")
     def resolve_config(self) -> "SendConfigRequest":
