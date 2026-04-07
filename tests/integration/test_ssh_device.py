@@ -24,6 +24,29 @@ CISSHGO_PASS = "admin"
 # API auth (Basic Auth for NAAS itself — same creds passed through to device)
 API_AUTH = (CISSHGO_USER, CISSHGO_PASS)
 
+# API versions
+API_V1 = "v1"
+API_V2 = "v2"
+
+# Endpoint names per version (logical name → path segment)
+_ENDPOINTS = {
+    API_V1: {
+        "send_command": "send_command",
+        "send_config": "send_config",
+        "send_command_structured": "send_command_structured",
+    },
+    API_V2: {
+        "send_command": "send-command",
+        "send_config": "send-config",
+        "send_command_structured": "send-command-structured",
+    },
+}
+
+
+def _endpoint(name: str, version: str = API_V1) -> str:
+    """Resolve a logical endpoint name to its versioned path segment."""
+    return _ENDPOINTS[version][name]
+
 
 @pytest.fixture(scope="session")
 def api_url():
@@ -72,10 +95,12 @@ def _submit_and_poll(
     auth: tuple = API_AUTH,
     endpoint: str = "send_command",
     timeout: int = 30,
+    api_version: str = API_V1,
 ) -> dict:
     """Submit a job and poll until finished or failed. Returns final job result."""
+    ep = _endpoint(endpoint, api_version)
     r = requests.post(
-        f"{api_url}/v1/{endpoint}",
+        f"{api_url}/{api_version}/{ep}",
         json=payload,
         auth=auth,
         verify=False,
@@ -85,7 +110,7 @@ def _submit_and_poll(
 
     deadline = time.time() + timeout
     while time.time() < deadline:
-        result = requests.get(f"{api_url}/v1/{endpoint}/{job_id}", auth=auth, verify=False)
+        result = requests.get(f"{api_url}/{api_version}/{ep}/{job_id}", auth=auth, verify=False)
         assert result.status_code == 200
         data = result.json()
         if data["status"] in ("finished", "failed"):
@@ -797,3 +822,95 @@ class TestDeadLetterQueue:
         """GET /v1/jobs/failed without auth returns 401."""
         r = requests.get(f"{api_url}/v1/jobs/failed", verify=False)
         assert r.status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# v1/v2 route coexistence
+# ---------------------------------------------------------------------------
+
+
+class TestV1BackwardCompat:
+    """Verify /v1/ routes honor the original contract."""
+
+    def test_v1_accepts_ip_field(self, api_url, wait_for_api, wait_for_cisshgo):
+        """v1 accepts deprecated 'ip' field mapped to 'host'."""
+        payload = {
+            "ip": CISSHGO_HOST,
+            "platform": CISSHGO_PLATFORM,
+            "port": CISSHGO_PORT,
+            "commands": ["show version"],
+        }
+        result = _submit_and_poll(api_url, payload, api_version=API_V1)
+        assert result["status"] == "finished"
+
+    def test_v1_accepts_device_type_field(self, api_url, wait_for_api, wait_for_cisshgo):
+        """v1 accepts deprecated 'device_type' field mapped to 'platform'."""
+        payload = {
+            "host": CISSHGO_HOST,
+            "device_type": CISSHGO_PLATFORM,
+            "port": CISSHGO_PORT,
+            "commands": ["show version"],
+        }
+        result = _submit_and_poll(api_url, payload, api_version=API_V1)
+        assert result["status"] == "finished"
+
+    def test_v1_deprecation_headers(self, api_url, wait_for_api):
+        """v1 responses include deprecation headers."""
+        ep = _endpoint("send_command", API_V1)
+        r = requests.get(f"{api_url}/{API_V1}/{ep}", verify=False)
+        assert r.headers.get("X-API-Deprecated") == "true"
+        assert r.headers.get("Deprecation") == "true"
+        assert "Sunset" in r.headers
+
+
+class TestV2Routes:
+    """Verify /v2/ routes enforce the new contract."""
+
+    def test_v2_send_command_works(self, api_url, wait_for_api, wait_for_cisshgo):
+        """v2 hyphenated route works with host/platform fields."""
+        result = _submit_and_poll(api_url, _device_payload(["show version"]), api_version=API_V2)
+        assert result["status"] == "finished"
+
+    def test_v2_send_config_works(self, api_url, wait_for_api, wait_for_cisshgo):
+        """v2 hyphenated route works for send-config."""
+        result = _submit_and_poll(
+            api_url, _config_payload(["interface Loopback0"]), endpoint="send_config", api_version=API_V2
+        )
+        assert result["status"] == "finished"
+
+    def test_v2_rejects_ip_field(self, api_url, wait_for_api):
+        """v2 rejects deprecated 'ip' field with 422."""
+        payload = {"ip": CISSHGO_HOST, "commands": ["show version"]}
+        ep = _endpoint("send_command", API_V2)
+        r = requests.post(f"{api_url}/{API_V2}/{ep}", json=payload, auth=API_AUTH, verify=False)
+        assert r.status_code == 422
+
+    def test_v2_rejects_device_type_field(self, api_url, wait_for_api):
+        """v2 rejects deprecated 'device_type' field with 422."""
+        payload = {"host": CISSHGO_HOST, "commands": ["show version"], "device_type": "cisco_ios"}
+        ep = _endpoint("send_command", API_V2)
+        r = requests.post(f"{api_url}/{API_V2}/{ep}", json=payload, auth=API_AUTH, verify=False)
+        assert r.status_code == 422
+
+    def test_v2_no_deprecation_headers(self, api_url, wait_for_api):
+        """v2 responses do not include deprecation headers."""
+        ep = _endpoint("send_command", API_V2)
+        r = requests.get(f"{api_url}/{API_V2}/{ep}", verify=False)
+        assert "X-API-Deprecated" not in r.headers
+        assert r.headers.get("X-API-Version") == API_V2
+
+    def test_v2_job_visible_on_v1(self, api_url, wait_for_api, wait_for_cisshgo):
+        """Job submitted on v2 is visible via v1 results endpoint."""
+        payload = _device_payload([f"show version v2-cross-{uuid.uuid4().hex[:8]}"])
+        ep_v2 = _endpoint("send_command", API_V2)
+        r = requests.post(f"{api_url}/{API_V2}/{ep_v2}", json=payload, auth=API_AUTH, verify=False)
+        assert r.status_code == 202
+        job_id = r.json()["job_id"]
+        # Poll via v1
+        ep_v1 = _endpoint("send_command", API_V1)
+        for _ in range(15):
+            time.sleep(1)
+            result = requests.get(f"{api_url}/{API_V1}/{ep_v1}/{job_id}", auth=API_AUTH, verify=False)
+            if result.status_code == 200 and result.json()["status"] in ("finished", "failed"):
+                break
+        assert result.json()["status"] == "finished"
