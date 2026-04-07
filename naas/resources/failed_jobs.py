@@ -156,7 +156,10 @@ class ReplayJob(Resource):
             failure_ttl=JOB_TTL_FAILED,
             on_success=Callback(on_job_complete),
             on_failure=Callback(on_job_failure),
-            meta={"webhook_url": job.meta.get("webhook_url", "") if isinstance(job.meta, dict) else ""},
+            meta={
+                "webhook_url": job.meta.get("webhook_url", "") if isinstance(job.meta, dict) else "",
+                "webhook_secret": job.meta.get("webhook_secret", "") if isinstance(job.meta, dict) else "",
+            },
         )
 
         job_locker(salted_creds=caller_creds.salted_hash(), job=new_job)

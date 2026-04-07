@@ -22,6 +22,7 @@ def _fire_webhook_if_configured(job: "Job", status: str) -> None:
     webhook_url = job.meta.get("webhook_url", "") if isinstance(job.meta, dict) else ""
     if not webhook_url:
         return
+    webhook_secret = job.meta.get("webhook_secret", "") if isinstance(job.meta, dict) else ""
     enqueued_at = job.enqueued_at.isoformat() if job.enqueued_at else ""
     fire_webhook(
         url=webhook_url,
@@ -29,6 +30,7 @@ def _fire_webhook_if_configured(job: "Job", status: str) -> None:
         status=status,
         enqueued_at=enqueued_at,
         completed_at=_get_completed_at(),
+        secret=webhook_secret,
     )
 
 

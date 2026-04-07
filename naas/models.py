@@ -76,6 +76,10 @@ class _BaseCommandRequest(BaseModel):
         default=None,
         description="Optional HTTPS URL to POST a job completion notification to (never includes results)",
     )
+    webhook_secret: str | None = Field(
+        default=None,
+        description="Optional shared secret for HMAC-SHA256 webhook payload signing",
+    )
     username: str | None = Field(default=None, description="Device username (required for API key auth)")
     password: str | None = Field(default=None, description="Device password (required for API key auth)")
     enable: str | None = Field(default=None, description="Enable password (optional, defaults to password)")
@@ -190,6 +194,10 @@ class SendConfigRequest(BaseModel):
     webhook_url: str | None = Field(
         default=None,
         description="Optional HTTPS URL to POST a job completion notification to (never includes results)",
+    )
+    webhook_secret: str | None = Field(
+        default=None,
+        description="Optional shared secret for HMAC-SHA256 webhook payload signing",
     )
     username: str | None = Field(default=None, description="Device username (required for API key auth)")
     password: str | None = Field(default=None, description="Device password (required for API key auth)")
