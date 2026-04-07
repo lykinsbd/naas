@@ -11,16 +11,27 @@ class TestSendCommand:
         """Test GET returns base response."""
         response = client.get("/v1/send_command")
         assert response.status_code == 200
-        assert "app" in response.json
         assert response.json["app"] == "naas"
         assert response.headers["X-API-Version"] == "v1"
+        assert response.headers["X-API-Deprecated"] == "true"
+        assert response.headers["Deprecation"] == "true"
+
+    def test_v2_send_command_no_deprecation(self, client):
+        """Test /v2/ routes do not include deprecation headers."""
+        response = client.get("/v2/send-command")
+        assert response.status_code == 200
+        assert response.headers["X-API-Version"] == "v2"
+        assert "X-API-Deprecated" not in response.headers
+        assert "Deprecation" not in response.headers
 
     def test_send_command_legacy_route_deprecated(self, client):
         """Test legacy /send_command route returns deprecation headers."""
         response = client.get("/send_command")
         assert response.status_code == 200
         assert response.headers["X-API-Deprecated"] == "true"
-        assert "X-API-Sunset" in response.headers
+        assert response.headers["Deprecation"] == "true"
+        assert "Sunset" in response.headers
+        assert "successor-version" in response.headers.get("Link", "")
 
     def test_send_command_post_success(self, app, client):
         """Test POST enqueues job successfully."""
@@ -395,7 +406,7 @@ class TestSendConfig:
         response = client.get("/send_config")
         assert response.status_code == 200
         assert response.headers["X-API-Deprecated"] == "true"
-        assert "X-API-Sunset" in response.headers
+        assert "Sunset" in response.headers
 
     def test_send_config_post_success(self, app, client):
         """Test POST enqueues job successfully."""

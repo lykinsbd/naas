@@ -131,16 +131,21 @@ api.add_resource(ApiKey, "/v2/api-keys/<string:key_id>", endpoint="api_key_v2")
 api.add_resource(ApiKeyRotate, "/v2/api-keys/<string:key_id>/rotate", endpoint="api_key_rotate_v2")
 
 # Legacy unversioned routes (deprecated aliases — kept for backward compatibility)
-_LEGACY_PREFIXES = ("/send_command", "/send_config")
+_DEPRECATED_PREFIXES = ("/v1/", "/send_command", "/send_config", "/healthcheck")
 
 
 @app.after_request
 def add_version_headers(response):
-    """Inject X-API-Version and deprecation headers on every response."""
-    response.headers["X-API-Version"] = "v1"
-    if request.path.startswith(_LEGACY_PREFIXES):
+    """Inject API version and deprecation headers on every response."""
+    if request.path.startswith("/v2/"):
+        response.headers["X-API-Version"] = "v2"
+    elif request.path.startswith("/v1/"):
+        response.headers["X-API-Version"] = "v1"
+    if request.path.startswith(_DEPRECATED_PREFIXES):
         response.headers["X-API-Deprecated"] = "true"
-        response.headers["X-API-Sunset"] = "2027-01-01"
+        response.headers["Deprecation"] = "true"
+        response.headers["Sunset"] = "2027-01-01"
+        response.headers["Link"] = '</v2/>; rel="successor-version"'
     return response
 
 
