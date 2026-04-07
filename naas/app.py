@@ -21,7 +21,7 @@ from naas import __base_response__
 from naas.config import app_configure
 from naas.library.errorhandlers import api_error_generator
 from naas.library.worker_cache import get_cached_workers
-from naas.resources.api_keys import ApiKey, ApiKeys
+from naas.resources.api_keys import ApiKey, ApiKeyRotate, ApiKeys
 from naas.resources.cancel_job import CancelJob
 from naas.resources.contexts import Contexts
 from naas.resources.failed_jobs import FailedJobs, ReplayJob
@@ -108,6 +108,7 @@ api.add_resource(ReplayJob, "/v1/jobs/<string:job_id>/replay")
 api.add_resource(Contexts, "/v1/contexts")
 api.add_resource(ApiKeys, "/v1/api-keys")
 api.add_resource(ApiKey, "/v1/api-keys/<string:key_id>")
+api.add_resource(ApiKeyRotate, "/v1/api-keys/<string:key_id>/rotate")
 
 # Legacy unversioned routes (deprecated aliases — kept for backward compatibility)
 _LEGACY_PREFIXES = ("/send_command", "/send_config")

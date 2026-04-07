@@ -175,6 +175,32 @@ class TestApiKeysEndpoints:
             response = client.delete("/v1/api-keys/k-doesnotexist", headers=self._auth_header)
         assert response.status_code == 404
 
+    def test_rotate_key_endpoint(self, app, client):
+        with app.app_context():
+            key_id = client.post("/v1/api-keys", json={"role": "operator"}, headers=self._auth_header).json["key_id"]
+            response = client.post(f"/v1/api-keys/{key_id}/rotate", headers=self._auth_header)
+        assert response.status_code == 201
+        assert response.json["key_id"] != key_id
+        assert response.json["role"] == "operator"
+        assert response.json["token"]
+
+    def test_rotate_nonexistent_key_endpoint(self, app, client):
+        with app.app_context():
+            response = client.post("/v1/api-keys/k-doesnotexist/rotate", headers=self._auth_header)
+        assert response.status_code == 404
+
+    def test_rotate_revokes_old_key(self, app, client):
+        with app.app_context():
+            old = client.post("/v1/api-keys", json={}, headers=self._auth_header).json
+            client.post(f"/v1/api-keys/{old['key_id']}/rotate", headers=self._auth_header)
+            # Old token should be revoked
+            response = client.post(
+                "/v1/send_command",
+                json={"host": "192.168.1.1", "commands": ["show version"], "username": "u", "password": "p"},
+                headers={"Authorization": f"Bearer {old['token']}"},
+            )
+        assert response.status_code == 401
+
     def test_no_auth_returns_401(self, app, client):
         with app.app_context():
             assert client.post("/v1/api-keys", json={}).status_code == 401

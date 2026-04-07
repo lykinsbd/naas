@@ -872,6 +872,26 @@
         "tags": []
       }
     },
+    "/v1/api-keys/{key_id}/rotate": {
+      "post": {
+        "description": "",
+        "operationId": "post__v1_api-keys_{key_id}_rotate",
+        "parameters": [
+          {
+            "description": "",
+            "in": "path",
+            "name": "key_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {},
+        "summary": "Rotate an API key. Returns a new token, revokes the old key.",
+        "tags": []
+      }
+    },
     "/v1/contexts": {
       "get": {
         "description": ":return: ContextsResponse with per-context status",
