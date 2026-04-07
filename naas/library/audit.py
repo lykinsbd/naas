@@ -24,21 +24,17 @@ _EVENT_SCHEMAS = {
 
 
 def emit_audit_event(event_type: str, **fields: str | int) -> None:
-    """
-    Emit a structured audit event at INFO level.
+    """Emit a structured audit event at INFO level.
 
     Args:
-        event_type: Type of audit event. Must be one of:
-            - ``job.submitted``: ip, platform, port, command_count, user_hash, request_id
-            - ``job.completed``: request_id, status, duration_ms
-            - ``job.cancelled``: request_id, cancelled_by_hash
-            - ``device.locked_out``: ip, failure_count
-            - ``circuit.opened``: ip
-            - ``circuit.closed``: ip
-        **fields: Event-specific fields as listed above.
+        event_type: Event type key from ``_EVENT_SCHEMAS``.
+        **fields: Required fields for the given event type.
 
     Raises:
         ValueError: If event_type is unknown or required fields are missing.
+
+    Valid event types and their required fields are defined in
+    ``_EVENT_SCHEMAS`` at the top of this module.
     """
     if event_type not in _EVENT_SCHEMAS:
         raise ValueError(f"Unknown audit event type: {event_type}")
