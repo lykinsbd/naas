@@ -41,7 +41,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: uv sync --package naas-client --extra dev
+        run: uv sync --package naas-client --extra dev --extra cli
 
       - name: Run ruff linter
         run: uv run ruff check --config packages/naas-client/pyproject.toml packages/naas-client/naas_client/ packages/naas-client/tests/ --exclude packages/naas-client/naas_client/_generated.py
@@ -71,7 +71,7 @@ jobs:
       - name: Install dependencies
         run: |
           uv sync --package naas --extra dev
-          uv sync --package naas-client --extra dev
+          uv sync --package naas-client --extra dev --extra cli
 
       - name: Run integration tests
         run: uv run --package naas-client pytest packages/naas-client/tests/integration -v

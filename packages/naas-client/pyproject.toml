@@ -23,6 +23,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+cli = [
+    "typer>=0.15",
+    "rich>=13.0",
+]
 dev = [
     "pytest>=8.0",
     "pytest-httpx>=0.35",
@@ -31,6 +35,9 @@ dev = [
     "mypy>=1.15",
     "ruff>=0.11",
 ]
+
+[project.scripts]
+naas = "naas_client.cli:app"
 
 [build-system]
 requires = ["hatchling"]
