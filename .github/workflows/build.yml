@@ -99,7 +99,7 @@ jobs:
         run: uv python install 3.14
 
       - name: Install dependencies
-        run: uv sync --package naas --extra dev
+        run: uv sync --package naas --extra dev --package naas-client
 
       - name: Install k3d
         run: curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
