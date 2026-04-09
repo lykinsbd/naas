@@ -19,12 +19,9 @@ jobs:
         with:
           filters: |
             code:
-              - 'naas/**'
-              - 'tests/**'
+              - 'packages/naas/**'
               - 'pyproject.toml'
               - 'uv.lock'
-              - 'Dockerfile'
-              - 'docker-compose*.yml'
               - 'k8s/**'
               - '.github/workflows/build.yml'
 
@@ -43,6 +40,7 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
+          file: packages/naas/Dockerfile
           push: false
           tags: naas:test
           cache-from: type=gha
@@ -78,8 +76,8 @@ jobs:
           filters: |
             k8s:
               - 'k8s/**'
-              - 'Dockerfile'
-              - 'tests/k8s/**'
+              - 'packages/naas/Dockerfile'
+              - 'packages/naas/tests/k8s/**'
               - '.github/workflows/build.yml'
 
   k8s-tests:
@@ -101,7 +99,7 @@ jobs:
         run: uv python install 3.14
 
       - name: Install dependencies
-        run: uv sync --extra dev
+        run: uv sync --package naas --extra dev
 
       - name: Install k3d
         run: curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
@@ -123,7 +121,8 @@ jobs:
         run: |
           kubectl apply -f k8s/namespace.yaml
           kubectl -n naas create secret generic naas-secret \
-            --from-literal=REDIS_PASSWORD=test-redis-pw
+            --from-literal=REDIS_PASSWORD=test-redis-pw \
+            --from-literal=NAAS_ENCRYPTION_KEY=IaypjfWWRlCStgKgneWQDfteGYNdO70FSepbfHdC6yY=
           kubectl apply -f k8s/configmap.yaml
           kubectl apply -f k8s/redis/
           # Patch image and pullPolicy inline before applying
@@ -166,7 +165,7 @@ jobs:
       - name: Run end-to-end job test
         run: |
           CISSHGO_IP=$(kubectl -n naas get svc cisshgo -o jsonpath='{.spec.clusterIP}')
-          NAAS_URL=https://localhost:8443 CISSHGO_HOST=${CISSHGO_IP} uv run python tests/k8s/test_e2e.py
+          NAAS_URL=https://localhost:8443 CISSHGO_HOST=${CISSHGO_IP} uv run --package naas python packages/naas/tests/k8s/test_e2e.py
 
       - name: Cleanup
         if: always()

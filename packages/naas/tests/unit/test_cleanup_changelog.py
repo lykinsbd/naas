@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 # Add scripts directory to path
-scripts_dir = Path(__file__).parent.parent.parent / ".github" / "scripts"
+scripts_dir = Path(__file__).parent.parent.parent.parent.parent / ".github" / "scripts"
 sys.path.insert(0, str(scripts_dir))
 
 # Import after path modification

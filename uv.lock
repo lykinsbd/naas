@@ -2,6 +2,17 @@ version = 1
 revision = 3
 requires-python = ">=3.11"
 
+[manifest]
+members = [
+    "naas",
+]
+
+[manifest.dependency-groups]
+dev = [
+    { name = "mkdocs-material", specifier = ">=9.7.2" },
+    { name = "mkdocstrings", extras = ["python"], specifier = ">=1.0.3" },
+]
+
 [[package]]
 name = "aniso8601"
 version = "10.0.1"
@@ -1132,7 +1143,7 @@ wheels = [
 [[package]]
 name = "naas"
 version = "2.0.0a1"
-source = { editable = "." }
+source = { editable = "packages/naas" }
 dependencies = [
     { name = "aniso8601" },
     { name = "bcrypt" },
@@ -1183,8 +1194,6 @@ vault = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "mkdocs-material" },
-    { name = "mkdocstrings", extra = ["python"] },
     { name = "types-paramiko" },
     { name = "types-requests" },
 ]
@@ -1233,8 +1242,6 @@ provides-extras = ["dev", "vault", "aws"]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "mkdocs-material", specifier = ">=9.7.2" },
-    { name = "mkdocstrings", extras = ["python"], specifier = ">=1.0.3" },
     { name = "types-paramiko", specifier = ">=4.0.0.20250822" },
     { name = "types-requests", specifier = ">=2.32.4.20260107" },
 ]

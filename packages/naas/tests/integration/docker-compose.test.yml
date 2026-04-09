@@ -14,8 +14,8 @@ services:
 
   api:
     build:
-      context: ../..
-      dockerfile: Dockerfile
+      context: ../../../..
+      dockerfile: packages/naas/Dockerfile
       cache_from:
         - type=gha
       cache_to:
@@ -47,8 +47,8 @@ services:
 
   worker:
     build:
-      context: ../..
-      dockerfile: Dockerfile
+      context: ../../../..
+      dockerfile: packages/naas/Dockerfile
       cache_from:
         - type=gha
       cache_to:
@@ -76,8 +76,8 @@ services:
 
   worker-alt:
     build:
-      context: ../..
-      dockerfile: Dockerfile
+      context: ../../../..
+      dockerfile: packages/naas/Dockerfile
       cache_from:
         - type=gha
       cache_to:

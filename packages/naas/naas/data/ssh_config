@@ -3,4 +3,3 @@ Host *
   ServerAliveInterval 300
   ProxyCommand none
   KexAlgorithms diffie-hellman-group14-sha1,diffie-hellman-group1-sha1
-
