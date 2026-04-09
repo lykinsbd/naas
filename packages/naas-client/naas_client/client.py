@@ -57,12 +57,11 @@ class NaasClient:
         elif username and password:
             auth = httpx.BasicAuth(username, password)
 
-        transport = httpx.HTTPTransport(retries=max_retries)
+        transport = httpx.HTTPTransport(retries=max_retries, verify=verify)
         self._client = httpx.Client(
             base_url=self._base_url,
             auth=auth,
             headers=headers,
-            verify=verify,
             timeout=timeout,
             transport=transport,
         )
