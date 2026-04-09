@@ -2,6 +2,8 @@
 
 __version__ = "1.0.0a1"
 
+from naas_client.async_client import AsyncNaasClient
+from naas_client.async_job import AsyncJob
 from naas_client.client import NaasClient
 from naas_client.exceptions import (
     NaasApiError,
@@ -23,6 +25,8 @@ from naas_client.models import (
 
 __all__ = [
     "ApiKeyCreateResponse",
+    "AsyncJob",
+    "AsyncNaasClient",
     "ContextInfo",
     "ContextsResponse",
     "HealthCheckResponse",
