@@ -4,12 +4,14 @@ from flask import current_app, request
 from flask_restful import Resource
 from rq.exceptions import NoSuchJobError
 from rq.job import Job
+from spectree import Response
 from werkzeug.exceptions import Conflict, Forbidden
 
 from naas import __base_response__
 from naas.library.audit import emit_audit_event
 from naas.library.auth import Credentials, job_unlocker, require_role
 from naas.library.validation import Validate
+from naas.spec import spec
 
 
 class CancelJob(Resource):
@@ -17,6 +19,7 @@ class CancelJob(Resource):
 
     @staticmethod
     @require_role("operator")
+    @spec.validate(resp=Response("HTTP_204"))
     def delete(job_id: str):
         """
 

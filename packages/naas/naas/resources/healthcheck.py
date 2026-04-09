@@ -6,14 +6,18 @@ from flask import current_app
 from flask_restful import Resource
 from redis.exceptions import RedisError
 from rq.registry import FailedJobRegistry
+from spectree import Response
 
 from naas import __version__
 from naas.library.worker_cache import get_cached_workers
+from naas.models import HealthCheckResponse
+from naas.spec import spec
 
 _START_TIME = time.time()
 
 
 class HealthCheck(Resource):
+    @spec.validate(resp=Response(HTTP_200=HealthCheckResponse))
     def get(self):
         """Return detailed health status including component checks.
 

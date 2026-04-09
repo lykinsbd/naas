@@ -343,3 +343,117 @@ class ContextsResponse(BaseModel):
     """Response model for GET /v1/contexts."""
 
     contexts: list[ContextInfo] = Field(..., description="Active contexts")
+
+
+# ---------------------------------------------------------------------------
+# Response models for endpoints that previously returned raw dicts
+# ---------------------------------------------------------------------------
+
+
+class HealthComponentStatus(BaseModel):
+    """Status of a single health component."""
+
+    status: str = Field(..., description="Component status (healthy, unhealthy, no_workers)")
+
+
+class QueueHealth(HealthComponentStatus):
+    """Queue health with depth."""
+
+    depth: int = Field(default=0, description="Number of jobs in queue")
+
+
+class WorkersHealth(HealthComponentStatus):
+    """Worker health with count and active jobs."""
+
+    count: int = Field(default=0, description="Number of worker pods/hosts")
+    active_jobs: int = Field(default=0, description="Jobs currently processing")
+
+
+class HealthComponents(BaseModel):
+    """Health check component statuses."""
+
+    redis: HealthComponentStatus = Field(..., description="Redis connectivity")
+    queue: QueueHealth = Field(..., description="Job queue status")
+    workers: WorkersHealth = Field(..., description="Worker pool status")
+    failed_jobs: int = Field(default=0, description="Number of failed jobs")
+
+
+class HealthCheckResponse(BaseModel):
+    """Response model for GET /healthcheck."""
+
+    status: str = Field(..., description="Overall status: healthy, degraded, or no_workers")
+    version: str = Field(..., description="NAAS version")
+    uptime_seconds: int = Field(..., description="Seconds since API start")
+    components: HealthComponents = Field(..., description="Component health details")
+
+
+class JobSummary(BaseModel):
+    """Summary of a single job in a list response."""
+
+    job_id: str = Field(..., description="Unique job identifier")
+    status: str = Field(..., description="Job status")
+    created_at: str | None = Field(default=None, description="ISO 8601 creation timestamp")
+    ended_at: str | None = Field(default=None, description="ISO 8601 completion timestamp")
+    tags: dict[str, str] | None = Field(default=None, description="Job metadata tags")
+
+
+class PaginationInfo(BaseModel):
+    """Pagination metadata."""
+
+    page: int = Field(..., description="Current page number")
+    per_page: int = Field(..., description="Results per page")
+    total: int = Field(..., description="Total number of results")
+    pages: int = Field(..., description="Total number of pages")
+
+
+class ListJobsResponse(BaseModel):
+    """Response model for GET /v2/jobs."""
+
+    jobs: list[JobSummary] = Field(..., description="List of jobs")
+    pagination: PaginationInfo = Field(..., description="Pagination metadata")
+
+
+class FailedJobSummary(BaseModel):
+    """Summary of a single failed job."""
+
+    job_id: str = Field(..., description="Unique job identifier")
+    host: str = Field(default="", description="Target device host")
+    platform: str = Field(default="", description="Netmiko platform")
+    port: int = Field(default=22, description="SSH port")
+    failed_at: str | None = Field(default=None, description="ISO 8601 failure timestamp")
+    error: str | None = Field(default=None, description="Sanitized error message")
+    func: str = Field(default="", description="Worker function name")
+
+
+class FailedJobsResponse(BaseModel):
+    """Response model for GET /v2/jobs/failed."""
+
+    jobs: list[FailedJobSummary] = Field(..., description="List of failed jobs")
+    total: int = Field(..., description="Total number of failed jobs")
+
+
+class ApiKeyCreateResponse(BaseModel):
+    """Response model for POST /v2/api-keys and POST /v2/api-keys/{id}/rotate."""
+
+    key_id: str = Field(..., description="Key identifier")
+    token: str = Field(..., description="JWT token (shown once)")
+    role: str = Field(..., description="Assigned role")
+    contexts: list[str] = Field(default_factory=list, description="Allowed contexts")
+    expires_at: str = Field(..., description="ISO 8601 expiration timestamp")
+
+
+class ApiKeyListItem(BaseModel):
+    """API key metadata (no token)."""
+
+    key_id: str = Field(..., description="Key identifier")
+    role: str = Field(..., description="Assigned role")
+    contexts: list[str] = Field(default_factory=list, description="Allowed contexts")
+    created_at: str = Field(..., description="ISO 8601 creation timestamp")
+    expires_at: str = Field(..., description="ISO 8601 expiration timestamp")
+    created_by: str = Field(..., description="Creator identity")
+
+
+class ApiKeyListResponse(BaseModel):
+    """Response model for GET /v2/api-keys."""
+
+    keys: list[ApiKeyListItem] = Field(..., description="Active API keys")
