@@ -109,7 +109,7 @@ def export_spec(c):
                 assert response.status_code == 200, f"Failed to fetch spec: {response.status_code}"
                 spec = response.get_json()
 
-    output_path = "docs/swagger/openapi.json"
+    output_path = "../../docs/swagger/openapi.json"
     with open(output_path, "w") as f:
         json.dump(spec, f, indent=2)
         f.write("\n")

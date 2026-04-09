@@ -8,7 +8,7 @@ import pytest
 @pytest.fixture(scope="session", autouse=True)
 def docker_compose():
     """Start Docker Compose stack for integration tests."""
-    compose_file = "tests/integration/docker-compose.test.yml"
+    compose_file = "packages/naas/tests/integration/docker-compose.test.yml"
 
     print("\n🐳 Starting Docker Compose stack...")
     # Start services

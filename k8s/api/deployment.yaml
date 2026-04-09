@@ -27,6 +27,12 @@ spec:
                 secretKeyRef:
                   name: naas-secret
                   key: REDIS_PASSWORD
+            - name: NAAS_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: naas-secret
+                  key: NAAS_ENCRYPTION_KEY
+                  optional: true
             - name: NAAS_CERT
               valueFrom:
                 secretKeyRef:

@@ -16,8 +16,8 @@ services:
   api:
     image: naas:1.0.0a1
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: packages/naas/Dockerfile
     ports:
       - "${NAAS_GLOBAL_PORT:-8443}:443"
     environment:
@@ -43,8 +43,8 @@ services:
   worker:
     image: naas:1.0.0a1
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: packages/naas/Dockerfile
     command: >-
       python worker.py
       --redis ${REDIS_HOST:-redis}

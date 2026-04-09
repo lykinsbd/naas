@@ -10,8 +10,9 @@ ENV LC_ALL=C.UTF-8
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 # Copy dependency files and source
-COPY pyproject.toml uv.lock README.md ./
-COPY naas/ ./naas/
+COPY packages/naas/pyproject.toml pyproject.toml
+COPY uv.lock README.md ./
+COPY packages/naas/naas/ ./naas/
 
 # Install dependencies and naas package to system Python
 # Use uv.lock directly via export to ensure sync
@@ -51,8 +52,8 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 WORKDIR /app
 
 # Copy application code
-COPY naas/ /app/naas/
-COPY gunicorn.py worker.py /app/
+COPY packages/naas/naas/ /app/naas/
+COPY packages/naas/gunicorn.py packages/naas/worker.py /app/
 
 # Pre-compile Python bytecode so runtime writes to __pycache__ are not needed
 RUN python -m compileall -q /app/naas /app/gunicorn.py /app/worker.py
