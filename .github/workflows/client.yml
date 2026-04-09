@@ -53,11 +53,32 @@ jobs:
         run: uv run mypy --config-file packages/naas-client/pyproject.toml packages/naas-client/naas_client/
 
       - name: Run tests
-        run: uv run --package naas-client pytest packages/naas-client/tests --cov=naas_client --cov-report=xml --cov-config=packages/naas-client/pyproject.toml
+        run: uv run --package naas-client pytest packages/naas-client/tests --ignore=packages/naas-client/tests/integration --cov=naas_client --cov-report=xml --cov-config=packages/naas-client/pyproject.toml
+
+  client-integration:
+    needs: [changes]
+    if: needs.changes.outputs.client == 'true'
+    runs-on: ubuntu-latest
+    name: client-integration
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: '3.14'
+
+      - name: Install dependencies
+        run: |
+          uv sync --package naas --extra dev
+          uv sync --package naas-client --extra dev
+
+      - name: Run integration tests
+        run: uv run --package naas-client pytest packages/naas-client/tests/integration -v
 
   Client:
     if: always()
-    needs: [changes, client-tests]
+    needs: [changes, client-tests, client-integration]
     runs-on: ubuntu-latest
     steps:
       - name: Check results
@@ -66,7 +87,7 @@ jobs:
             echo "No client changes detected, skipping"
             exit 0
           fi
-          if [[ "${{ needs.client-tests.result }}" != "success" ]]; then
+          if [[ "${{ needs.client-tests.result }}" != "success" || "${{ needs.client-integration.result }}" != "success" ]]; then
             echo "Client tests failed"
             exit 1
           fi

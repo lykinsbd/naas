@@ -56,12 +56,11 @@ class AsyncNaasClient:
         elif username and password:
             auth = httpx.BasicAuth(username, password)
 
-        transport = httpx.AsyncHTTPTransport(retries=max_retries)
+        transport = httpx.AsyncHTTPTransport(retries=max_retries, verify=verify)
         self._client = httpx.AsyncClient(
             base_url=self._base_url,
             auth=auth,
             headers=headers,
-            verify=verify,
             timeout=timeout,
             transport=transport,
         )
