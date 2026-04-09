@@ -2,6 +2,7 @@
 
 __version__ = "1.0.0a1"
 
+from naas_client.client import NaasClient
 from naas_client.exceptions import (
     NaasApiError,
     NaasAuthError,
@@ -29,6 +30,7 @@ __all__ = [
     "JobSubmission",
     "NaasApiError",
     "NaasAuthError",
+    "NaasClient",
     "NaasError",
     "NaasJobError",
     "NaasTimeoutError",
