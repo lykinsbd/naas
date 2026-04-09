@@ -7,6 +7,7 @@ from typing import Any
 import httpx
 
 from naas_client.exceptions import NaasApiError, NaasAuthError, NaasTimeoutError
+from naas_client.job import Job
 from naas_client.models import (
     ApiKeyCreateResponse,
     ApiKeyListItem,
@@ -91,20 +92,23 @@ class NaasClient:
 
     # -- Commands / Config ---------------------------------------------------
 
-    def send_command(self, **kwargs: Any) -> JobSubmission:
-        """Submit a send-command job. Returns job submission metadata."""
+    def send_command(self, **kwargs: Any) -> Job:
+        """Submit a send-command job. Returns a Job object for polling."""
         resp = self._request("POST", "/v2/send-command", json=kwargs)
-        return JobSubmission.model_validate(resp.json())
+        sub = JobSubmission.model_validate(resp.json())
+        return Job(self, sub.job_id, "command")
 
-    def send_command_structured(self, **kwargs: Any) -> JobSubmission:
+    def send_command_structured(self, **kwargs: Any) -> Job:
         """Submit a structured send-command job (TextFSM/TTP parsing)."""
         resp = self._request("POST", "/v2/send-command-structured", json=kwargs)
-        return JobSubmission.model_validate(resp.json())
+        sub = JobSubmission.model_validate(resp.json())
+        return Job(self, sub.job_id, "command")
 
-    def send_config(self, **kwargs: Any) -> JobSubmission:
+    def send_config(self, **kwargs: Any) -> Job:
         """Submit a send-config job."""
         resp = self._request("POST", "/v2/send-config", json=kwargs)
-        return JobSubmission.model_validate(resp.json())
+        sub = JobSubmission.model_validate(resp.json())
+        return Job(self, sub.job_id, "config")
 
     def get_command_result(self, job_id: str) -> JobResult:
         """Poll a send-command job result."""

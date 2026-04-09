@@ -10,6 +10,7 @@ from naas_client.exceptions import (
     NaasJobError,
     NaasTimeoutError,
 )
+from naas_client.job import Job
 from naas_client.models import (
     ApiKeyCreateResponse,
     ContextInfo,
@@ -25,6 +26,7 @@ __all__ = [
     "ContextInfo",
     "ContextsResponse",
     "HealthCheckResponse",
+    "Job",
     "JobResult",
     "JobStatus",
     "JobSubmission",

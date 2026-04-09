@@ -10,6 +10,7 @@ import pytest
 
 from naas_client.client import NaasClient
 from naas_client.exceptions import NaasApiError, NaasAuthError, NaasTimeoutError
+from naas_client.job import Job
 from naas_client.models import (
     ApiKeyCreateResponse,
     ContextsResponse,
@@ -115,7 +116,7 @@ class TestCommands:
         httpx_mock.add_response(status_code=202, json=JOB_SUBMISSION)
         with NaasClient(BASE, username="x", password="x") as c:
             result = c.send_command(host="10.0.0.1", platform="cisco_ios", commands=["show version"])
-        assert isinstance(result, JobSubmission)
+        assert isinstance(result, Job)
         assert result.job_id == "abc-123"
         assert httpx_mock.get_requests()[0].url.path == "/v2/send-command"
 
@@ -123,14 +124,14 @@ class TestCommands:
         httpx_mock.add_response(status_code=202, json=JOB_SUBMISSION)
         with NaasClient(BASE, username="x", password="x") as c:
             result = c.send_command_structured(host="10.0.0.1", commands=["show version"])
-        assert isinstance(result, JobSubmission)
+        assert isinstance(result, Job)
         assert httpx_mock.get_requests()[0].url.path == "/v2/send-command-structured"
 
     def test_send_config(self, httpx_mock: HTTPXMock) -> None:
         httpx_mock.add_response(status_code=202, json=JOB_SUBMISSION)
         with NaasClient(BASE, username="x", password="x") as c:
             result = c.send_config(host="10.0.0.1", config=["interface Gi0/1", "shutdown"])
-        assert isinstance(result, JobSubmission)
+        assert isinstance(result, Job)
         assert httpx_mock.get_requests()[0].url.path == "/v2/send-config"
 
     def test_get_command_result(self, httpx_mock: HTTPXMock) -> None:
