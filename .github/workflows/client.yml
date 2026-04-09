@@ -1,0 +1,72 @@
+name: Client Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop, 'release/**']
+
+jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      client: ${{ steps.filter.outputs.client }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            client:
+              - 'packages/naas-client/**'
+              - 'pyproject.toml'
+              - 'uv.lock'
+              - '.github/workflows/client.yml'
+
+  client-tests:
+    needs: [changes]
+    if: needs.changes.outputs.client == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12', '3.13', '3.14']
+    name: client-tests (${{ matrix.python-version }})
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: uv sync --package naas-client --extra dev
+
+      - name: Run ruff linter
+        run: uv run ruff check --config packages/naas-client/pyproject.toml packages/naas-client/naas_client/ packages/naas-client/tests/ --exclude packages/naas-client/naas_client/_generated.py
+
+      - name: Check ruff formatting
+        run: uv run ruff format --check --config packages/naas-client/pyproject.toml packages/naas-client/naas_client/ packages/naas-client/tests/ --exclude packages/naas-client/naas_client/_generated.py
+
+      - name: Run mypy
+        run: uv run mypy --config-file packages/naas-client/pyproject.toml packages/naas-client/naas_client/
+
+      - name: Run tests
+        run: uv run --package naas-client pytest packages/naas-client/tests --cov=naas_client --cov-report=xml --cov-config=packages/naas-client/pyproject.toml
+
+  Client:
+    if: always()
+    needs: [changes, client-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check results
+        run: |
+          if [[ "${{ needs.changes.outputs.client }}" != "true" ]]; then
+            echo "No client changes detected, skipping"
+            exit 0
+          fi
+          if [[ "${{ needs.client-tests.result }}" != "success" ]]; then
+            echo "Client tests failed"
+            exit 1
+          fi
