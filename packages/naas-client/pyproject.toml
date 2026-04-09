@@ -39,6 +39,7 @@ build-backend = "hatchling.build"
 [tool.ruff]
 target-version = "py311"
 line-length = 120
+extend-exclude = ["naas_client/_generated.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "TCH"]
@@ -56,3 +57,8 @@ source = ["naas_client"]
 [tool.coverage.report]
 fail_under = 100
 show_missing = true
+
+[dependency-groups]
+dev = [
+    "datamodel-code-generator>=0.56.0",
+]
