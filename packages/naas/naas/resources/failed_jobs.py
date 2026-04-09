@@ -7,6 +7,7 @@ from flask_restful import Resource
 from rq.exceptions import NoSuchJobError
 from rq.job import Callback, Job
 from rq.registry import FailedJobRegistry
+from spectree import Response
 
 from naas import __base_response__
 from naas.config import FAILED_JOB_MAX_RETAIN, JOB_TIMEOUT, JOB_TTL_FAILED, JOB_TTL_SUCCESS
@@ -15,7 +16,8 @@ from naas.library.callbacks import on_job_complete, on_job_failure
 from naas.library.context import get_queue_for_context
 from naas.library.sanitize import sanitize_error
 from naas.library.validation import Validate
-from naas.models import JobResponse
+from naas.models import FailedJobsResponse, JobResponse
+from naas.spec import spec
 
 
 def _job_to_dict(job: Job) -> dict:
@@ -41,6 +43,7 @@ class FailedJobs(Resource):
 
     @staticmethod
     @require_role("operator")
+    @spec.validate(resp=Response(HTTP_200=FailedJobsResponse))
     def get():
         """
         List jobs in the failed (dead letter) registry.
@@ -83,6 +86,7 @@ class ReplayJob(Resource):
 
     @staticmethod
     @require_role("operator")
+    @spec.validate(resp=Response(HTTP_202=JobResponse))
     def post(job_id: str):
         """
         Re-enqueue a failed job using the caller's current credentials.
