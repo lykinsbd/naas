@@ -153,6 +153,8 @@ directory = "internal"
 name = "🔧 Internal Changes"
 showcontent = true
 
+[tool.uv.sources]
+
 [dependency-groups]
 dev = [
     "types-paramiko>=4.0.0.20250822",

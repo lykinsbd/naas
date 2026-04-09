@@ -8,6 +8,8 @@ import uuid
 import pytest
 import requests
 import urllib3
+from naas_client import NaasClient
+from naas_client.models import JobStatus
 from redis import Redis
 
 # Disable SSL warnings for self-signed certs
@@ -89,6 +91,14 @@ def wait_for_cisshgo():
     pytest.fail("cisshgo did not become ready in 30s")
 
 
+@pytest.fixture(scope="session")
+def naas_client(api_url, wait_for_api):
+    """NaasClient for v2 integration tests."""
+    c = NaasClient(api_url, username=CISSHGO_USER, password=CISSHGO_PASS, verify=False, timeout=30.0)
+    yield c
+    c.close()
+
+
 def _submit_and_poll(
     api_url: str,
     payload: dict,
@@ -138,6 +148,30 @@ def _config_payload(config: list[str], ip: str = CISSHGO_HOST) -> dict:
     }
 
 
+def _client_submit_and_wait(
+    client: NaasClient,
+    payload: dict,
+    endpoint: str = "send_command",
+    timeout: int = 30,
+) -> dict:
+    """Submit a job via NaasClient and wait for completion."""
+    if endpoint == "send_config":
+        job = client.send_config(**payload)
+    elif endpoint == "send_command_structured":
+        job = client.send_command_structured(**payload)
+    else:
+        job = client.send_command(**payload)
+
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        result = job.poll()
+        if result.status in (JobStatus.FINISHED, JobStatus.FAILED):
+            return result.model_dump()
+        time.sleep(0.5)
+
+    pytest.fail(f"Job {job.job_id} did not complete within {timeout}s")
+
+
 # ---------------------------------------------------------------------------
 # Happy path
 # ---------------------------------------------------------------------------
@@ -146,25 +180,25 @@ def _config_payload(config: list[str], ip: str = CISSHGO_HOST) -> dict:
 class TestSendCommandHappyPath:
     """send_command against real cisshgo SSH device."""
 
-    def test_show_version(self, api_url, wait_for_api, wait_for_cisshgo):
+    def test_show_version(self, naas_client, wait_for_cisshgo):
         """Single command returns expected output."""
-        result = _submit_and_poll(api_url, _device_payload(["show version"]))
+        result = _client_submit_and_wait(naas_client, _device_payload(["show version"]))
         assert result["status"] == "finished"
         assert "Cisco IOS" in result["results"]["show version"]
 
-    def test_multiple_commands(self, api_url, wait_for_api, wait_for_cisshgo):
+    def test_multiple_commands(self, naas_client, wait_for_cisshgo):
         """Multiple commands all return output."""
-        result = _submit_and_poll(
-            api_url,
+        result = _client_submit_and_wait(
+            naas_client,
             _device_payload(["show version", "show ip interface brief"]),
         )
         assert result["status"] == "finished"
         assert "Cisco IOS" in result["results"]["show version"]
         assert "Interface" in result["results"]["show ip interface brief"]
 
-    def test_show_running_config(self, api_url, wait_for_api, wait_for_cisshgo):
+    def test_show_running_config(self, naas_client, wait_for_cisshgo):
         """show running-config returns output."""
-        result = _submit_and_poll(api_url, _device_payload(["show running-config"]))
+        result = _client_submit_and_wait(naas_client, _device_payload(["show running-config"]))
         assert result["status"] == "finished"
         assert result["results"]["show running-config"]
 
@@ -172,10 +206,10 @@ class TestSendCommandHappyPath:
 class TestSendConfigHappyPath:
     """send_config against real cisshgo SSH device."""
 
-    def test_send_config(self, api_url, wait_for_api, wait_for_cisshgo):
+    def test_send_config(self, naas_client, wait_for_cisshgo):
         """Config commands complete successfully."""
-        result = _submit_and_poll(
-            api_url,
+        result = _client_submit_and_wait(
+            naas_client,
             _config_payload(["interface Loopback0", "description test"]),
             endpoint="send_config",
         )
