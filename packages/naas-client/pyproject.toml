@@ -44,9 +44,16 @@ extend-exclude = ["naas_client/_generated.py"]
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "TCH"]
 
+[tool.ruff.lint.isort]
+known-first-party = ["naas_client"]
+
 [tool.mypy]
 python_version = "3.11"
 strict = true
+
+[[tool.mypy.overrides]]
+module = "naas_client._generated"
+ignore_errors = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
