@@ -7,7 +7,7 @@ import sys
 from typing import TYPE_CHECKING, Any, Protocol
 
 if TYPE_CHECKING:
-    from naas_client.models import HealthCheckResponse
+    from naas_client.models import HealthCheckResponse, JobResult
 
 
 class Formatter(Protocol):
@@ -16,6 +16,10 @@ class Formatter(Protocol):
     def healthcheck(self, data: HealthCheckResponse) -> str: ...
     def error(self, message: str, status_code: int | None = None) -> str: ...
     def message(self, text: str) -> str: ...
+    def job_submitted(self, job_id: str) -> str: ...
+    def waiting(self, job_id: str) -> str: ...
+    def job_result(self, result: JobResult) -> str: ...
+    def job_error(self, job_id: str, error: str) -> str: ...
 
 
 class JsonFormatter:
@@ -32,6 +36,18 @@ class JsonFormatter:
 
     def message(self, text: str) -> str:
         return json.dumps({"message": text}, indent=2)
+
+    def job_submitted(self, job_id: str) -> str:
+        return json.dumps({"job_id": job_id}, indent=2)
+
+    def waiting(self, job_id: str) -> str:
+        return ""
+
+    def job_result(self, result: JobResult) -> str:
+        return result.model_dump_json(indent=2)
+
+    def job_error(self, job_id: str, error: str) -> str:
+        return json.dumps({"job_id": job_id, "status": "failed", "error": error}, indent=2)
 
 
 class HumanFormatter:
@@ -74,6 +90,27 @@ class HumanFormatter:
 
     def message(self, text: str) -> str:
         return text
+
+    def job_submitted(self, job_id: str) -> str:
+        return f"Job submitted: {job_id}"
+
+    def waiting(self, job_id: str) -> str:
+        return f"⠋ Waiting for job {job_id}..."
+
+    def job_result(self, result: JobResult) -> str:
+        from naas_client.models import JobStatus
+
+        icon = "✓" if result.status == JobStatus.FINISHED else "✗"
+        lines = [f"{icon} Job {result.job_id}: {result.status}"]
+        if result.results:
+            for cmd, output in result.results.items():
+                lines.append(f"\n{cmd}\n{'─' * len(cmd)}\n{output}")
+        if result.error:
+            lines.append(f"\nError: {result.error}")
+        return "\n".join(lines)
+
+    def job_error(self, job_id: str, error: str) -> str:
+        return f"✗ Job {job_id} failed: {error}"
 
 
 def auto_formatter(fmt: str | None = None) -> Formatter:
