@@ -948,3 +948,148 @@ class TestV2Routes:
             if result.status_code == 200 and result.json()["status"] in ("finished", "failed"):
                 break
         assert result.json()["status"] == "finished"
+
+
+class TestApiKeyIntegration:
+    """Integration tests for API key lifecycle and RBAC enforcement."""
+
+    ADMIN_AUTH = ("admin", "integration-test-admin-secret")
+
+    def test_create_and_use_api_key(self, api_url, wait_for_api):
+        """Create an API key via basic auth, then use it for Bearer auth."""
+        # Create key with admin role
+        r = requests.post(
+            f"{api_url}/v2/api-keys",
+            json={"role": "admin"},
+            auth=self.ADMIN_AUTH,
+            verify=False,
+        )
+        assert r.status_code == 201, f"Create key failed: {r.text}"
+        token = r.json()["token"]
+        key_id = r.json()["key_id"]
+
+        # Use the key to hit healthcheck (unversioned route)
+        r = requests.get(
+            f"{api_url}/healthcheck",
+            headers={"Authorization": f"Bearer {token}"},
+            verify=False,
+        )
+        assert r.status_code == 200
+
+        # Revoke the key
+        r = requests.delete(
+            f"{api_url}/v2/api-keys/{key_id}",
+            auth=self.ADMIN_AUTH,
+            verify=False,
+        )
+        assert r.status_code in (200, 204)
+
+        # Revoked key should be rejected on an auth-required endpoint
+        r = requests.get(
+            f"{api_url}/v2/contexts",
+            headers={"Authorization": f"Bearer {token}"},
+            verify=False,
+        )
+        assert r.status_code == 401
+
+    def test_viewer_cannot_send_command(self, api_url, wait_for_api):
+        """A viewer API key should be rejected from POST /v2/send-command."""
+        r = requests.post(
+            f"{api_url}/v2/api-keys",
+            json={"role": "viewer"},
+            auth=self.ADMIN_AUTH,
+            verify=False,
+        )
+        assert r.status_code == 201
+        token = r.json()["token"]
+
+        payload = _device_payload(["show version"])
+        payload["username"] = CISSHGO_USER
+        payload["password"] = CISSHGO_PASS
+        r = requests.post(
+            f"{api_url}/v2/send-command",
+            json=payload,
+            headers={"Authorization": f"Bearer {token}"},
+            verify=False,
+        )
+        assert r.status_code == 403
+
+    def test_operator_can_send_command(self, api_url, wait_for_api, wait_for_cisshgo):
+        """An operator API key should be allowed to POST /v2/send-command."""
+        r = requests.post(
+            f"{api_url}/v2/api-keys",
+            json={"role": "operator"},
+            auth=self.ADMIN_AUTH,
+            verify=False,
+        )
+        assert r.status_code == 201
+        token = r.json()["token"]
+
+        payload = _device_payload([f"show version rbac-{uuid.uuid4().hex[:8]}"])
+        payload["username"] = CISSHGO_USER
+        payload["password"] = CISSHGO_PASS
+        r = requests.post(
+            f"{api_url}/v2/send-command",
+            json=payload,
+            headers={"Authorization": f"Bearer {token}"},
+            verify=False,
+        )
+        assert r.status_code == 202
+
+    def test_context_scoped_key_rejected_for_wrong_context(self, api_url, wait_for_api):
+        """An API key scoped to 'oob' context should be rejected for 'default' context."""
+        r = requests.post(
+            f"{api_url}/v2/api-keys",
+            json={"role": "operator", "contexts": ["oob"]},
+            auth=self.ADMIN_AUTH,
+            verify=False,
+        )
+        assert r.status_code == 201
+        token = r.json()["token"]
+
+        payload = _device_payload(["show version"])
+        payload["username"] = CISSHGO_USER
+        payload["password"] = CISSHGO_PASS
+        payload["context"] = "default"
+        r = requests.post(
+            f"{api_url}/v2/send-command",
+            json=payload,
+            headers={"Authorization": f"Bearer {token}"},
+            verify=False,
+        )
+        assert r.status_code == 403
+
+    def test_rotate_api_key(self, api_url, wait_for_api):
+        """Rotate an API key — old token invalid, new token works."""
+        r = requests.post(
+            f"{api_url}/v2/api-keys",
+            json={"role": "admin"},
+            auth=self.ADMIN_AUTH,
+            verify=False,
+        )
+        assert r.status_code == 201
+        old_token = r.json()["token"]
+        key_id = r.json()["key_id"]
+
+        r = requests.post(
+            f"{api_url}/v2/api-keys/{key_id}/rotate",
+            auth=self.ADMIN_AUTH,
+            verify=False,
+        )
+        assert r.status_code == 201
+        new_token = r.json()["token"]
+        assert new_token != old_token
+
+        r = requests.get(
+            f"{api_url}/v2/contexts",
+            headers={"Authorization": f"Bearer {old_token}"},
+            verify=False,
+        )
+        assert r.status_code == 401
+
+        r = requests.get(
+            f"{api_url}/v2/contexts",
+            headers={"Authorization": f"Bearer {new_token}"},
+            verify=False,
+        )
+        assert r.status_code == 200
