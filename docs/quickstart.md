@@ -1,4 +1,4 @@
-# Quick start guide
+# Quick Start Guide
 
 Get NAAS up and running in 5 minutes.
 
@@ -10,14 +10,9 @@ Get NAAS up and running in 5 minutes.
 ## 1. Clone and start
 
 ```bash
-# Clone the repository
 git clone https://github.com/lykinsbd/naas.git
 cd naas
-
-# Start NAAS with default configuration
 docker compose up -d
-
-# Verify it's running
 curl -k https://localhost:8443/healthcheck
 ```
 
@@ -26,7 +21,7 @@ Expected response:
 ```json
 {
   "status": "healthy",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "uptime_seconds": 42,
   "components": {
     "redis": { "status": "healthy" },
@@ -37,74 +32,104 @@ Expected response:
 
 ## 2. Send a command
 
-Send a command to a network device:
+=== "Python Client"
 
-```bash
-# Send command (replace with your device credentials)
-curl -k -X POST https://localhost:8443/v1/send_command \
-  -u "device_username:device_password" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "host": "192.168.1.1",
-    "platform": "cisco_ios",
-    "commands": ["show version"]
-  }'
-```
+    ```bash
+    pip install naas-client
+    ```
 
-Response:
+    ```python
+    from naas_client import NaasClient
 
-```json
-{
-  "job_id": "550e8400-e29b-41d4-a716-446655440000",
-  "message": "Job enqueued"
-}
-```
+    with NaasClient("https://localhost:8443", username="admin", password="admin", verify=False) as client:
+        job = client.send_command(
+            host="192.168.1.1",
+            platform="cisco_ios",
+            commands=["show version"],
+        )
+        result = job.wait(timeout=30)
+        print(result.results["show version"])
+    ```
 
-## 3. Get results
+=== "CLI"
 
-Check the job status and retrieve results:
+    ```bash
+    pip install naas-client[cli]
 
-```bash
-# Get results (use the job_id from previous response)
-curl -k https://localhost:8443/v1/send_command/550e8400-e29b-41d4-a716-446655440000 \
-  -u "device_username:device_password"
-```
+    naas --url https://localhost:8443 --username admin --password admin --no-verify \
+      send-command --host 192.168.1.1 --platform cisco_ios --wait "show version"
+    ```
 
-Response when complete:
+=== "curl"
 
-```json
-{
-  "job_id": "550e8400-e29b-41d4-a716-446655440000",
-  "status": "finished",
-  "result": "Cisco IOS Software, C2960 Software...",
-  "enqueued_at": "2026-02-22T19:00:00Z",
-  "started_at": "2026-02-22T19:00:01Z",
-  "ended_at": "2026-02-22T19:00:05Z"
-}
-```
+    ```bash
+    curl -k -X POST https://localhost:8443/v2/send-command \
+      -u "admin:admin" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "host": "192.168.1.1",
+        "platform": "cisco_ios",
+        "commands": ["show version"]
+      }'
+    ```
 
-## 4. Send configuration
+    Response:
 
-Push configuration changes:
+    ```json
+    {
+      "job_id": "550e8400-e29b-41d4-a716-446655440000",
+      "message": "Job enqueued"
+    }
+    ```
 
-```bash
-curl -k -X POST https://localhost:8443/v1/send_config \
-  -u "device_username:device_password" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "host": "192.168.1.1",
-    "platform": "cisco_ios",
-    "commands": [
-      "interface GigabitEthernet0/1",
-      "description Configured via NAAS"
-    ],
-    "save_config": true
-  }'
-```
+    ```bash
+    curl -k https://localhost:8443/v2/send-command/550e8400-e29b-41d4-a716-446655440000 \
+      -u "admin:admin"
+    ```
+
+## 3. Send configuration
+
+=== "CLI"
+
+    ```bash
+    naas --url https://localhost:8443 --username admin --password admin --no-verify \
+      send-config --host 192.168.1.1 --platform cisco_ios --wait --save-config \
+      "interface GigabitEthernet0/1" "description Configured via NAAS"
+    ```
+
+=== "curl"
+
+    ```bash
+    curl -k -X POST https://localhost:8443/v2/send-config \
+      -u "admin:admin" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "host": "192.168.1.1",
+        "platform": "cisco_ios",
+        "commands": ["interface GigabitEthernet0/1", "description Configured via NAAS"],
+        "save_config": true
+      }'
+    ```
+
+## 4. Check job status
+
+=== "CLI"
+
+    ```bash
+    naas --url https://localhost:8443 --username admin --password admin --no-verify \
+      jobs list
+    ```
+
+=== "curl"
+
+    ```bash
+    curl -k https://localhost:8443/v2/jobs -u "admin:admin"
+    ```
 
 ## Next steps
 
-- [API Usage Examples](api-usage.md) - More detailed examples
-- [Security Best Practices](security.md) - Secure your deployment
-- [Troubleshooting](troubleshooting.md) - Common issues and solutions
-- [API Documentation](https://naas.readthedocs.io/en/latest/api-reference/) - Full API reference
+- [Python Client & CLI](client.md) — Full client library and CLI reference
+- [API Usage Examples](api-usage.md) — Detailed REST API examples
+- [Upgrading to v2.0](upgrading.md) — Migration guide from v1.x
+- [Security](security.md) — API keys, RBAC, and TLS configuration
+- [Kubernetes Deployment](kubernetes.md) — Helm chart and k8s manifests
