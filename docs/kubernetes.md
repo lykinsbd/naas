@@ -167,3 +167,50 @@ use a `ServiceMonitor` if running the Prometheus Operator.
 | `naas_http_request_duration_seconds` | Histogram | Request latency by endpoint |
 | `naas_queue_depth` | Gauge | Number of jobs waiting in the RQ queue |
 | `naas_workers_active` | Gauge | Number of active RQ worker processes (cached, 10s TTL) |
+
+## Helm Chart
+
+A Helm chart is available in `charts/naas/` for parameterized deployments.
+
+### Quickstart
+
+```bash
+helm install naas charts/naas \
+  --set secrets.redisPassword=changeme \
+  --set secrets.encryptionKey=my-32-byte-key
+```
+
+### Key values
+
+| Value | Default | Description |
+| ----- | ------- | ----------- |
+| `api.replicas` | `2` | API pod replicas |
+| `worker.replicas` | `2` | Worker pod replicas |
+| `worker.processes` | `10` | RQ worker processes per pod |
+| `redis.enabled` | `true` | Deploy bundled Redis |
+| `redis.external.host` | `""` | External Redis host (when `redis.enabled=false`) |
+| `ingress.enabled` | `false` | Create Ingress resource |
+| `secrets.existingSecret` | `""` | Use an existing Secret instead of creating one |
+| `image.tag` | `appVersion` | Container image tag |
+
+### External Redis
+
+```bash
+helm install naas charts/naas \
+  --set redis.enabled=false \
+  --set redis.external.host=redis.prod.internal \
+  --set secrets.redisPassword=changeme
+```
+
+### Ingress
+
+```bash
+helm install naas charts/naas \
+  --set ingress.enabled=true \
+  --set ingress.className=nginx \
+  --set ingress.hosts[0].host=naas.example.com \
+  --set ingress.hosts[0].paths[0].path=/ \
+  --set ingress.hosts[0].paths[0].pathType=Prefix
+```
+
+See `charts/naas/values.yaml` for the full list of configurable values.

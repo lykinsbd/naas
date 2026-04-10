@@ -1,0 +1,167 @@
+services:
+  redis:
+    image: redis:7-alpine
+    command: redis-server --requirepass test_password
+    ports:
+      - "16379:6379"
+    networks:
+      - naas-test
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 5
+
+  api:
+    build:
+      context: ../../../..
+      dockerfile: packages/naas/Dockerfile
+      cache_from:
+        - type=gha
+      cache_to:
+        - type=gha,mode=max
+    ports:
+      - "18443:443"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=test_password
+      - APP_ENVIRONMENT=test
+      - NAAS_CONTEXTS=default,alt
+      - GUNICORN_WORKERS=2
+      - WEBHOOK_ALLOW_HTTP=true
+      - NAAS_JWT_SECRET=integration-test-jwt-secret
+      - NAAS_ENCRYPTION_KEY=IaypjfWWRlCStgKgneWQDfteGYNdO70FSepbfHdC6yY=
+      - NAAS_ADMIN_SECRET=integration-test-admin-secret
+    networks:
+      - naas-test
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-k", "-f", "https://localhost:443/healthcheck"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+      start_period: 10s
+
+  worker:
+    build:
+      context: ../../../..
+      dockerfile: packages/naas/Dockerfile
+      cache_from:
+        - type=gha
+      cache_to:
+        - type=gha,mode=max
+    healthcheck:
+      test: ["CMD", "sh", "-c", "kill -0 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    command: ["rq", "worker", "naas-default", "webhooks", "--url", "redis://:test_password@redis:6379"]
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=test_password
+      - APP_ENVIRONMENT=test
+      - WORKER_CONTEXTS=default
+      - WEBHOOK_ALLOW_HTTP=true
+      - NAAS_ENCRYPTION_KEY=IaypjfWWRlCStgKgneWQDfteGYNdO70FSepbfHdC6yY=
+    networks:
+      - naas-test
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  worker-alt:
+    build:
+      context: ../../../..
+      dockerfile: packages/naas/Dockerfile
+      cache_from:
+        - type=gha
+      cache_to:
+        - type=gha,mode=max
+    healthcheck:
+      test: ["CMD", "sh", "-c", "kill -0 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    command: ["rq", "worker", "naas-alt", "--url", "redis://:test_password@redis:6379"]
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=test_password
+      - APP_ENVIRONMENT=test
+      - WORKER_CONTEXTS=alt
+      - WEBHOOK_ALLOW_HTTP=true
+      - NAAS_ENCRYPTION_KEY=IaypjfWWRlCStgKgneWQDfteGYNdO70FSepbfHdC6yY=
+    networks:
+      - naas-test
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  vault:
+    image: hashicorp/vault:1.17
+    ports:
+      - "18200:8200"
+    environment:
+      - VAULT_DEV_ROOT_TOKEN_ID=test-root-token
+      - VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200
+    cap_add:
+      - IPC_LOCK
+    networks:
+      - naas-test
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--quiet", "http://127.0.0.1:8200/v1/sys/health"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+      start_period: 5s
+
+  localstack:
+    image: localstack/localstack:3
+    ports:
+      - "14566:4566"
+    environment:
+      - SERVICES=secretsmanager
+    networks:
+      - naas-test
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+      start_period: 5s
+
+  cisshgo:
+    image: ghcr.io/tbotnz/cisshgo:v0.2.0
+    command: ["-listeners", "2", "-startingPort", "10022"]
+    ports:
+      - "10022:10022"
+      - "10023:10023"
+    networks:
+      naas-test:
+        ipv4_address: 240.11.2.100
+
+  webhook-tester:
+    image: ghcr.io/tarampampam/webhook-tester:2
+    command: ["start", "--port", "8080", "--auto-create-sessions"]
+    ports:
+      - "18080:8080"
+    networks:
+      - naas-test
+    healthcheck:
+      test: ["CMD", "/bin/app", "start", "healthcheck", "--port", "8080"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+      start_period: 3s
+
+networks:
+  naas-test:
+    ipam:
+      config:
+        - subnet: 240.11.2.0/24

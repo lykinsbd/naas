@@ -66,12 +66,14 @@ nav:
       - Architecture: architecture.md
   - User Guide:
       - API Usage: api-usage.md
+      - Python Client: client.md
       - Structured Output: structured-output.md
       - Context Routing: contexts.md
       - Observability: observability.md
       - Reliability: reliability.md
       - Security: security.md
       - Troubleshooting: troubleshooting.md
+      - Upgrading to v2.0: upgrading.md
   - Deployment:
       - Docker Compose: deployment/docker-compose.md
       - Kubernetes: kubernetes.md
@@ -85,8 +87,15 @@ nav:
       - Architecture Decisions:
           - ADR Index: adr/README.md
           - "0001: Python Client Integration": adr/0001-python-client-library-integration.md
+          - "0002: Secrets Backend Abstraction": adr/0002-secrets-backend-abstraction.md
+          - "0003: API Key Authentication": adr/0003-api-key-authentication.md
+          - "0004: Role-Based Access Control": adr/0004-role-based-access-control.md
+          - "0005: Structured Audit Logging": adr/0005-structured-audit-event-logging.md
+          - "0006: Credential Encryption at Rest": adr/0006-credential-encryption-at-rest.md
+          - "0007: API Versioning Strategy": adr/0007-api-versioning-strategy.md
       - Changelog: changelog.md
       - Release Notes:
+          - v2.0: release-notes/v2.0.md
           - v1.4: release-notes/v1.4.md
           - v1.3: release-notes/v1.3.md
           - v1.2: release-notes/v1.2.md

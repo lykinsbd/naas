@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: naas-api
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "naas.labels" . | nindent 4 }}
+    app: naas-api
+spec:
+  replicas: {{ .Values.api.replicas }}
+  selector:
+    matchLabels:
+      app: naas-api
+  template:
+    metadata:
+      labels:
+        app: naas-api
+        {{- include "naas.labels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: naas-api
+          image: {{ include "naas.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.api.port }}
+          envFrom:
+            - configMapRef:
+                name: naas-config
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "naas.secretName" . }}
+                  key: REDIS_PASSWORD
+            - name: NAAS_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "naas.secretName" . }}
+                  key: NAAS_ENCRYPTION_KEY
+                  optional: true
+            - name: NAAS_CERT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "naas.secretName" . }}
+                  key: NAAS_CERT
+                  optional: true
+            - name: NAAS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "naas.secretName" . }}
+                  key: NAAS_KEY
+                  optional: true
+            - name: NAAS_CA_BUNDLE
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "naas.secretName" . }}
+                  key: NAAS_CA_BUNDLE
+                  optional: true
+          resources:
+            {{- toYaml .Values.api.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /healthcheck
+              port: {{ .Values.api.port }}
+              scheme: HTTPS
+            initialDelaySeconds: {{ .Values.api.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.api.livenessProbe.periodSeconds }}
+          readinessProbe:
+            httpGet:
+              path: /healthcheck
+              port: {{ .Values.api.port }}
+              scheme: HTTPS
+            initialDelaySeconds: {{ .Values.api.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.api.readinessProbe.periodSeconds }}
+      volumes:
+        - name: tmp
+          emptyDir: {}

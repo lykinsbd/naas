@@ -1,6 +1,112 @@
 {
   "components": {
     "schemas": {
+      "ApiKeyCreateResponse.c5eb086": {
+        "description": "Response model for POST /v2/api-keys and POST /v2/api-keys/{id}/rotate.",
+        "properties": {
+          "contexts": {
+            "description": "Allowed contexts",
+            "items": {
+              "type": "string"
+            },
+            "title": "Contexts",
+            "type": "array"
+          },
+          "expires_at": {
+            "description": "ISO 8601 expiration timestamp",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "key_id": {
+            "description": "Key identifier",
+            "title": "Key Id",
+            "type": "string"
+          },
+          "role": {
+            "description": "Assigned role",
+            "title": "Role",
+            "type": "string"
+          },
+          "token": {
+            "description": "JWT token (shown once)",
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key_id",
+          "token",
+          "role",
+          "expires_at"
+        ],
+        "title": "ApiKeyCreateResponse",
+        "type": "object"
+      },
+      "ApiKeyListResponse.c5eb086": {
+        "description": "Response model for GET /v2/api-keys.",
+        "properties": {
+          "keys": {
+            "description": "Active API keys",
+            "items": {
+              "$ref": "#/components/schemas/ApiKeyListResponse.c5eb086.ApiKeyListItem"
+            },
+            "title": "Keys",
+            "type": "array"
+          }
+        },
+        "required": [
+          "keys"
+        ],
+        "title": "ApiKeyListResponse",
+        "type": "object"
+      },
+      "ApiKeyListResponse.c5eb086.ApiKeyListItem": {
+        "description": "API key metadata (no token).",
+        "properties": {
+          "contexts": {
+            "description": "Allowed contexts",
+            "items": {
+              "type": "string"
+            },
+            "title": "Contexts",
+            "type": "array"
+          },
+          "created_at": {
+            "description": "ISO 8601 creation timestamp",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "description": "Creator identity",
+            "title": "Created By",
+            "type": "string"
+          },
+          "expires_at": {
+            "description": "ISO 8601 expiration timestamp",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "key_id": {
+            "description": "Key identifier",
+            "title": "Key Id",
+            "type": "string"
+          },
+          "role": {
+            "description": "Assigned role",
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key_id",
+          "role",
+          "created_at",
+          "expires_at",
+          "created_by"
+        ],
+        "title": "ApiKeyListItem",
+        "type": "object"
+      },
       "ContextsResponse.c5eb086": {
         "description": "Response model for GET /v1/contexts.",
         "properties": {
@@ -44,6 +150,220 @@
           "queue_depth"
         ],
         "title": "ContextInfo",
+        "type": "object"
+      },
+      "FailedJobsResponse.c5eb086": {
+        "description": "Response model for GET /v2/jobs/failed.",
+        "properties": {
+          "jobs": {
+            "description": "List of failed jobs",
+            "items": {
+              "$ref": "#/components/schemas/FailedJobsResponse.c5eb086.FailedJobSummary"
+            },
+            "title": "Jobs",
+            "type": "array"
+          },
+          "total": {
+            "description": "Total number of failed jobs",
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "jobs",
+          "total"
+        ],
+        "title": "FailedJobsResponse",
+        "type": "object"
+      },
+      "FailedJobsResponse.c5eb086.FailedJobSummary": {
+        "description": "Summary of a single failed job.",
+        "properties": {
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Sanitized error message",
+            "title": "Error"
+          },
+          "failed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "ISO 8601 failure timestamp",
+            "title": "Failed At"
+          },
+          "func": {
+            "default": "",
+            "description": "Worker function name",
+            "title": "Func",
+            "type": "string"
+          },
+          "host": {
+            "default": "",
+            "description": "Target device host",
+            "title": "Host",
+            "type": "string"
+          },
+          "job_id": {
+            "description": "Unique job identifier",
+            "title": "Job Id",
+            "type": "string"
+          },
+          "platform": {
+            "default": "",
+            "description": "Netmiko platform",
+            "title": "Platform",
+            "type": "string"
+          },
+          "port": {
+            "default": 22,
+            "description": "SSH port",
+            "title": "Port",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "job_id"
+        ],
+        "title": "FailedJobSummary",
+        "type": "object"
+      },
+      "HealthCheckResponse.c5eb086": {
+        "description": "Response model for GET /healthcheck.",
+        "properties": {
+          "components": {
+            "$ref": "#/components/schemas/HealthCheckResponse.c5eb086.HealthComponents",
+            "description": "Component health details"
+          },
+          "status": {
+            "description": "Overall status: healthy, degraded, or no_workers",
+            "title": "Status",
+            "type": "string"
+          },
+          "uptime_seconds": {
+            "description": "Seconds since API start",
+            "title": "Uptime Seconds",
+            "type": "integer"
+          },
+          "version": {
+            "description": "NAAS version",
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "version",
+          "uptime_seconds",
+          "components"
+        ],
+        "title": "HealthCheckResponse",
+        "type": "object"
+      },
+      "HealthCheckResponse.c5eb086.HealthComponentStatus": {
+        "description": "Status of a single health component.",
+        "properties": {
+          "status": {
+            "description": "Component status (healthy, unhealthy, no_workers)",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "HealthComponentStatus",
+        "type": "object"
+      },
+      "HealthCheckResponse.c5eb086.HealthComponents": {
+        "description": "Health check component statuses.",
+        "properties": {
+          "failed_jobs": {
+            "default": 0,
+            "description": "Number of failed jobs",
+            "title": "Failed Jobs",
+            "type": "integer"
+          },
+          "queue": {
+            "$ref": "#/components/schemas/HealthCheckResponse.c5eb086.QueueHealth",
+            "description": "Job queue status"
+          },
+          "redis": {
+            "$ref": "#/components/schemas/HealthCheckResponse.c5eb086.HealthComponentStatus",
+            "description": "Redis connectivity"
+          },
+          "workers": {
+            "$ref": "#/components/schemas/HealthCheckResponse.c5eb086.WorkersHealth",
+            "description": "Worker pool status"
+          }
+        },
+        "required": [
+          "redis",
+          "queue",
+          "workers"
+        ],
+        "title": "HealthComponents",
+        "type": "object"
+      },
+      "HealthCheckResponse.c5eb086.QueueHealth": {
+        "description": "Queue health with depth.",
+        "properties": {
+          "depth": {
+            "default": 0,
+            "description": "Number of jobs in queue",
+            "title": "Depth",
+            "type": "integer"
+          },
+          "status": {
+            "description": "Component status (healthy, unhealthy, no_workers)",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "QueueHealth",
+        "type": "object"
+      },
+      "HealthCheckResponse.c5eb086.WorkersHealth": {
+        "description": "Worker health with count and active jobs.",
+        "properties": {
+          "active_jobs": {
+            "default": 0,
+            "description": "Jobs currently processing",
+            "title": "Active Jobs",
+            "type": "integer"
+          },
+          "count": {
+            "default": 0,
+            "description": "Number of worker pods/hosts",
+            "title": "Count",
+            "type": "integer"
+          },
+          "status": {
+            "description": "Component status (healthy, unhealthy, no_workers)",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "WorkersHealth",
         "type": "object"
       },
       "JobResponse.c5eb086": {
@@ -97,6 +417,74 @@
         "title": "JobResponse",
         "type": "object"
       },
+      "JobResultResponse.c5eb086": {
+        "description": "Response model for job results.",
+        "properties": {
+          "detected_platform": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Detected Platform"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Error"
+          },
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "results": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Results"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Tags"
+          }
+        },
+        "required": [
+          "job_id",
+          "status"
+        ],
+        "title": "JobResultResponse",
+        "type": "object"
+      },
       "ListJobsQuery.c5eb086": {
         "description": "Query parameters for the list jobs endpoint.\n\nNOTE: No strict=True here \u2014 query params arrive as strings from werkzeug.\nPydantic's default lax mode coerces '2' -> 2 for int fields, which is required\nfor query parameter models. See SendCommandRequest for the full rationale.",
         "properties": {
@@ -148,6 +536,125 @@
         "title": "ListJobsQuery",
         "type": "object"
       },
+      "ListJobsResponse.c5eb086": {
+        "description": "Response model for GET /v2/jobs.",
+        "properties": {
+          "jobs": {
+            "description": "List of jobs",
+            "items": {
+              "$ref": "#/components/schemas/ListJobsResponse.c5eb086.JobSummary"
+            },
+            "title": "Jobs",
+            "type": "array"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/ListJobsResponse.c5eb086.PaginationInfo",
+            "description": "Pagination metadata"
+          }
+        },
+        "required": [
+          "jobs",
+          "pagination"
+        ],
+        "title": "ListJobsResponse",
+        "type": "object"
+      },
+      "ListJobsResponse.c5eb086.JobSummary": {
+        "description": "Summary of a single job in a list response.",
+        "properties": {
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "ISO 8601 creation timestamp",
+            "title": "Created At"
+          },
+          "ended_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "ISO 8601 completion timestamp",
+            "title": "Ended At"
+          },
+          "job_id": {
+            "description": "Unique job identifier",
+            "title": "Job Id",
+            "type": "string"
+          },
+          "status": {
+            "description": "Job status",
+            "title": "Status",
+            "type": "string"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Job metadata tags",
+            "title": "Tags"
+          }
+        },
+        "required": [
+          "job_id",
+          "status"
+        ],
+        "title": "JobSummary",
+        "type": "object"
+      },
+      "ListJobsResponse.c5eb086.PaginationInfo": {
+        "description": "Pagination metadata.",
+        "properties": {
+          "page": {
+            "description": "Current page number",
+            "title": "Page",
+            "type": "integer"
+          },
+          "pages": {
+            "description": "Total number of pages",
+            "title": "Pages",
+            "type": "integer"
+          },
+          "per_page": {
+            "description": "Results per page",
+            "title": "Per Page",
+            "type": "integer"
+          },
+          "total": {
+            "description": "Total number of results",
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "page",
+          "per_page",
+          "total",
+          "pages"
+        ],
+        "title": "PaginationInfo",
+        "type": "object"
+      },
       "SendCommandRequest.c5eb086": {
         "description": "Request model for send_command endpoint.\n\nUses strict=True because spectree passes Flask's parsed JSON body (native Python\ntypes) to model_validate(). Strict mode rejects type mismatches (e.g. port sent\nas a JSON string instead of a number) rather than silently coercing them.\n\nNOTE: Do NOT use strict=True on query parameter models (e.g. ListJobsQuery).\nQuery params always arrive as strings from werkzeug; strict mode would reject\nvalid integer params like ?page=2 because '2' is a str, not an int.",
         "properties": {
@@ -173,6 +680,32 @@
             "title": "Context",
             "type": "string"
           },
+          "device_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Deprecated: use platform instead (v1 compat)",
+            "title": "Device Type"
+          },
+          "enable": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Enable password (optional, defaults to password)",
+            "title": "Enable"
+          },
           "expect_string": {
             "anyOf": [
               {
@@ -187,9 +720,43 @@
             "title": "Expect String"
           },
           "host": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
             "description": "Device IP address or hostname",
-            "title": "Host",
-            "type": "string"
+            "title": "Host"
+          },
+          "ip": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Deprecated: use host instead (v1 compat)",
+            "title": "Ip"
+          },
+          "password": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Device password (required for API key auth)",
+            "title": "Password"
           },
           "platform": {
             "default": "cisco_ios",
@@ -228,6 +795,32 @@
             "description": "Optional key-value metadata tags (max 10, keys/values max 64 chars, alphanumeric + hyphens/underscores/colons)",
             "title": "Tags"
           },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Device username (required for API key auth)",
+            "title": "Username"
+          },
+          "webhook_secret": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Optional shared secret for HMAC-SHA256 webhook payload signing",
+            "title": "Webhook Secret"
+          },
           "webhook_url": {
             "anyOf": [
               {
@@ -243,7 +836,6 @@
           }
         },
         "required": [
-          "host",
           "commands"
         ],
         "title": "SendCommandRequest",
@@ -274,10 +866,70 @@
             "title": "Context",
             "type": "string"
           },
+          "device_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Deprecated: use platform instead (v1 compat)",
+            "title": "Device Type"
+          },
+          "enable": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Enable password (optional, defaults to password)",
+            "title": "Enable"
+          },
           "host": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
             "description": "Device IP address or hostname",
-            "title": "Host",
-            "type": "string"
+            "title": "Host"
+          },
+          "ip": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Deprecated: use host instead (v1 compat)",
+            "title": "Ip"
+          },
+          "password": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Device password (required for API key auth)",
+            "title": "Password"
           },
           "platform": {
             "default": "cisco_ios",
@@ -342,6 +994,32 @@
             "description": "TTP template string or ttp://<path> reference (mutually exclusive with textfsm_template)",
             "title": "Ttp Template"
           },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Device username (required for API key auth)",
+            "title": "Username"
+          },
+          "webhook_secret": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Optional shared secret for HMAC-SHA256 webhook payload signing",
+            "title": "Webhook Secret"
+          },
           "webhook_url": {
             "anyOf": [
               {
@@ -357,7 +1035,6 @@
           }
         },
         "required": [
-          "host",
           "commands"
         ],
         "title": "SendCommandStructuredRequest",
@@ -419,10 +1096,70 @@
             "title": "Context",
             "type": "string"
           },
+          "device_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Deprecated: use platform instead (v1 compat)",
+            "title": "Device Type"
+          },
+          "enable": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Enable password (optional, defaults to password)",
+            "title": "Enable"
+          },
           "host": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
             "description": "Device IP address or hostname",
-            "title": "Host",
-            "type": "string"
+            "title": "Host"
+          },
+          "ip": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Deprecated: use host instead (v1 compat)",
+            "title": "Ip"
+          },
+          "password": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Device password (required for API key auth)",
+            "title": "Password"
           },
           "platform": {
             "default": "cisco_ios",
@@ -467,6 +1204,32 @@
             "description": "Optional key-value metadata tags (max 10, keys/values max 64 chars)",
             "title": "Tags"
           },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Device username (required for API key auth)",
+            "title": "Username"
+          },
+          "webhook_secret": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Optional shared secret for HMAC-SHA256 webhook payload signing",
+            "title": "Webhook Secret"
+          },
           "webhook_url": {
             "anyOf": [
               {
@@ -481,9 +1244,6 @@
             "title": "Webhook Url"
           }
         },
-        "required": [
-          "host"
-        ],
         "title": "SendConfigRequest",
         "type": "object"
       },
@@ -554,7 +1314,28 @@
         "description": "Returns:     dict: Health status with the following structure:         {             \"status\": str,  # \"healthy\", \"degraded\", or \"no_workers\"             \"version\": str,  # NAAS version             \"uptime_seconds\": int,  # Seconds since API start             \"components\": {                 \"redis\": {\"status\": str},  # \"healthy\" or \"unhealthy\"                 \"queue\": {\"status\": str, \"depth\": int},  # Queue status and job count                 \"workers\": {                     \"status\": str,  # \"healthy\" or \"no_workers\"                     \"count\": int,  # Number of worker pods/hosts                     \"active_jobs\": int  # Jobs currently processing                 }             }         }",
         "operationId": "get__",
         "parameters": [],
-        "responses": {},
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthCheckResponse.c5eb086"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError.6a07bef"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
         "summary": "Return detailed health status including component checks.",
         "tags": []
       }
@@ -564,7 +1345,28 @@
         "description": "Returns:     dict: Health status with the following structure:         {             \"status\": str,  # \"healthy\", \"degraded\", or \"no_workers\"             \"version\": str,  # NAAS version             \"uptime_seconds\": int,  # Seconds since API start             \"components\": {                 \"redis\": {\"status\": str},  # \"healthy\" or \"unhealthy\"                 \"queue\": {\"status\": str, \"depth\": int},  # Queue status and job count                 \"workers\": {                     \"status\": str,  # \"healthy\" or \"no_workers\"                     \"count\": int,  # Number of worker pods/hosts                     \"active_jobs\": int  # Jobs currently processing                 }             }         }",
         "operationId": "get__healthcheck",
         "parameters": [],
-        "responses": {},
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthCheckResponse.c5eb086"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError.6a07bef"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
         "summary": "Return detailed health status including component checks.",
         "tags": []
       }
@@ -643,7 +1445,28 @@
             }
           }
         ],
-        "responses": {},
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobResultResponse.c5eb086"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError.6a07bef"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
         "summary": "Given the requested job_id, return status and/or any results if finished. :param job_id: :return: A dict of job status and/or results if finished.",
         "tags": []
       }
@@ -712,8 +1535,164 @@
             }
           }
         ],
-        "responses": {},
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobResultResponse.c5eb086"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError.6a07bef"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
         "summary": "Given the requested job_id, return status and/or any results if finished. :param job_id: :return: A dict of job status and/or results if finished.",
+        "tags": []
+      }
+    },
+    "/v1/api-keys": {
+      "get": {
+        "description": "",
+        "operationId": "get__v1_api-keys",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiKeyListResponse.c5eb086"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError.6a07bef"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "List all active API keys (metadata only, not tokens).",
+        "tags": []
+      },
+      "post": {
+        "description": "",
+        "operationId": "post__v1_api-keys",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiKeyCreateResponse.c5eb086"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError.6a07bef"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "Create a new API key. Returns the JWT token once.",
+        "tags": []
+      }
+    },
+    "/v1/api-keys/{key_id}": {
+      "delete": {
+        "description": "",
+        "operationId": "delete__v1_api-keys_{key_id}",
+        "parameters": [
+          {
+            "description": "",
+            "in": "path",
+            "name": "key_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError.6a07bef"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "Revoke an API key.",
+        "tags": []
+      }
+    },
+    "/v1/api-keys/{key_id}/rotate": {
+      "post": {
+        "description": "",
+        "operationId": "post__v1_api-keys_{key_id}_rotate",
+        "parameters": [
+          {
+            "description": "",
+            "in": "path",
+            "name": "key_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiKeyCreateResponse.c5eb086"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError.6a07bef"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "Rotate an API key. Returns a new token, revokes the old key.",
         "tags": []
       }
     },
@@ -753,7 +1732,28 @@
         "description": "Returns:     dict: Health status with the following structure:         {             \"status\": str,  # \"healthy\", \"degraded\", or \"no_workers\"             \"version\": str,  # NAAS version             \"uptime_seconds\": int,  # Seconds since API start             \"components\": {                 \"redis\": {\"status\": str},  # \"healthy\" or \"unhealthy\"                 \"queue\": {\"status\": str, \"depth\": int},  # Queue status and job count                 \"workers\": {                     \"status\": str,  # \"healthy\" or \"no_workers\"                     \"count\": int,  # Number of worker pods/hosts                     \"active_jobs\": int  # Jobs currently processing                 }             }         }",
         "operationId": "get__v1_healthcheck",
         "parameters": [],
-        "responses": {},
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthCheckResponse.c5eb086"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError.6a07bef"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
         "summary": "Return detailed health status including component checks.",
         "tags": []
       }
@@ -832,7 +1832,28 @@
             }
           }
         ],
-        "responses": {},
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListJobsResponse.c5eb086"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError.6a07bef"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
         "summary": "List jobs with pagination and filtering. Query parameters: - page: Page number (default: 1) - per_page: Results per page (default: 20, max: 100) - status: Filter by status (finished, failed, started, queued) :return: Dict with jobs list and pagination info",
         "tags": []
       }
@@ -842,14 +1863,35 @@
         "description": "Returns:     200: {\"jobs\": [...], \"total\": int}     401: Unauthorized",
         "operationId": "get__v1_jobs_failed",
         "parameters": [],
-        "responses": {},
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailedJobsResponse.c5eb086"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError.6a07bef"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
         "summary": "List jobs in the failed (dead letter) registry.",
         "tags": []
       }
     },
     "/v1/jobs/{job_id}": {
       "delete": {
-        "description": "Args:     job_id: UUID of the job to cancel.\n\nReturns:     Empty response with 204 status on success.     400 if job_id is not a valid UUID.     403 if credentials do not match the job submitter.     404 if job not found.     409 if job already finished or failed.",
+        "description": "Returns:     Empty response with 204 status on success.     400 if job_id is not a valid UUID.     403 if credentials do not match the job submitter.     404 if job not found.     409 if job already finished or failed.",
         "operationId": "delete__v1_jobs_{job_id}",
         "parameters": [
           {
@@ -862,8 +1904,22 @@
             }
           }
         ],
-        "responses": {},
-        "summary": "Cancel a job by job_id.",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError.6a07bef"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "Args:     job_id: UUID of the job to cancel.",
         "tags": []
       }
     },
@@ -882,7 +1938,28 @@
             }
           }
         ],
-        "responses": {},
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobResponse.c5eb086"
+                }
+              }
+            },
+            "description": "Accepted"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError.6a07bef"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
         "summary": "Re-enqueue a failed job using the caller's current credentials.",
         "tags": []
       }
@@ -951,7 +2028,28 @@
             }
           }
         ],
-        "responses": {},
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobResultResponse.c5eb086"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError.6a07bef"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
         "summary": "Given the requested job_id, return status and/or any results if finished. :param job_id: :return: A dict of job status and/or results if finished.",
         "tags": []
       }
@@ -1020,7 +2118,28 @@
             }
           }
         ],
-        "responses": {},
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobResultResponse.c5eb086"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError.6a07bef"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
         "summary": "Given the requested job_id, return status and/or any results if finished. :param job_id: :return: A dict of job status and/or results if finished.",
         "tags": []
       }
@@ -1089,7 +2208,670 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobResultResponse.c5eb086"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError.6a07bef"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "Given the requested job_id, return status and/or any results if finished. :param job_id: :return: A dict of job status and/or results if finished.",
+        "tags": []
+      }
+    },
+    "/v2/api-keys": {
+      "get": {
+        "description": "",
+        "operationId": "get__v2_api-keys",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiKeyListResponse.c5eb086"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError.6a07bef"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "List all active API keys (metadata only, not tokens).",
+        "tags": []
+      },
+      "post": {
+        "description": "",
+        "operationId": "post__v2_api-keys",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiKeyCreateResponse.c5eb086"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError.6a07bef"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "Create a new API key. Returns the JWT token once.",
+        "tags": []
+      }
+    },
+    "/v2/api-keys/{key_id}": {
+      "delete": {
+        "description": "",
+        "operationId": "delete__v2_api-keys_{key_id}",
+        "parameters": [
+          {
+            "description": "",
+            "in": "path",
+            "name": "key_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError.6a07bef"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "Revoke an API key.",
+        "tags": []
+      }
+    },
+    "/v2/api-keys/{key_id}/rotate": {
+      "post": {
+        "description": "",
+        "operationId": "post__v2_api-keys_{key_id}_rotate",
+        "parameters": [
+          {
+            "description": "",
+            "in": "path",
+            "name": "key_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiKeyCreateResponse.c5eb086"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError.6a07bef"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "Rotate an API key. Returns a new token, revokes the old key.",
+        "tags": []
+      }
+    },
+    "/v2/contexts": {
+      "get": {
+        "description": ":return: ContextsResponse with per-context status",
+        "operationId": "get__v2_contexts",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContextsResponse.c5eb086"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError.6a07bef"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "List all configured contexts with active worker counts and queue depths.",
+        "tags": []
+      }
+    },
+    "/v2/jobs": {
+      "get": {
+        "description": "",
+        "operationId": "get__v2_jobs",
+        "parameters": [
+          {
+            "description": "",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "",
+            "in": "query",
+            "name": "per_page",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Per Page",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "finished",
+                    "failed",
+                    "started",
+                    "queued"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Status"
+            }
+          },
+          {
+            "description": "Filter by tag in 'key:value' format",
+            "in": "query",
+            "name": "tag",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Filter by tag in 'key:value' format",
+              "title": "Tag"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListJobsResponse.c5eb086"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError.6a07bef"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "List jobs with pagination and filtering. Query parameters: - page: Page number (default: 1) - per_page: Results per page (default: 20, max: 100) - status: Filter by status (finished, failed, started, queued) :return: Dict with jobs list and pagination info",
+        "tags": []
+      }
+    },
+    "/v2/jobs/failed": {
+      "get": {
+        "description": "Returns:     200: {\"jobs\": [...], \"total\": int}     401: Unauthorized",
+        "operationId": "get__v2_jobs_failed",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailedJobsResponse.c5eb086"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError.6a07bef"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "List jobs in the failed (dead letter) registry.",
+        "tags": []
+      }
+    },
+    "/v2/jobs/{job_id}": {
+      "delete": {
+        "description": "Returns:     Empty response with 204 status on success.     400 if job_id is not a valid UUID.     403 if credentials do not match the job submitter.     404 if job not found.     409 if job already finished or failed.",
+        "operationId": "delete__v2_jobs_{job_id}",
+        "parameters": [
+          {
+            "description": "",
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError.6a07bef"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "Args:     job_id: UUID of the job to cancel.",
+        "tags": []
+      }
+    },
+    "/v2/jobs/{job_id}/replay": {
+      "post": {
+        "description": "The stored credentials are never used \u2014 the caller's Basic Auth credentials are substituted instead.\n\nArgs:     job_id: UUID of the failed job to replay.\n\nReturns:     202: JobResponse (new job enqueued)     401: Unauthorized     403: Caller credentials don't match original job submitter     404: Job not found in failed registry     409: Job is not in failed state",
+        "operationId": "post__v2_jobs_{job_id}_replay",
+        "parameters": [
+          {
+            "description": "",
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobResponse.c5eb086"
+                }
+              }
+            },
+            "description": "Accepted"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError.6a07bef"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "Re-enqueue a failed job using the caller's current credentials.",
+        "tags": []
+      }
+    },
+    "/v2/send-command": {
+      "get": {
+        "description": "",
+        "operationId": "get__v2_send-command",
+        "parameters": [],
         "responses": {},
+        "summary": "get <GET>",
+        "tags": []
+      },
+      "post": {
+        "description": "Requires you submit the following in the payload:     ip: str     commands: Sequence[str] Optional:     port: int - Default 22     platform: str - Default cisco_ios     enable: Optional[str] - Default the password provided for basic auth\n\nSecured by Basic Auth, which is then passed to the network device. :return: A dict of the job ID, a 202 response code, and the job_id as the X-Request-ID header",
+        "operationId": "post__v2_send-command",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendCommandRequest.c5eb086"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobResponse.c5eb086"
+                }
+              }
+            },
+            "description": "Accepted"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError.6a07bef"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "Will enqueue an attempt to run commands on a device.",
+        "tags": []
+      }
+    },
+    "/v2/send-command-structured": {
+      "get": {
+        "description": "",
+        "operationId": "get__v2_send-command-structured",
+        "parameters": [],
+        "responses": {},
+        "summary": "get <GET>",
+        "tags": []
+      },
+      "post": {
+        "description": "Returns parsed list[dict] per command (or raw string if no template found). Uses ntc-templates by default, or custom template if provided.\n\nRequires:     ip: str     commands: Sequence[str] Optional:     port: int - Default 22     platform: str - Default cisco_ios (use \"autodetect\" for SSHDetect)     read_timeout: float - Default 30.0 seconds     textfsm_template: str - Custom TextFSM template (uses ntc-templates if omitted)\n\nSecured by Basic Auth, which is then passed to the network device. :return: A dict of the job ID, a 202 response code, and the job_id as the X-Request-ID header",
+        "operationId": "post__v2_send-command-structured",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendCommandStructuredRequest.c5eb086"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobResponse.c5eb086"
+                }
+              }
+            },
+            "description": "Accepted"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError.6a07bef"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "Enqueue a send_command job with TextFSM parsing for structured output.",
+        "tags": []
+      }
+    },
+    "/v2/send-command-structured/{job_id}": {
+      "get": {
+        "description": "",
+        "operationId": "get__v2_send-command-structured_{job_id}",
+        "parameters": [
+          {
+            "description": "",
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobResultResponse.c5eb086"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError.6a07bef"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "Given the requested job_id, return status and/or any results if finished. :param job_id: :return: A dict of job status and/or results if finished.",
+        "tags": []
+      }
+    },
+    "/v2/send-command/{job_id}": {
+      "get": {
+        "description": "",
+        "operationId": "get__v2_send-command_{job_id}",
+        "parameters": [
+          {
+            "description": "",
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobResultResponse.c5eb086"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError.6a07bef"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "Given the requested job_id, return status and/or any results if finished. :param job_id: :return: A dict of job status and/or results if finished.",
+        "tags": []
+      }
+    },
+    "/v2/send-config": {
+      "get": {
+        "description": "",
+        "operationId": "get__v2_send-config",
+        "parameters": [],
+        "responses": {},
+        "summary": "get <GET>",
+        "tags": []
+      },
+      "post": {
+        "description": "Requires you submit the following in the payload:     ip: str     commands: Sequence[str] Optional:     port: int - Default 22     platform: str - Default cisco_ios     enable: Optional[str] - Default the password provided for basic auth     save_config: bool     commit: bool\n\nSecured by Basic Auth, which is then passed to the network device. :return: A dict of the job ID, a 202 response code, and the job_id as the X-Request-ID header",
+        "operationId": "post__v2_send-config",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendConfigRequest.c5eb086"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobResponse.c5eb086"
+                }
+              }
+            },
+            "description": "Accepted"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError.6a07bef"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "Will enqueue an attempt to use netmiko's send_config_set() method to run commands/put configuration on a device.",
+        "tags": []
+      }
+    },
+    "/v2/send-config/{job_id}": {
+      "get": {
+        "description": "",
+        "operationId": "get__v2_send-config_{job_id}",
+        "parameters": [
+          {
+            "description": "",
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobResultResponse.c5eb086"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError.6a07bef"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
         "summary": "Given the requested job_id, return status and/or any results if finished. :param job_id: :return: A dict of job status and/or results if finished.",
         "tags": []
       }

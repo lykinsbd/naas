@@ -7,8 +7,28 @@ on:
     branches: [main, develop, 'release/**']
 
 jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dorny/paths-filter@v4
+        id: filter
+        with:
+          filters: |
+            code:
+              - 'packages/naas/**'
+              - 'pyproject.toml'
+              - 'uv.lock'
+              - 'k8s/**'
+              - '.github/workflows/build.yml'
+
   build:
     name: Build
+    needs: [changes]
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -20,6 +40,7 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
+          file: packages/naas/Dockerfile
           push: false
           tags: naas:test
           cache-from: type=gha
@@ -42,6 +63,8 @@ jobs:
           retention-days: 1
 
   k8s-changes:
+    needs: [changes]
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     outputs:
       changed: ${{ steps.filter.outputs.k8s }}
@@ -53,9 +76,23 @@ jobs:
           filters: |
             k8s:
               - 'k8s/**'
-              - 'Dockerfile'
-              - 'tests/k8s/**'
-              - '.github/workflows/test.yml'
+              - 'charts/**'
+              - 'packages/naas/Dockerfile'
+              - 'packages/naas/tests/k8s/**'
+              - '.github/workflows/build.yml'
+
+  helm-lint:
+    runs-on: ubuntu-latest
+    needs: [changes]
+    if: needs.changes.outputs.code == 'true'
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+      - name: Lint chart
+        run: helm lint charts/naas
+      - name: Template dry-run
+        run: helm template test charts/naas --set secrets.redisPassword=ci-test
 
   k8s-tests:
     runs-on: ubuntu-latest
@@ -76,7 +113,7 @@ jobs:
         run: uv python install 3.14
 
       - name: Install dependencies
-        run: uv sync --extra dev
+        run: uv sync --package naas --extra dev --package naas-client
 
       - name: Install k3d
         run: curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
@@ -94,28 +131,26 @@ jobs:
           docker load < naas-image.tar.gz
           k3d image import naas:test -c naas-test
 
-      - name: Apply manifests
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Deploy NAAS via Helm chart
         run: |
-          kubectl apply -f k8s/namespace.yaml
-          kubectl -n naas create secret generic naas-secret \
-            --from-literal=REDIS_PASSWORD=test-redis-pw
-          kubectl apply -f k8s/configmap.yaml
-          kubectl apply -f k8s/redis/
-          # Patch image and pullPolicy inline before applying
-          sed 's|ghcr.io/lykinsbd/naas:.*|naas:test|g' k8s/api/deployment.yaml \
-            | kubectl apply -f -
-          kubectl apply -f k8s/api/service.yaml
-          sed 's|ghcr.io/lykinsbd/naas:.*|naas:test|g' k8s/worker/deployment.yaml \
-            | kubectl apply -f -
-          kubectl -n naas patch deployment naas-api \
-            -p '{"spec":{"template":{"spec":{"containers":[{"name":"naas-api","imagePullPolicy":"Never","env":[{"name":"GUNICORN_WORKERS","value":"2"}]}]}}}}'
-          kubectl -n naas patch deployment naas-worker \
-            -p '{"spec":{"template":{"spec":{"containers":[{"name":"naas-worker","imagePullPolicy":"Never"}]}}}}'
+          helm install naas charts/naas \
+            --namespace naas --create-namespace \
+            --set image.repository=naas \
+            --set image.tag=test \
+            --set image.pullPolicy=Never \
+            --set secrets.redisPassword=test-redis-pw \
+            --set secrets.encryptionKey=IaypjfWWRlCStgKgneWQDfteGYNdO70FSepbfHdC6yY= \
+            --set api.replicas=1 \
+            --set worker.replicas=1
+          # cisshgo is a test fixture, not part of the chart
           kubectl apply -f k8s/cisshgo/
 
       - name: Wait for rollouts
         run: |
-          kubectl -n naas rollout status deployment/redis --timeout=60s
+          kubectl -n naas rollout status deployment/redis --timeout=90s
           kubectl -n naas rollout status deployment/naas-api --timeout=90s || {
             echo "API deployment failed, debugging..."
             kubectl -n naas get pods
@@ -141,7 +176,7 @@ jobs:
       - name: Run end-to-end job test
         run: |
           CISSHGO_IP=$(kubectl -n naas get svc cisshgo -o jsonpath='{.spec.clusterIP}')
-          NAAS_URL=https://localhost:8443 CISSHGO_HOST=${CISSHGO_IP} uv run python tests/k8s/test_e2e.py
+          NAAS_URL=https://localhost:8443 CISSHGO_HOST=${CISSHGO_IP} uv run --package naas python packages/naas/tests/k8s/test_e2e.py
 
       - name: Cleanup
         if: always()
@@ -150,17 +185,25 @@ jobs:
   build-and-k8s-summary:
     name: Build and K8s Tests
     runs-on: ubuntu-latest
-    needs: [build, k8s-tests]
+    needs: [changes, build, k8s-tests, helm-lint]
     if: always()
     steps:
       - name: Check results
         run: |
+          if [[ "${{ needs.changes.outputs.code }}" != "true" ]]; then
+            echo "No code changes — build and k8s tests skipped"
+            exit 0
+          fi
           if [[ "${{ needs.build.result }}" == "failure" || "${{ needs.build.result }}" == "cancelled" ]]; then
             echo "Build failed or was cancelled"
             exit 1
           fi
           if [[ "${{ needs.k8s-tests.result }}" == "failure" || "${{ needs.k8s-tests.result }}" == "cancelled" ]]; then
             echo "K8s tests failed or were cancelled"
+            exit 1
+          fi
+          if [[ "${{ needs.helm-lint.result }}" == "failure" || "${{ needs.helm-lint.result }}" == "cancelled" ]]; then
+            echo "Helm lint failed or was cancelled"
             exit 1
           fi
           # skipped is acceptable for k8s-tests (path filter didn't match)

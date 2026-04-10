@@ -11,12 +11,13 @@ repos:
     hooks:
       - id: check-yaml
         args: [--unsafe]
+        exclude: ^charts/
       - id: check-toml
       - id: end-of-file-fixer
       - id: trailing-whitespace
       - id: check-added-large-files
       - id: detect-private-key
-        exclude: ^tests/unit/test_selfsigned\.py$
+        exclude: ^packages/naas/tests/unit/test_selfsigned\.py$
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.13.0
@@ -24,14 +25,14 @@ repos:
       - id: mypy
         args: [--ignore-missing-imports]
         additional_dependencies: [types-redis, types-PyYAML, types-paramiko, types-requests]
-        exclude: ^tests/integration/
+        exclude: ^packages/naas/tests/integration/
 
   - repo: https://github.com/igorshubovych/markdownlint-cli
     rev: v0.43.0
     hooks:
       - id: markdownlint
         args: [--fix]
-        exclude: ^changes/
+        exclude: ^packages/naas/changes/
 
   - repo: https://github.com/compilerla/conventional-pre-commit
     rev: v3.6.0
@@ -44,6 +45,6 @@ repos:
       - id: export-openapi-spec
         name: Export OpenAPI spec
         language: system
-        entry: bash -c 'uv run invoke export-spec && git add docs/swagger/openapi.json'
+        entry: bash -c 'cd packages/naas && uv run invoke export-spec && git add ../../docs/swagger/openapi.json'
         pass_filenames: false
-        files: ^(naas/|docs/swagger/openapi\.json)
+        files: ^(packages/naas/naas/|docs/swagger/openapi\.json)

@@ -1,0 +1,69 @@
+services:
+  redis:
+    image: redis:7-alpine
+    command: >-
+      --requirepass ${REDIS_PASSWORD:-mah_redis_pw}
+      --port ${REDIS_PORT:-6379}
+    networks:
+      - naas
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
+  api:
+    image: naas:1.0.0a1
+    build:
+      context: ../..
+      dockerfile: packages/naas/Dockerfile
+    ports:
+      - "${NAAS_GLOBAL_PORT:-8443}:443"
+    environment:
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-mah_redis_pw}
+      - APP_ENVIRONMENT=${APP_ENVIRONMENT:-dev}
+      - NAAS_CERT=${NAAS_CERT}
+      - NAAS_KEY=${NAAS_KEY}
+      - NAAS_CA_BUNDLE=${NAAS_CA_BUNDLE}
+    networks:
+      - naas
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  worker:
+    image: naas:1.0.0a1
+    build:
+      context: ../..
+      dockerfile: packages/naas/Dockerfile
+    command: >-
+      python worker.py
+      --redis ${REDIS_HOST:-redis}
+      --port ${REDIS_PORT:-6379}
+      --auth_password ${REDIS_PASSWORD:-mah_redis_pw}
+      ${NAAS_WORKER_PROCESSES:-100}
+    environment:
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-mah_redis_pw}
+    networks:
+      - naas
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      replicas: ${NAAS_WORKER_REPLICAS:-2}
+
+networks:
+  naas:
+    driver: bridge

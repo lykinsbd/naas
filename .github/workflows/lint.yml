@@ -21,16 +21,16 @@ jobs:
         run: uv python install 3.14
 
       - name: Install dependencies
-        run: uv sync --extra dev
+        run: uv sync --package naas --extra dev
 
       - name: Run ruff linter
-        run: uv run ruff check naas/ tests/
+        run: uv run ruff check --config packages/naas/pyproject.toml packages/naas/naas/ packages/naas/tests/
 
       - name: Check ruff formatting
-        run: uv run ruff format --check naas/ tests/
+        run: uv run ruff format --check --config packages/naas/pyproject.toml packages/naas/naas/ packages/naas/tests/
 
       - name: Run mypy
-        run: uv run mypy naas/
+        run: uv run mypy --config-file packages/naas/pyproject.toml packages/naas/naas/
 
   check-changelog:
     runs-on: ubuntu-latest
@@ -47,7 +47,7 @@ jobs:
           fi
 
           # Check if any changelog fragment exists (issue number or + prefix)
-          if ! ls changes/*.*.md 1> /dev/null 2>&1; then
+          if ! ls packages/naas/changes/*.*.md 1> /dev/null 2>&1; then
             echo "❌ Error: No changelog fragment found"
             echo ""
             echo "Create one with:"

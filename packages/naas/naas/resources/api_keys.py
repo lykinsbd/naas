@@ -1,0 +1,76 @@
+"""API resources for API key management.
+
+All endpoints require Basic auth — API keys cannot be used to manage other keys.
+"""
+
+from flask import request
+from flask_restful import Resource
+from spectree import Response
+
+from naas import __base_response__
+from naas.config import NAAS_ADMIN_SECRET
+from naas.library.api_keys import create_api_key, list_api_keys, revoke_api_key, rotate_api_key
+from naas.library.errorhandlers import NoAuth
+from naas.models import ApiKeyCreateResponse, ApiKeyListResponse
+from naas.spec import spec
+
+
+def _require_admin_auth() -> None:
+    """Ensure the request uses Basic auth with the admin secret."""
+    if not NAAS_ADMIN_SECRET:
+        raise NoAuth  # admin secret not configured — deny all key management
+    auth = request.authorization
+    if not auth or not auth.username or auth.password != NAAS_ADMIN_SECRET:
+        raise NoAuth
+
+
+class ApiKeys(Resource):
+    """Resource for creating and listing API keys."""
+
+    @staticmethod
+    @spec.validate(resp=Response(HTTP_201=ApiKeyCreateResponse))
+    def post():
+        """Create a new API key. Returns the JWT token once."""
+        _require_admin_auth()
+        data = request.get_json(force=True)
+        result = create_api_key(
+            role=data.get("role", "admin"),
+            contexts=data.get("contexts"),
+            ttl=data.get("ttl"),
+            created_by=request.authorization.username,  # type: ignore[union-attr]
+        )
+        return {**result, **__base_response__}, 201
+
+    @staticmethod
+    @spec.validate(resp=Response(HTTP_200=ApiKeyListResponse))
+    def get():
+        """List all active API keys (metadata only, not tokens)."""
+        _require_admin_auth()
+        return {"keys": list_api_keys(), **__base_response__}, 200
+
+
+class ApiKey(Resource):
+    """Resource for revoking a single API key."""
+
+    @staticmethod
+    @spec.validate(resp=Response("HTTP_204"))
+    def delete(key_id: str):
+        """Revoke an API key."""
+        _require_admin_auth()
+        if revoke_api_key(key_id):
+            return "", 204
+        return {"error": f"Key '{key_id}' not found", **__base_response__}, 404
+
+
+class ApiKeyRotate(Resource):
+    """Resource for rotating a single API key."""
+
+    @staticmethod
+    @spec.validate(resp=Response(HTTP_201=ApiKeyCreateResponse))
+    def post(key_id: str):
+        """Rotate an API key. Returns a new token, revokes the old key."""
+        _require_admin_auth()
+        result = rotate_api_key(key_id)
+        if result:
+            return {**result, **__base_response__}, 201
+        return {"error": f"Key '{key_id}' not found", **__base_response__}, 404

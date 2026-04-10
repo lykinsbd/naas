@@ -7,6 +7,78 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- towncrier release notes start -->
 
+# NAAS 2.0.0rc1 (2026-04-10)
+
+## 💥 Breaking Changes
+
+- Remove deprecated `device_type` field from all endpoints. Use `platform` instead. ([#55](https://github.com/lykinsbd/naas/issues/55))
+- Remove deprecated `ip` field from all endpoints. Use `host` instead. ([#272](https://github.com/lykinsbd/naas/issues/272))
+
+## 🔒 Security
+
+- Bump cryptography from 46.0.6 to 46.0.7.
+
+## ⚠️ Deprecations
+
+- Add deprecation headers to /v1/ and legacy unversioned route responses. ([#358](https://github.com/lykinsbd/naas/issues/358))
+
+## ✨ Features
+
+- Add audit events for authentication, authorization, and API key management. ([#100](https://github.com/lykinsbd/naas/issues/100))
+- Add JWT-based API key authentication with create, validate, and revoke support. ([#101](https://github.com/lykinsbd/naas/issues/101))
+- Add role-based access control with admin, operator, and viewer roles. ([#102](https://github.com/lykinsbd/naas/issues/102))
+- Add pluggable secrets backend with environment variable (default) and HashiCorp Vault providers. ([#103](https://github.com/lykinsbd/naas/issues/103))
+- Add HMAC-SHA256 signing for webhook payloads via optional webhook_secret field. ([#277](https://github.com/lykinsbd/naas/issues/277))
+- Add exponential backoff retry for failed webhook deliveries. ([#278](https://github.com/lykinsbd/naas/issues/278))
+- Encrypt device credentials at rest in Redis using Fernet symmetric encryption. ([#286](https://github.com/lykinsbd/naas/issues/286))
+- Add context-based authorization for API key authenticated requests. ([#291](https://github.com/lykinsbd/naas/issues/291))
+- Add AWS Secrets Manager as an optional secrets backend. ([#347](https://github.com/lykinsbd/naas/issues/347))
+- Add API key rotation endpoint (POST /v1/api-keys/{key_id}/rotate). ([#348](https://github.com/lykinsbd/naas/issues/348))
+- Restore /v1/ backward compatibility (accept ip/device_type, skip RBAC/context auth). ([#356](https://github.com/lykinsbd/naas/issues/356))
+- Add naas-client package scaffolding as uv workspace member. ([#369](https://github.com/lykinsbd/naas/issues/369))
+- Add naas-client models and exception hierarchy. ([#370](https://github.com/lykinsbd/naas/issues/370))
+- Add synchronous NaasClient with full v2 API coverage. ([#371](https://github.com/lykinsbd/naas/issues/371))
+- Add Job object with polling and wait support. ([#372](https://github.com/lykinsbd/naas/issues/372))
+- Add async client (AsyncNaasClient) and AsyncJob. ([#373](https://github.com/lykinsbd/naas/issues/373))
+- Add spectree response annotations to all API endpoints for complete OpenAPI spec. ([#377](https://github.com/lykinsbd/naas/issues/377))
+- Add CLI tool with Typer, config file support, and healthcheck command. ([#387](https://github.com/lykinsbd/naas/issues/387))
+- Add send-command and send-config CLI commands with --wait support. ([#388](https://github.com/lykinsbd/naas/issues/388))
+- Add jobs CLI subcommand group (list, get, cancel, replay, failed). ([#389](https://github.com/lykinsbd/naas/issues/389))
+- Add contexts and api-keys CLI subcommands. ([#390](https://github.com/lykinsbd/naas/issues/390))
+- Add Helm chart for Kubernetes deployment. ([#401](https://github.com/lykinsbd/naas/issues/401))
+- Add Prometheus metrics for RQ worker processes. ([#402](https://github.com/lykinsbd/naas/issues/402))
+
+## 🐛 Bug Fixes
+
+- Fix sync-release workflow failing to bump develop version due to branch protection. ([#324](https://github.com/lykinsbd/naas/issues/324))
+- Fix release workflow and changelog paths broken by workspace restructure. ([#398](https://github.com/lykinsbd/naas/issues/398))
+
+## 📚 Documentation
+
+- Add ADR for structured audit event logging design. ([#100](https://github.com/lykinsbd/naas/issues/100))
+- Add ADR for JWT-based API key authentication design. ([#101](https://github.com/lykinsbd/naas/issues/101))
+- Add ADR for role-based access control design. ([#102](https://github.com/lykinsbd/naas/issues/102))
+- Add ADR for secrets backend abstraction design. ([#103](https://github.com/lykinsbd/naas/issues/103))
+- Add ADR for credential encryption at rest in Redis. ([#286](https://github.com/lykinsbd/naas/issues/286))
+- Add v1 → v2 API migration guide and ADR for API versioning strategy. ([#359](https://github.com/lykinsbd/naas/issues/359))
+- Add naas-client README, mypy strict mode, and CI workflow. ([#374](https://github.com/lykinsbd/naas/issues/374))
+- Add CLI shell completion, --version, and RTD documentation. ([#391](https://github.com/lykinsbd/naas/issues/391))
+- Update documentation for v2.0 release. ([#409](https://github.com/lykinsbd/naas/issues/409))
+
+## 🧪 Testing & CI/CD
+
+- Skip build, test, and k8s CI jobs on docs-only PRs. ([#330](https://github.com/lykinsbd/naas/issues/330))
+- Add integration tests for /v1/ and /v2/ route coexistence. ([#360](https://github.com/lykinsbd/naas/issues/360))
+- Add naas-client integration tests against docker-compose NAAS. ([#383](https://github.com/lykinsbd/naas/issues/383))
+- Use naas-client in NAAS integration and e2e tests. ([#384](https://github.com/lykinsbd/naas/issues/384))
+- Use Helm chart in k8s integration tests. ([#406](https://github.com/lykinsbd/naas/issues/406))
+
+## 🔧 Internal Changes
+
+- Sync emit_audit_event docstring with current event schemas. ([#353](https://github.com/lykinsbd/naas/issues/353))
+- Restructure repository to uv workspace with packages/ layout. ([#367](https://github.com/lykinsbd/naas/issues/367))
+- Bump develop to v2.0.0a1 development cycle.
+
 # NAAS 1.4.0 (2026-04-03)
 
 ## 🐛 Bug Fixes

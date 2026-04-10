@@ -6,7 +6,7 @@ on:
       - main
       - 'release/**'
     paths:
-      - 'pyproject.toml'
+      - 'packages/naas/pyproject.toml'
 
 permissions:
   contents: write
@@ -26,7 +26,7 @@ jobs:
       - name: Extract version and determine release type
         id: version
         run: |
-          VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+          VERSION=$(grep '^version = ' packages/naas/pyproject.toml | sed 's/version = "\(.*\)"/\1/')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
           BRANCH="${GITHUB_REF#refs/heads/}"
@@ -95,18 +95,18 @@ jobs:
         uses: astral-sh/setup-uv@v7
 
       - name: Install dependencies
-        run: uv sync --extra dev
+        run: uv sync --package naas --extra dev
 
       - name: Build changelog
         run: |
           if [[ "${{ needs.check-version.outputs.is_prerelease }}" == "true" ]]; then
             # Pre-release: build changelog but keep fragments
-            uv run towncrier build --version ${{ needs.check-version.outputs.version }} --keep
+            uv run towncrier build --version ${{ needs.check-version.outputs.version }} --keep --dir packages/naas
             # Clean up old pre-releases but keep current one
             python3 .github/scripts/cleanup_changelog.py ${{ needs.check-version.outputs.version }} CHANGELOG.md
           else
             # Final release: build changelog and delete fragments
-            uv run towncrier build --version ${{ needs.check-version.outputs.version }} --yes
+            uv run towncrier build --version ${{ needs.check-version.outputs.version }} --yes --dir packages/naas
             # Clean up all pre-release entries for this version
             python3 .github/scripts/cleanup_changelog.py ${{ needs.check-version.outputs.version }} CHANGELOG.md
           fi
@@ -122,7 +122,7 @@ jobs:
           git add CHANGELOG.md uv.lock k8s/api/deployment.yaml k8s/worker/deployment.yaml
           if [[ "${{ needs.check-version.outputs.is_prerelease }}" == "false" ]]; then
             # Only commit fragment deletions on final release
-            git add changes/
+            git add packages/naas/changes/
           fi
           git commit -m "docs: update changelog for v${{ needs.check-version.outputs.version }}" || echo "No changes to commit"
           git push

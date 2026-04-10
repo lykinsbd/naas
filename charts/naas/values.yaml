@@ -1,0 +1,108 @@
+# NAAS Helm Chart — values.yaml
+# Override these values for your deployment.
+
+# -- Container image configuration
+image:
+  repository: ghcr.io/lykinsbd/naas
+  tag: ""  # Defaults to Chart.appVersion
+  pullPolicy: IfNotPresent
+
+# -- Namespace to deploy into (created if createNamespace is true)
+namespace: naas
+createNamespace: true
+
+# -- API server configuration
+api:
+  replicas: 2
+  port: 443
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "768Mi"
+      cpu: "500m"
+  livenessProbe:
+    initialDelaySeconds: 15
+    periodSeconds: 20
+  readinessProbe:
+    initialDelaySeconds: 10
+    periodSeconds: 10
+
+# -- Worker configuration
+worker:
+  replicas: 2
+  processes: 10
+  metricsPort: 9090
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+# -- NAAS application configuration (injected as ConfigMap)
+config:
+  APP_ENVIRONMENT: "production"
+  LOG_LEVEL: "INFO"
+  CIRCUIT_BREAKER_ENABLED: "true"
+  CIRCUIT_BREAKER_THRESHOLD: "5"
+  CIRCUIT_BREAKER_TIMEOUT: "300"
+  CONNECTION_POOL_ENABLED: "true"
+  CONNECTION_POOL_MAX_SIZE: "10"
+  CONNECTION_POOL_IDLE_TIMEOUT: "300"
+  CONNECTION_POOL_MAX_AGE: "3600"
+  CONNECTION_POOL_KEEPALIVE: "60"
+  # CONNECTION_POOL_EXCLUDE: ""
+
+# -- Secrets (provide values or reference an existing secret)
+secrets:
+  # -- Use an existing Secret instead of creating one
+  existingSecret: ""
+  # -- Values for the created Secret (ignored if existingSecret is set)
+  redisPassword: ""
+  encryptionKey: ""
+  # -- Optional TLS (omit for self-signed)
+  tlsCert: ""
+  tlsKey: ""
+  tlsCaBundle: ""
+
+# -- Bundled Redis (disable to use an external Redis)
+redis:
+  enabled: true
+  image:
+    repository: redis
+    tag: "7-alpine"
+  port: 6379
+  resources:
+    requests:
+      memory: "64Mi"
+      cpu: "50m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+  # -- External Redis (used when redis.enabled is false)
+  external:
+    host: ""
+    port: "6379"
+
+# -- Ingress configuration
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: naas.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  #  - secretName: naas-tls
+  #    hosts:
+  #      - naas.example.com
+
+# -- Service configuration
+service:
+  type: ClusterIP
+  port: 443
