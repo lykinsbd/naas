@@ -148,6 +148,80 @@ client = NaasClient(
 )
 ```
 
+## CLI Tool
+
+Install with the `cli` extra:
+
+```bash
+pip install naas-client[cli]
+```
+
+### Configuration
+
+The CLI reads settings from (highest precedence first):
+
+1. CLI flags (`--url`, `--api-key`, etc.)
+2. Environment variables (`NAAS_URL`, `NAAS_API_KEY`, `NAAS_USERNAME`, `NAAS_PASSWORD`, `NAAS_VERIFY`)
+3. Config file (`~/.config/naas/config.toml` or `NAAS_CONFIG=/path`)
+
+Config file example:
+
+```toml
+url = "https://naas.prod.example.com"
+api_key = "eyJ..."
+verify = true
+format = "json"
+timeout = 120
+```
+
+### Commands
+
+```bash
+# Health check
+naas healthcheck
+
+# Send commands (--wait blocks until complete)
+naas send-command --host 10.0.0.1 --platform cisco_ios --wait "show version"
+naas send-config --host 10.0.0.1 --wait --save-config "interface Gi0/1" "shutdown"
+
+# Job management
+naas jobs list [--status failed] [--tag env:prod]
+naas jobs get JOB_ID
+naas jobs cancel JOB_ID
+naas jobs replay JOB_ID
+naas jobs failed
+
+# Contexts
+naas contexts list
+
+# API keys
+naas api-keys list
+naas api-keys create --role operator --contexts default,oob
+naas api-keys delete KEY_ID
+naas api-keys rotate KEY_ID
+```
+
+### Output Formats
+
+- **Human** (default on terminal): Rich tables, colored status, icons
+- **JSON** (default when piped, or `--format json`): Structured JSON matching API models
+
+### Exit Codes
+
+| Code | Meaning |
+| ---- | ------- |
+| 0 | Success |
+| 1 | Job failed |
+| 2 | API error or missing required option |
+| 3 | Authentication error |
+| 4 | Timeout |
+
+### Shell Completion
+
+```bash
+naas --install-completion bash  # or zsh, fish
+```
+
 ## Compatibility
 
 - **Python**: 3.11+
