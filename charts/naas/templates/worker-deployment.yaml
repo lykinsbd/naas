@@ -35,6 +35,8 @@ spec:
             - configMapRef:
                 name: naas-config
           env:
+            - name: WORKER_METRICS_PORT
+              value: {{ .Values.worker.metricsPort | quote }}
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -48,6 +50,10 @@ spec:
                   optional: true
           resources:
             {{- toYaml .Values.worker.resources | nindent 12 }}
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.worker.metricsPort }}
+              protocol: TCP
           livenessProbe:
             exec:
               command:
