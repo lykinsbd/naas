@@ -7,7 +7,7 @@ import sys
 from typing import TYPE_CHECKING, Any, Protocol
 
 if TYPE_CHECKING:
-    from naas_client.models import HealthCheckResponse, JobResult
+    from naas_client.models import FailedJobsResponse, HealthCheckResponse, JobResult, ListJobsResponse
 
 
 class Formatter(Protocol):
@@ -20,6 +20,8 @@ class Formatter(Protocol):
     def waiting(self, job_id: str) -> str: ...
     def job_result(self, result: JobResult) -> str: ...
     def job_error(self, job_id: str, error: str) -> str: ...
+    def jobs_list(self, data: ListJobsResponse) -> str: ...
+    def failed_jobs(self, data: FailedJobsResponse) -> str: ...
 
 
 class JsonFormatter:
@@ -48,6 +50,12 @@ class JsonFormatter:
 
     def job_error(self, job_id: str, error: str) -> str:
         return json.dumps({"job_id": job_id, "status": "failed", "error": error}, indent=2)
+
+    def jobs_list(self, data: ListJobsResponse) -> str:
+        return data.model_dump_json(indent=2)
+
+    def failed_jobs(self, data: FailedJobsResponse) -> str:
+        return data.model_dump_json(indent=2)
 
 
 class HumanFormatter:
@@ -111,6 +119,42 @@ class HumanFormatter:
 
     def job_error(self, job_id: str, error: str) -> str:
         return f"✗ Job {job_id} failed: {error}"
+
+    def jobs_list(self, data: ListJobsResponse) -> str:
+        from io import StringIO
+
+        from rich.console import Console
+        from rich.table import Table
+
+        table = Table(show_header=True, header_style="bold")
+        table.add_column("Job ID")
+        table.add_column("Status")
+        table.add_column("Created")
+        table.add_column("Tags")
+        for j in data.jobs:
+            table.add_row(j.job_id, j.status, j.created_at or "", str(j.tags or ""))
+        buf = StringIO()
+        Console(file=buf, force_terminal=True).print(table)
+        p = data.pagination
+        return f"{buf.getvalue().rstrip()}\nPage {p.page}/{p.pages} ({p.total} total)"
+
+    def failed_jobs(self, data: FailedJobsResponse) -> str:
+        from io import StringIO
+
+        from rich.console import Console
+        from rich.table import Table
+
+        table = Table(show_header=True, header_style="bold")
+        table.add_column("Job ID")
+        table.add_column("Host")
+        table.add_column("Platform")
+        table.add_column("Failed At")
+        table.add_column("Error")
+        for j in data.jobs:
+            table.add_row(j.job_id, j.host or "", j.platform or "", j.failed_at or "", j.error or "")
+        buf = StringIO()
+        Console(file=buf, force_terminal=True).print(table)
+        return f"{buf.getvalue().rstrip()}\n{data.total} failed job(s)"
 
 
 def auto_formatter(fmt: str | None = None) -> Formatter:

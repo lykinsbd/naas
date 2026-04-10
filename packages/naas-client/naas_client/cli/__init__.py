@@ -22,6 +22,10 @@ from naas_client.cli.commands import commands_app  # noqa: E402
 
 app.registered_commands += commands_app.registered_commands
 
+from naas_client.cli.jobs import jobs_app  # noqa: E402
+
+app.add_typer(jobs_app)
+
 _UrlOpt = Annotated[str | None, typer.Option("--url", envvar="NAAS_URL", help="NAAS server URL")]
 _UsernameOpt = Annotated[str | None, typer.Option("--username", envvar="NAAS_USERNAME", help="Basic auth username")]
 _PasswordOpt = Annotated[str | None, typer.Option("--password", envvar="NAAS_PASSWORD", help="Basic auth password")]
