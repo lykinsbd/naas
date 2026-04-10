@@ -7,7 +7,15 @@ import sys
 from typing import TYPE_CHECKING, Any, Protocol
 
 if TYPE_CHECKING:
-    from naas_client.models import FailedJobsResponse, HealthCheckResponse, JobResult, ListJobsResponse
+    from naas_client.models import (
+        ApiKeyCreateResponse,
+        ApiKeyListItem,
+        ContextsResponse,
+        FailedJobsResponse,
+        HealthCheckResponse,
+        JobResult,
+        ListJobsResponse,
+    )
 
 
 class Formatter(Protocol):
@@ -22,6 +30,9 @@ class Formatter(Protocol):
     def job_error(self, job_id: str, error: str) -> str: ...
     def jobs_list(self, data: ListJobsResponse) -> str: ...
     def failed_jobs(self, data: FailedJobsResponse) -> str: ...
+    def contexts_list(self, data: ContextsResponse) -> str: ...
+    def api_keys_list(self, keys: list[ApiKeyListItem]) -> str: ...
+    def api_key_created(self, data: ApiKeyCreateResponse) -> str: ...
 
 
 class JsonFormatter:
@@ -55,6 +66,15 @@ class JsonFormatter:
         return data.model_dump_json(indent=2)
 
     def failed_jobs(self, data: FailedJobsResponse) -> str:
+        return data.model_dump_json(indent=2)
+
+    def contexts_list(self, data: ContextsResponse) -> str:
+        return data.model_dump_json(indent=2)
+
+    def api_keys_list(self, keys: list[ApiKeyListItem]) -> str:
+        return json.dumps([k.model_dump() for k in keys], indent=2)
+
+    def api_key_created(self, data: ApiKeyCreateResponse) -> str:
         return data.model_dump_json(indent=2)
 
 
@@ -155,6 +175,55 @@ class HumanFormatter:
         buf = StringIO()
         Console(file=buf, force_terminal=True).print(table)
         return f"{buf.getvalue().rstrip()}\n{data.total} failed job(s)"
+
+    def contexts_list(self, data: ContextsResponse) -> str:
+        from io import StringIO
+
+        from rich.console import Console
+        from rich.table import Table
+
+        table = Table(show_header=True, header_style="bold")
+        table.add_column("Name")
+        table.add_column("Workers")
+        table.add_column("Queue Depth")
+        for c in data.contexts:
+            table.add_row(c.name, str(c.workers), str(c.queue_depth))
+        buf = StringIO()
+        Console(file=buf, force_terminal=True).print(table)
+        return buf.getvalue().rstrip()
+
+    def api_keys_list(self, keys: list[ApiKeyListItem]) -> str:
+        from io import StringIO
+
+        from rich.console import Console
+        from rich.table import Table
+
+        table = Table(show_header=True, header_style="bold")
+        table.add_column("Key ID")
+        table.add_column("Role")
+        table.add_column("Contexts")
+        table.add_column("Created")
+        table.add_column("Expires")
+        for k in keys:
+            table.add_row(
+                k.key_id,
+                k.role,
+                ", ".join(k.contexts or []),
+                k.created_at,
+                k.expires_at,
+            )
+        buf = StringIO()
+        Console(file=buf, force_terminal=True).print(table)
+        return buf.getvalue().rstrip()
+
+    def api_key_created(self, data: ApiKeyCreateResponse) -> str:
+        lines = [
+            f"Key ID:  {data.key_id}",
+            f"Role:    {data.role}",
+            f"Token:   {data.token}",
+            f"Expires: {data.expires_at}",
+        ]
+        return "\n".join(lines)
 
 
 def auto_formatter(fmt: str | None = None) -> Formatter:
