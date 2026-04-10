@@ -1,0 +1,16 @@
+apiVersion: v2
+name: naas
+description: Netmiko As A Service — REST API for network device automation
+type: application
+version: 0.1.0
+appVersion: "2.0.0"
+keywords:
+  - naas
+  - netmiko
+  - network-automation
+home: https://github.com/lykinsbd/naas
+sources:
+  - https://github.com/lykinsbd/naas
+maintainers:
+  - name: Brett Lykins
+    url: https://github.com/lykinsbd

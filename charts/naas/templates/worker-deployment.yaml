@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: naas-worker
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "naas.labels" . | nindent 4 }}
+    app: naas-worker
+spec:
+  replicas: {{ .Values.worker.replicas }}
+  selector:
+    matchLabels:
+      app: naas-worker
+  template:
+    metadata:
+      labels:
+        app: naas-worker
+        {{- include "naas.labels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: naas-worker
+          image: {{ include "naas.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - python
+            - worker.py
+            - --redis
+            - $(REDIS_HOST)
+            - --port
+            - $(REDIS_PORT)
+            - --auth_password
+            - $(REDIS_PASSWORD)
+            - $(NAAS_WORKER_PROCESSES)
+          envFrom:
+            - configMapRef:
+                name: naas-config
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "naas.secretName" . }}
+                  key: REDIS_PASSWORD
+            - name: NAAS_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "naas.secretName" . }}
+                  key: NAAS_ENCRYPTION_KEY
+                  optional: true
+          resources:
+            {{- toYaml .Values.worker.resources | nindent 12 }}
+          livenessProbe:
+            exec:
+              command:
+                - find
+                - /tmp/worker_heartbeat
+                - -mmin
+                - "-2"
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            failureThreshold: 3
+      volumes:
+        - name: tmp
+          emptyDir: {}

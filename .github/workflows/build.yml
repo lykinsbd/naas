@@ -76,9 +76,23 @@ jobs:
           filters: |
             k8s:
               - 'k8s/**'
+              - 'charts/**'
               - 'packages/naas/Dockerfile'
               - 'packages/naas/tests/k8s/**'
               - '.github/workflows/build.yml'
+
+  helm-lint:
+    runs-on: ubuntu-latest
+    needs: [changes]
+    if: needs.changes.outputs.code == 'true'
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+      - name: Lint chart
+        run: helm lint charts/naas
+      - name: Template dry-run
+        run: helm template test charts/naas --set secrets.redisPassword=ci-test
 
   k8s-tests:
     runs-on: ubuntu-latest
@@ -174,7 +188,7 @@ jobs:
   build-and-k8s-summary:
     name: Build and K8s Tests
     runs-on: ubuntu-latest
-    needs: [changes, build, k8s-tests]
+    needs: [changes, build, k8s-tests, helm-lint]
     if: always()
     steps:
       - name: Check results
@@ -189,6 +203,10 @@ jobs:
           fi
           if [[ "${{ needs.k8s-tests.result }}" == "failure" || "${{ needs.k8s-tests.result }}" == "cancelled" ]]; then
             echo "K8s tests failed or were cancelled"
+            exit 1
+          fi
+          if [[ "${{ needs.helm-lint.result }}" == "failure" || "${{ needs.helm-lint.result }}" == "cancelled" ]]; then
+            echo "Helm lint failed or was cancelled"
             exit 1
           fi
           # skipped is acceptable for k8s-tests (path filter didn't match)
