@@ -106,7 +106,7 @@ ignore_missing_imports = true
 
 [tool.towncrier]
 directory = "changes"
-filename = "CHANGELOG.md"
+filename = "../../CHANGELOG.md"
 start_string = "<!-- towncrier release notes start -->\n"
 template = "changes/template.md.j2"
 title_format = "# NAAS {version} ({project_date})"
