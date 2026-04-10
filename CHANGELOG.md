@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- towncrier release notes start -->
 
-# NAAS 2.0.0rc1 (2026-04-10)
+# NAAS 2.0.0 (2026-04-10)
 
 ## 💥 Breaking Changes
 
@@ -72,6 +72,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add naas-client integration tests against docker-compose NAAS. ([#383](https://github.com/lykinsbd/naas/issues/383))
 - Use naas-client in NAAS integration and e2e tests. ([#384](https://github.com/lykinsbd/naas/issues/384))
 - Use Helm chart in k8s integration tests. ([#406](https://github.com/lykinsbd/naas/issues/406))
+- Add RBAC, API key, and v2 field rejection integration tests.
 
 ## 🔧 Internal Changes
 
