@@ -150,7 +150,7 @@ jobs:
 
       - name: Wait for rollouts
         run: |
-          kubectl -n naas rollout status deployment/redis --timeout=60s
+          kubectl -n naas rollout status deployment/redis --timeout=90s
           kubectl -n naas rollout status deployment/naas-api --timeout=90s || {
             echo "API deployment failed, debugging..."
             kubectl -n naas get pods
