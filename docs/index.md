@@ -6,13 +6,13 @@ Welcome to the NAAS documentation! NAAS is a REST API wrapper for [Netmiko](http
 
 NAAS provides a production-ready API for executing commands and configurations on network devices. It handles:
 
-- **Asynchronous job processing** — Commands run in background workers
-- **Multiple device platforms** — Supports all Netmiko-compatible devices (Cisco, Arista, Juniper, etc.)
-- **Python client & CLI** — `pip install naas-client[cli]` for typed API access and terminal usage
-- **Secure authentication** — HTTPS, Basic Auth, JWT API keys with RBAC
-- **Context routing** — Isolate workloads across dedicated worker pools
-- **Job tracking** — Query status, wait for completion, cancel, replay
-- **Production features** — Prometheus metrics, audit logging, circuit breakers, connection pooling
+- **Asynchronous job processing**: Commands run in background workers
+- **Multiple device platforms**: Supports all Netmiko-compatible devices (Cisco, Arista, Juniper, etc.)
+- **Python client & CLI**: `pip install naas-client[cli]` for typed API access and terminal usage
+- **Secure authentication**: HTTPS, Basic Auth, JWT API keys with RBAC
+- **Context routing**: Isolate workloads across dedicated worker pools
+- **Job tracking**: Query status, wait for completion, cancel, replay
+- **Production features**: Prometheus metrics, audit logging, circuit breakers, connection pooling
 
 ## Quick Example
 
@@ -69,10 +69,10 @@ NAAS provides a production-ready API for executing commands and configurations o
 
 ## Getting Started
 
-- [Quick Start](quickstart.md) — Get NAAS running in 5 minutes
-- [Python Client](client.md) — Library and CLI usage
-- [API Usage](api-usage.md) — REST API examples
-- [Upgrading to v2.0](upgrading.md) — Migration guide from v1.x
+- [Quick Start](quickstart.md): Get NAAS running in 5 minutes
+- [Python Client](client.md): Library and CLI usage
+- [API Usage](api-usage.md): REST API examples
+- [Upgrading to v2.0](upgrading.md): Migration guide from v1.x
 
 ## Project Links
 

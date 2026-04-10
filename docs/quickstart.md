@@ -128,8 +128,8 @@ Expected response:
 
 ## Next steps
 
-- [Python Client & CLI](client.md) — Full client library and CLI reference
-- [API Usage Examples](api-usage.md) — Detailed REST API examples
-- [Upgrading to v2.0](upgrading.md) — Migration guide from v1.x
-- [Security](security.md) — API keys, RBAC, and TLS configuration
-- [Kubernetes Deployment](kubernetes.md) — Helm chart and k8s manifests
+- [Python Client & CLI](client.md): Full client library and CLI reference
+- [API Usage Examples](api-usage.md): Detailed REST API examples
+- [Upgrading to v2.0](upgrading.md): Migration guide from v1.x
+- [Security](security.md): API keys, RBAC, and TLS configuration
+- [Kubernetes Deployment](kubernetes.md): Helm chart and K8s manifests
