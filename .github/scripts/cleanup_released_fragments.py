@@ -39,7 +39,9 @@ def extract_released_issues(changelog_path: Path) -> set[int]:
     return released_issues
 
 
-def extract_released_prefix_fragments(changelog_path: Path, changes_dir: Path) -> set[str]:
+def extract_released_prefix_fragments(
+    changelog_path: Path, changes_dir: Path
+) -> set[str]:
     """Extract +prefix fragment names that appear in released versions.
 
     Checks if the content of +prefix fragments appears in released CHANGELOG sections.
@@ -101,7 +103,9 @@ def find_fragments_to_delete(
     return fragments_to_delete
 
 
-def generate_pr_body(fragments: list[tuple[Path, int | str]], version: str, changelog_path: Path) -> str:
+def generate_pr_body(
+    fragments: list[tuple[Path, int | str]], version: str, changelog_path: Path
+) -> str:
     """Generate detailed PR body with table of deletions."""
     changelog_content = changelog_path.read_text()
 
@@ -163,7 +167,7 @@ def main() -> int:
     version = sys.argv[1]
     repo_root = Path(__file__).parent.parent.parent
     changelog_path = repo_root / "CHANGELOG.md"
-    changes_dir = repo_root / "changes"
+    changes_dir = repo_root / "packages" / "naas" / "changes"
 
     if not changelog_path.exists():
         print(f"Error: CHANGELOG.md not found at {changelog_path}")
@@ -184,7 +188,9 @@ def main() -> int:
 
     # Find fragments to delete
     print(f"Scanning {changes_dir}...")
-    fragments_to_delete = find_fragments_to_delete(changes_dir, released_issues, released_prefixes)
+    fragments_to_delete = find_fragments_to_delete(
+        changes_dir, released_issues, released_prefixes
+    )
 
     if not fragments_to_delete:
         print("No fragments to delete")
