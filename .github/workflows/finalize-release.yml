@@ -29,7 +29,7 @@ jobs:
       - name: Check if version is pre-release
         id: check
         run: |
-          VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+          VERSION=$(grep '^version = ' packages/naas/pyproject.toml | sed 's/version = "\(.*\)"/\1/')
           echo "current_version=$VERSION" >> $GITHUB_OUTPUT
 
           # Check if version has pre-release suffix (b, rc, a)
@@ -54,13 +54,13 @@ jobs:
           git checkout -b release/finalize-$FINAL_VERSION
 
           # Update pyproject.toml
-          sed -i "s/^version = \".*\"/version = \"${FINAL_VERSION}\"/" pyproject.toml
+          sed -i "s/^version = \".*\"/version = \"${FINAL_VERSION}\"/" packages/naas/pyproject.toml
           uv lock
 
           # Commit
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add pyproject.toml uv.lock
+          git add packages/naas/pyproject.toml uv.lock
           git commit -m "chore: bump version to ${FINAL_VERSION}"
           git push -u origin release/finalize-$FINAL_VERSION
 
