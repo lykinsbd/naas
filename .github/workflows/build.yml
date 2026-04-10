@@ -131,24 +131,21 @@ jobs:
           docker load < naas-image.tar.gz
           k3d image import naas:test -c naas-test
 
-      - name: Apply manifests
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Deploy NAAS via Helm chart
         run: |
-          kubectl apply -f k8s/namespace.yaml
-          kubectl -n naas create secret generic naas-secret \
-            --from-literal=REDIS_PASSWORD=test-redis-pw \
-            --from-literal=NAAS_ENCRYPTION_KEY=IaypjfWWRlCStgKgneWQDfteGYNdO70FSepbfHdC6yY=
-          kubectl apply -f k8s/configmap.yaml
-          kubectl apply -f k8s/redis/
-          # Patch image and pullPolicy inline before applying
-          sed 's|ghcr.io/lykinsbd/naas:.*|naas:test|g' k8s/api/deployment.yaml \
-            | kubectl apply -f -
-          kubectl apply -f k8s/api/service.yaml
-          sed 's|ghcr.io/lykinsbd/naas:.*|naas:test|g' k8s/worker/deployment.yaml \
-            | kubectl apply -f -
-          kubectl -n naas patch deployment naas-api \
-            -p '{"spec":{"template":{"spec":{"containers":[{"name":"naas-api","imagePullPolicy":"Never","env":[{"name":"GUNICORN_WORKERS","value":"2"}]}]}}}}'
-          kubectl -n naas patch deployment naas-worker \
-            -p '{"spec":{"template":{"spec":{"containers":[{"name":"naas-worker","imagePullPolicy":"Never"}]}}}}'
+          helm install naas charts/naas \
+            --namespace naas --create-namespace \
+            --set image.repository=naas \
+            --set image.tag=test \
+            --set image.pullPolicy=Never \
+            --set secrets.redisPassword=test-redis-pw \
+            --set secrets.encryptionKey=IaypjfWWRlCStgKgneWQDfteGYNdO70FSepbfHdC6yY= \
+            --set api.replicas=1 \
+            --set worker.replicas=1
+          # cisshgo is a test fixture, not part of the chart
           kubectl apply -f k8s/cisshgo/
 
       - name: Wait for rollouts
