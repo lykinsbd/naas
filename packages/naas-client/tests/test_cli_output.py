@@ -43,6 +43,23 @@ class TestJsonFormatter:
         out = JsonFormatter().message("hello")
         assert '"hello"' in out
 
+    def test_job_submitted(self) -> None:
+        assert "abc-123" in JsonFormatter().job_submitted("abc-123")
+
+    def test_waiting_empty(self) -> None:
+        assert JsonFormatter().waiting("abc-123") == ""
+
+    def test_job_result(self) -> None:
+        from naas_client.models import JobResult
+
+        r = JobResult.model_validate({"job_id": "abc-123", "status": "finished", "results": {"show version": "Cisco"}})
+        out = JsonFormatter().job_result(r)
+        assert "finished" in out
+
+    def test_job_error(self) -> None:
+        out = JsonFormatter().job_error("abc-123", "Connection refused")
+        assert "failed" in out
+
 
 class TestHumanFormatter:
     def test_healthcheck(self) -> None:
@@ -59,6 +76,32 @@ class TestHumanFormatter:
 
     def test_message(self) -> None:
         assert HumanFormatter().message("hello") == "hello"
+
+    def test_job_submitted(self) -> None:
+        assert "abc-123" in HumanFormatter().job_submitted("abc-123")
+
+    def test_waiting(self) -> None:
+        assert "abc-123" in HumanFormatter().waiting("abc-123")
+
+    def test_job_result_finished(self) -> None:
+        from naas_client.models import JobResult
+
+        r = JobResult.model_validate({"job_id": "abc-123", "status": "finished", "results": {"show version": "Cisco"}})
+        out = HumanFormatter().job_result(r)
+        assert "✓" in out
+        assert "Cisco" in out
+
+    def test_job_result_failed(self) -> None:
+        from naas_client.models import JobResult
+
+        r = JobResult.model_validate({"job_id": "abc-123", "status": "failed", "error": "timeout"})
+        out = HumanFormatter().job_result(r)
+        assert "✗" in out
+        assert "timeout" in out
+
+    def test_job_error(self) -> None:
+        out = HumanFormatter().job_error("abc-123", "Connection refused")
+        assert "failed" in out
 
 
 class TestAutoFormatter:
