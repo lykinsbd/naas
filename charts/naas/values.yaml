@@ -33,6 +33,7 @@ api:
 worker:
   replicas: 2
   processes: 10
+  metricsPort: 9090
   resources:
     requests:
       memory: "128Mi"

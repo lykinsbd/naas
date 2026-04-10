@@ -42,6 +42,18 @@ def main() -> None:
         datefmt="%Y-%m-%d %H:%M:%S %z",
     )
 
+    # Initialize worker metrics (must happen before forking children)
+    from naas.library.worker_metrics import init, make_registry
+
+    metrics_dir = init()
+    logger.debug("Worker metrics directory: %s", metrics_dir)
+
+    metrics_port = int(os.environ.get("WORKER_METRICS_PORT", "9090"))
+    from prometheus_client import start_http_server
+
+    start_http_server(metrics_port, registry=make_registry())
+    logger.info("Worker metrics server started on port %s", metrics_port)
+
     # Sleep 10 seconds to allow Redis to come up
     logger.debug("Sleeping %s seconds to allow Redis to initialize.", args.sleep)
     sleep(args.sleep)
@@ -158,6 +170,17 @@ def worker_launch(
         queues,
     )
     w = Worker(queues=queues, name=name, connection=redis_conn)
+
+    # Increment active_jobs gauge when a job starts executing
+    from naas.library.worker_metrics import active_jobs
+
+    original_perform = w.perform_job
+
+    def _perform_with_metrics(job, queue):
+        active_jobs.inc()
+        return original_perform(job, queue)
+
+    w.perform_job = _perform_with_metrics
 
     # Fetch credential salt from Redis and configure the connection pool
     from naas.library.connection_pool import pool

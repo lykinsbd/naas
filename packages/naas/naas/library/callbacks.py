@@ -68,20 +68,41 @@ def _fire_webhook_if_configured(job: "Job", connection, status: str) -> None:
 def on_job_complete(job: "Job", connection, result, *args, **kwargs) -> None:
     """
     Called by RQ after a job succeeds.
-    Clears the dedup key and fires webhook if configured.
+    Clears the dedup key, fires webhook if configured, and records metrics.
     """
     dedup_key = job.meta.get("dedup_key", "") if isinstance(job.meta, dict) else ""
     if dedup_key:
         clear_dedup_key(dedup_key, connection)
     _fire_webhook_if_configured(job, connection, "finished")
+    _record_job_metrics(job, "finished")
 
 
 def on_job_failure(job: "Job", connection, type, value, traceback) -> None:
     """
     Called by RQ after a job fails.
-    Clears the dedup key and fires webhook if configured.
+    Clears the dedup key, fires webhook if configured, and records metrics.
     """
     dedup_key = job.meta.get("dedup_key", "") if isinstance(job.meta, dict) else ""
     if dedup_key:
         clear_dedup_key(dedup_key, connection)
     _fire_webhook_if_configured(job, connection, "failed")
+    _record_job_metrics(job, "failed")
+
+
+def _record_job_metrics(job: "Job", status: str) -> None:
+    """Record Prometheus metrics for a completed job."""
+    try:
+        from naas.library.worker_metrics import active_jobs, job_duration_seconds, jobs_total
+
+        meta = job.meta if isinstance(job.meta, dict) else {}
+        context = meta.get("context", "default")
+        platform = meta.get("platform", "unknown")
+
+        jobs_total.labels(status=status, context=context).inc()
+        active_jobs.dec()
+
+        if job.started_at and job.ended_at:
+            duration = (job.ended_at - job.started_at).total_seconds()
+            job_duration_seconds.labels(platform=platform, context=context).observe(duration)
+    except Exception:
+        pass  # Metrics are best-effort — never fail a job over them
