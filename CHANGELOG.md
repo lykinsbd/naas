@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- towncrier release notes start -->
 
-# NAAS 2.0.0b1 (2026-04-10)
+# NAAS 2.0.0rc1 (2026-04-10)
 
 ## 💥 Breaking Changes
 
@@ -63,6 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add v1 → v2 API migration guide and ADR for API versioning strategy. ([#359](https://github.com/lykinsbd/naas/issues/359))
 - Add naas-client README, mypy strict mode, and CI workflow. ([#374](https://github.com/lykinsbd/naas/issues/374))
 - Add CLI shell completion, --version, and RTD documentation. ([#391](https://github.com/lykinsbd/naas/issues/391))
+- Update documentation for v2.0 release. ([#409](https://github.com/lykinsbd/naas/issues/409))
 
 ## 🧪 Testing & CI/CD
 
