@@ -109,12 +109,12 @@ jobs:
 
           # Create branch, bump version, and open PR
           git checkout -b "$BRANCH"
-          sed -i "s/^version = \".*\"/version = \"${NEXT_VERSION}\"/" pyproject.toml
+          sed -i "s/^version = \".*\"/version = \"${NEXT_VERSION}\"/" packages/naas/pyproject.toml
           uv lock
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add pyproject.toml uv.lock
+          git add packages/naas/pyproject.toml uv.lock
           git commit -m "chore: bump develop to v${NEXT_VERSION}"
           git push -u origin "$BRANCH"
 
