@@ -55,6 +55,10 @@ config:
   CONNECTION_POOL_MAX_AGE: "3600"
   CONNECTION_POOL_KEEPALIVE: "60"
   # CONNECTION_POOL_EXCLUDE: ""
+  # -- OpenTelemetry (install naas[otel] to enable)
+  OTEL_ENABLED: "false"
+  # OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
+  # OTEL_SERVICE_NAME is set automatically (naas-api / naas-worker)
 
 # -- Secrets (provide values or reference an existing secret)
 secrets:

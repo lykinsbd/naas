@@ -20,6 +20,7 @@ from redis.exceptions import RedisError
 from naas import __base_response__
 from naas.config import app_configure
 from naas.library.errorhandlers import api_error_generator
+from naas.library.otel import OTEL_ENABLED, init_telemetry
 from naas.library.worker_cache import get_cached_workers
 from naas.resources.api_keys import ApiKey, ApiKeyRotate, ApiKeys
 from naas.resources.cancel_job import CancelJob
@@ -34,6 +35,13 @@ from naas.resources.send_config import SendConfig
 from naas.spec import spec
 
 app = Flask(__name__)
+
+# Initialize OpenTelemetry (no-op when OTEL_ENABLED=false)
+init_telemetry(service_name="naas-api")
+if OTEL_ENABLED:  # pragma: no cover — tested via integration tests with OTEL_ENABLED=true
+    from opentelemetry.instrumentation.flask import FlaskInstrumentor
+
+    FlaskInstrumentor().instrument_app(app)
 
 app_configure(app)
 
