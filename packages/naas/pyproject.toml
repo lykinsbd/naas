@@ -49,6 +49,12 @@ dev = [
     "pre-commit>=4.0.0",
     "requests>=2.31.0",
     "towncrier>=23.11.0",
+    "opentelemetry-test-utils>=0.62b0",
+]
+otel = [
+    "opentelemetry-sdk>=1.20.0",
+    "opentelemetry-exporter-otlp-proto-grpc>=1.20.0",
+    "opentelemetry-instrumentation-flask>=0.41b0",
 ]
 vault = [
     "hvac>=2.1.0",

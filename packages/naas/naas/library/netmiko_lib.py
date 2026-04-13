@@ -17,6 +17,7 @@ from naas.library.audit import emit_audit_event
 from naas.library.auth import tacacs_auth_lockout
 from naas.library.circuit_breaker import _get_redis, with_circuit_breaker
 from naas.library.connection_pool import pool
+from naas.library.otel import span
 
 # Common error patterns across IOS, NX-OS, EOS, JunOS, and similar platforms
 _CONFIG_ERROR_PATTERN = r"(?i)(% invalid|% incomplete|% ambiguous|% error|error:|invalid input|syntax error)"
@@ -189,7 +190,8 @@ def _netmiko_send_command_impl(
         if net_connect is None:
             logger.debug("%s %s:Establishing connection...", request_id, ip)
             netmiko_device["keepalive"] = CONNECTION_POOL_KEEPALIVE if use_pool else 0
-            net_connect = netmiko.ConnectHandler(**netmiko_device)
+            with span("naas.netmiko.connect", attributes={"net.peer.name": ip, "net.peer.port": str(port)}):
+                net_connect = netmiko.ConnectHandler(**netmiko_device)
         else:
             # Verify pooled connection is at a clean prompt before use
             try:
@@ -198,7 +200,8 @@ def _netmiko_send_command_impl(
                 logger.debug("%s %s:Pooled connection in bad state, reconnecting", request_id, ip)
                 pool._evict((ip, port, pool._cred_hash(credentials.username, credentials.password), device_type))
                 netmiko_device["keepalive"] = CONNECTION_POOL_KEEPALIVE
-                net_connect = netmiko.ConnectHandler(**netmiko_device)
+                with span("naas.netmiko.connect", attributes={"net.peer.name": ip, "net.peer.port": str(port)}):
+                    net_connect = netmiko.ConnectHandler(**netmiko_device)
 
         net_output = {}
         for command in commands:
@@ -214,7 +217,8 @@ def _netmiko_send_command_impl(
                 kwargs["use_ttp"] = True
                 if ttp_template is not None:
                     kwargs["ttp_template"] = ttp_template
-            net_output[command] = net_connect.send_command(command, **kwargs)
+            with span("naas.netmiko.send_command", attributes={"net.peer.name": ip, "naas.command": command}):
+                net_output[command] = net_connect.send_command(command, **kwargs)
 
         if use_pool:
             pool.release(ip, port, credentials.username, credentials.password, device_type, net_connect)
@@ -401,13 +405,17 @@ def _netmiko_send_config_impl(
 
     try:
         logger.debug("%s %s:Establishing connection...", request_id, ip)
-        net_connect = netmiko.ConnectHandler(**netmiko_device)
+        with span("naas.netmiko.connect", attributes={"net.peer.name": ip, "net.peer.port": str(port)}):
+            net_connect = netmiko.ConnectHandler(**netmiko_device)
 
         net_output = {}
         logger.debug("%s %s:Sending config_set: %s", request_id, ip, commands)
-        net_output["config_set_output"] = net_connect.send_config_set(
-            commands, read_timeout=read_timeout, error_pattern=_CONFIG_ERROR_PATTERN
-        )
+        with span(
+            "naas.netmiko.send_config", attributes={"net.peer.name": ip, "naas.command_count": str(len(commands))}
+        ):
+            net_output["config_set_output"] = net_connect.send_config_set(
+                commands, read_timeout=read_timeout, error_pattern=_CONFIG_ERROR_PATTERN
+            )
 
         if save_config:
             try:
