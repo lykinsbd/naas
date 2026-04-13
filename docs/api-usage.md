@@ -50,7 +50,7 @@ Device credentials are provided in the request body instead of the Authorization
 
 ```bash
 # Send a command using an API key
-curl -k -X POST https://localhost:8443/v1/send_command \
+curl -k -X POST https://localhost:8443/v2/send-command \
   -H "Authorization: Bearer eyJhbG..." \
   -H "Content-Type: application/json" \
   -d '{
@@ -82,7 +82,7 @@ If `NAAS_ADMIN_SECRET` is not set, key management is disabled.
 ### Create a Key
 
 ```bash
-curl -k -X POST https://localhost:8443/v1/api-keys \
+curl -k -X POST https://localhost:8443/v2/api-keys \
   -u "admin:$NAAS_ADMIN_SECRET" \
   -H "Content-Type: application/json" \
   -d '{"role": "admin", "ttl": 7776000}'
@@ -110,7 +110,7 @@ Response:
 ### List Keys
 
 ```bash
-curl -k -u "admin:$NAAS_ADMIN_SECRET" https://localhost:8443/v1/api-keys
+curl -k -u "admin:$NAAS_ADMIN_SECRET" https://localhost:8443/v2/api-keys
 ```
 
 Returns metadata only — tokens are never shown after creation.
@@ -119,7 +119,7 @@ Returns metadata only — tokens are never shown after creation.
 
 ```bash
 curl -k -X DELETE -u "admin:$NAAS_ADMIN_SECRET" \
-  https://localhost:8443/v1/api-keys/k-a1b2c3d4e5f6
+  https://localhost:8443/v2/api-keys/k-a1b2c3d4e5f6
 ```
 
 Revoked keys are immediately rejected on subsequent requests.
@@ -147,7 +147,7 @@ Execute show commands on network devices.
 ### Basic Example
 
 ```bash
-curl -k -X POST https://localhost:8443/v1/send_command \
+curl -k -X POST https://localhost:8443/v2/send-command \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -d '{
@@ -160,7 +160,7 @@ curl -k -X POST https://localhost:8443/v1/send_command \
 ### With Custom Port
 
 ```bash
-curl -k -X POST https://localhost:8443/v1/send_command \
+curl -k -X POST https://localhost:8443/v2/send-command \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -d '{
@@ -174,7 +174,7 @@ curl -k -X POST https://localhost:8443/v1/send_command \
 ### With Enable Password
 
 ```bash
-curl -k -X POST https://localhost:8443/v1/send_command \
+curl -k -X POST https://localhost:8443/v2/send-command \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -d '{
@@ -190,7 +190,7 @@ curl -k -X POST https://localhost:8443/v1/send_command \
 Track your requests with custom IDs:
 
 ```bash
-curl -k -X POST https://localhost:8443/v1/send_command \
+curl -k -X POST https://localhost:8443/v2/send-command \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -H "X-Request-ID: my-custom-id-12345" \
@@ -206,7 +206,7 @@ curl -k -X POST https://localhost:8443/v1/send_command \
 Use `expect_string` to override automatic prompt detection with a regex pattern:
 
 ```bash
-curl -k -X POST https://localhost:8443/v1/send_command \
+curl -k -X POST https://localhost:8443/v2/send-command \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -d '{
@@ -230,7 +230,7 @@ curl -k -X POST https://localhost:8443/v1/send_command \
 Control the TCP connection timeout with `conn_timeout` (default: `10.0` seconds):
 
 ```bash
-curl -k -X POST https://localhost:8443/v1/send_command \
+curl -k -X POST https://localhost:8443/v2/send-command \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -d '{
@@ -264,7 +264,7 @@ Push configuration changes to devices.
 ### Basic Configuration
 
 ```bash
-curl -k -X POST https://localhost:8443/v1/send_config \
+curl -k -X POST https://localhost:8443/v2/send-config \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -d '{
@@ -283,7 +283,7 @@ curl -k -X POST https://localhost:8443/v1/send_config \
 Automatically save configuration after changes:
 
 ```bash
-curl -k -X POST https://localhost:8443/v1/send_config \
+curl -k -X POST https://localhost:8443/v2/send-config \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -d '{
@@ -302,7 +302,7 @@ curl -k -X POST https://localhost:8443/v1/send_config \
 For platforms that require commit:
 
 ```bash
-curl -k -X POST https://localhost:8443/v1/send_config \
+curl -k -X POST https://localhost:8443/v2/send-config \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -d '{
@@ -345,7 +345,7 @@ Set `JOB_DEDUP_ENABLED=false` to disable deduplication globally. Useful for test
 For client-controlled deduplication (e.g., safe retries on network failure), use `X-Idempotency-Key`:
 
 ```bash
-curl -k -X POST https://localhost:8443/v1/send_command \
+curl -k -X POST https://localhost:8443/v2/send-command \
   -H "X-Idempotency-Key: my-unique-key-abc123" \
   -u "admin:password" \
   -d '{"host": "192.168.1.1", "platform": "cisco_ios", "commands": ["show version"]}'
@@ -358,7 +358,7 @@ Repeat requests with the same key within 24 hours return the original job_id wit
 Instead of polling for results, you can provide a `webhook_url` to receive a notification when the job completes.
 
 ```bash
-curl -k -u admin:admin -X POST https://naas.example.com/v1/send_command \
+curl -k -u admin:admin -X POST https://naas.example.com/v2/send-command \
   -H "Content-Type: application/json" \
   -d '{
     "host": "192.168.1.1",
@@ -379,7 +379,7 @@ When the job finishes (success or failure), NAAS POSTs a notification to your UR
 }
 ```
 
-Use `job_id` to fetch the full results from `GET /v1/jobs/{job_id}`.
+Use `job_id` to fetch the full results from `GET /v2/jobs/{job_id}`.
 
 ### Security
 
@@ -396,7 +396,7 @@ Failed jobs are retained in RQ's `FailedJobRegistry` for `JOB_TTL_FAILED` (7 day
 ### List Failed Jobs
 
 ```bash
-curl -k -u "admin:password" https://naas.example.com/v1/jobs/failed
+curl -k -u "admin:password" https://naas.example.com/v2/jobs/failed
 ```
 
 ```json
@@ -424,7 +424,7 @@ Re-enqueue a failed job using your current credentials (stored credentials are n
 
 ```bash
 curl -k -u "admin:password" -X POST \
-  https://naas.example.com/v1/jobs/abc-123/replay
+  https://naas.example.com/v2/jobs/abc-123/replay
 ```
 
 Returns a standard `202 Accepted` with a new `job_id`. The replayed job uses the caller's credentials, not the original submitter's.
@@ -444,7 +444,7 @@ Cancel running or queued jobs using DELETE.
 ### Cancel a Job
 
 ```bash
-curl -k -X DELETE https://localhost:8443/v1/send_command/{job_id} \
+curl -k -X DELETE https://localhost:8443/v2/send-command/{job_id} \
   -u "admin:password"
 ```
 
@@ -458,14 +458,14 @@ curl -k -X DELETE https://localhost:8443/v1/send_command/{job_id} \
 
 ```bash
 # Submit a job
-JOB_ID=$(curl -k -X POST https://localhost:8443/v1/send_command \
+JOB_ID=$(curl -k -X POST https://localhost:8443/v2/send-command \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -d '{"host": "192.168.1.1", "platform": "cisco_ios", "commands": ["show version"]}' \
   | jq -r '.job_id')
 
 # Cancel it
-curl -k -X DELETE https://localhost:8443/v1/send_command/$JOB_ID \
+curl -k -X DELETE https://localhost:8443/v2/send-command/$JOB_ID \
   -u "admin:password"
 ```
 
@@ -485,7 +485,7 @@ curl -k -X DELETE https://localhost:8443/v1/send_command/$JOB_ID \
 ### Check Job Status
 
 ```bash
-curl -k https://localhost:8443/v1/send_command/550e8400-e29b-41d4-a716-446655440000 \
+curl -k https://localhost:8443/v2/send-command/550e8400-e29b-41d4-a716-446655440000 \
   -u "admin:password"
 ```
 
@@ -493,7 +493,7 @@ The `X-Request-ID` header in the 202 response contains the job ID:
 
 ```bash
 # Capture job ID from response header
-JOB_ID=$(curl -k -s -D - -X POST https://localhost:8443/v1/send_command \
+JOB_ID=$(curl -k -s -D - -X POST https://localhost:8443/v2/send-command \
   -u "admin:password" -H "Content-Type: application/json" \
   -d '{"host": "192.168.1.1", "platform": "cisco_ios", "commands": ["show version"]}' \
   | grep -i x-request-id | awk '{print $2}' | tr -d '\r')
@@ -554,13 +554,13 @@ List all jobs with optional pagination and status filtering.
 
 ```bash
 # All jobs (default: page 1, 20 per page)
-curl -k -u "admin:password" https://localhost:8443/v1/jobs
+curl -k -u "admin:password" https://localhost:8443/v2/jobs
 
 # Filter by status
-curl -k -u "admin:password" "https://localhost:8443/v1/jobs?status=failed"
+curl -k -u "admin:password" "https://localhost:8443/v2/jobs?status=failed"
 
 # Paginate
-curl -k -u "admin:password" "https://localhost:8443/v1/jobs?page=2&per_page=50"
+curl -k -u "admin:password" "https://localhost:8443/v2/jobs?page=2&per_page=50"
 ```
 
 Valid `status` values: `queued`, `started`, `finished`, `failed`.
@@ -593,7 +593,7 @@ Attach key-value metadata to any job for filtering and auditing. Tags are stored
 ### Submitting Tags
 
 ```bash
-curl -k -X POST https://localhost:8443/v1/send_command \
+curl -k -X POST https://localhost:8443/v2/send-command \
   -u "admin:password" \
   -d '{
     "host": "192.168.1.1",
@@ -615,10 +615,10 @@ Use `?tag=key:value` on the list jobs endpoint:
 
 ```bash
 # All jobs tagged team:network-ops
-curl -k -u "admin:password" "https://localhost:8443/v1/jobs?tag=team:network-ops"
+curl -k -u "admin:password" "https://localhost:8443/v2/jobs?tag=team:network-ops"
 
 # Combine with status and pagination
-curl -k -u "admin:password" "https://localhost:8443/v1/jobs?tag=env:prod&status=failed&per_page=50"
+curl -k -u "admin:password" "https://localhost:8443/v2/jobs?tag=env:prod&status=failed&per_page=50"
 ```
 
 Tags are included in each job object in the response:
@@ -659,7 +659,7 @@ NAAS automatically reuses SSH connections to improve performance and reduce load
 Connection pooling is automatically disabled for:
 
 - **Platform autodetect** (`platform: "autodetect"`) - requires clean connection state
-- **Structured commands** (`/v1/send_command_structured`) - TextFSM state makes pooling unreliable
+- **Structured commands** (`/v2/send-command_structured`) - TextFSM state makes pooling unreliable
 
 ### Configuration
 
@@ -741,7 +741,7 @@ from aiohttp import BasicAuth
 async def send_command(session, device_ip, commands):
     """Send command to device via NAAS."""
     async with session.post(
-        "https://localhost:8443/v1/send_command",
+        "https://localhost:8443/v2/send-command",
         json={
             "host": device_ip,
             "platform": "cisco_ios",
@@ -756,7 +756,7 @@ async def get_results(session, job_id):
     """Poll for job results."""
     while True:
         async with session.get(
-            f"https://localhost:8443/v1/send_command/{job_id}",
+            f"https://localhost:8443/v2/send-command/{job_id}",
             ssl=False
         ) as response:
             data = await response.json()
@@ -845,7 +845,7 @@ def send_command_safe(ip, commands):
     """Send command with error handling."""
     try:
         response = requests.post(
-            "https://localhost:8443/v1/send_command",
+            "https://localhost:8443/v2/send-command",
             auth=HTTPBasicAuth("admin", "password"),
             verify=False,
             json={

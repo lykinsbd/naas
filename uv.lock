@@ -1312,7 +1312,7 @@ wheels = [
 
 [[package]]
 name = "naas"
-version = "2.0.0a1"
+version = "2.0.0"
 source = { editable = "packages/naas" }
 dependencies = [
     { name = "aniso8601" },
