@@ -53,3 +53,36 @@ uv run python worker.py
 ## Configuration
 
 See [Security](security.md) for production configuration options.
+
+### OpenTelemetry tracing
+
+NAAS supports optional distributed tracing via [OpenTelemetry](https://opentelemetry.io/).
+Traces follow the full request lifecycle: API request → RQ queue → worker → SSH device.
+
+Install the optional dependencies:
+
+```bash
+pip install naas[otel]
+```
+
+Configure via environment variables:
+
+| Variable                      | Default | Description                                                 |
+| ----------------------------- | ------- | ----------------------------------------------------------- |
+| `OTEL_ENABLED`                | `false` | Enable OpenTelemetry instrumentation                        |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | (none)  | OTLP collector endpoint (e.g. `http://otel-collector:4317`) |
+
+When disabled (default), tracing adds zero overhead: no OTel packages are imported and all
+instrumentation functions are no-ops.
+
+When enabled, NAAS creates the following spans:
+
+- `naas.worker.execute`: Worker picks up and runs a job
+- `naas.netmiko.connect`: SSH connection establishment
+- `naas.netmiko.send_command`: Per-command execution
+- `naas.netmiko.send_config`: Configuration push
+
+Flask HTTP spans are auto-instrumented. Trace context propagates through the RQ queue
+via W3C `traceparent` in job metadata, linking API and worker spans into a single trace.
+
+See [ADR 0008](adr/0008-opentelemetry-instrumentation-strategy.md) for design decisions.

@@ -18,6 +18,7 @@ from naas.library.dedup import get_duplicate_job_id, register_dedup_key
 from naas.library.errorhandlers import LockedOut
 from naas.library.idempotency import get_idempotent_job_id, store_idempotency_key
 from naas.library.netmiko_lib import netmiko_send_command_structured
+from naas.library.otel import inject_traceparent
 from naas.models import JobResponse, SendCommandStructuredRequest
 from naas.spec import spec
 
@@ -137,11 +138,13 @@ class SendCommandStructured(Resource):
             failure_ttl=JOB_TTL_FAILED,
             on_success=Callback(on_job_complete),
             on_failure=Callback(on_job_failure),
-            meta={
-                "webhook_url": validated.webhook_url or "",
-                "webhook_secret": validated.webhook_secret or "",
-                "context": validated.context,
-            },
+            meta=inject_traceparent(
+                {
+                    "webhook_url": validated.webhook_url or "",
+                    "webhook_secret": validated.webhook_secret or "",
+                    "context": validated.context,
+                }
+            ),
         )
         job_id = job.id
         current_app.logger.info(

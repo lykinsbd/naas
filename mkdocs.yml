@@ -93,6 +93,7 @@ nav:
           - "0005: Structured Audit Logging": adr/0005-structured-audit-event-logging.md
           - "0006: Credential Encryption at Rest": adr/0006-credential-encryption-at-rest.md
           - "0007: API Versioning Strategy": adr/0007-api-versioning-strategy.md
+          - "0008: OpenTelemetry Instrumentation": adr/0008-opentelemetry-instrumentation-strategy.md
       - Changelog: changelog.md
       - Release Notes:
           - v2.0: release-notes/v2.0.md

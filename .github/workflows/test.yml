@@ -44,7 +44,7 @@ jobs:
         run: uv python install ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: uv sync --package naas --extra dev
+        run: uv sync --package naas --extra dev --extra otel
 
       - name: Run unit tests with coverage
         run: uv run --package naas pytest packages/naas/tests/unit -v --cov=naas --cov-report=term-missing --cov-report=xml
@@ -112,7 +112,7 @@ jobs:
         run: uv python install ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: uv sync --package naas --extra dev
+        run: uv sync --package naas --extra dev --extra otel
 
       - name: Run contract tests
         run: uv run --package naas pytest packages/naas/tests/contract -v --tb=short --no-cov
