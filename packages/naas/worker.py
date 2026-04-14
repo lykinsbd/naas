@@ -43,11 +43,7 @@ def main() -> None:
     )
 
     # Initialize worker metrics (must happen before forking children)
-    # Initialize OpenTelemetry (no-op when OTEL_ENABLED=false)
-    from naas.library.otel import init_telemetry
     from naas.library.worker_metrics import init, make_registry
-
-    init_telemetry(service_name="naas-worker")
 
     metrics_dir = init()
     logger.debug("Worker metrics directory: %s", metrics_dir)
@@ -175,8 +171,11 @@ def worker_launch(
     )
     w = Worker(queues=queues, name=name, connection=redis_conn)
 
-    # Increment active_jobs gauge and create OTel span when a job starts executing
-    from naas.library.otel import extract_context, span
+    # Initialize OTel in the child process (TracerProvider doesn't survive fork)
+    from naas.library.otel import extract_context, init_telemetry, span
+
+    init_telemetry(service_name="naas-worker")
+
     from naas.library.worker_metrics import active_jobs
 
     original_perform = w.perform_job

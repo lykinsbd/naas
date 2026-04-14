@@ -26,11 +26,18 @@ def init_telemetry(service_name: str = "naas") -> None:
     from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
     from opentelemetry.sdk.resources import Resource
     from opentelemetry.sdk.trace import TracerProvider
-    from opentelemetry.sdk.trace.export import BatchSpanProcessor
+    from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 
     resource = Resource.create({"service.name": service_name})
     provider = TracerProvider(resource=resource)
-    provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter()))
+    # Use SimpleSpanProcessor for workers (BatchSpanProcessor's background thread
+    # doesn't survive multiprocessing forkserver). API uses gunicorn preload so
+    # BatchSpanProcessor works there, but SimpleSpanProcessor is safe for both.
+    processor = SimpleSpanProcessor(OTLPSpanExporter())
+    provider.add_span_processor(processor)
+    # Reset the global provider to allow re-initialization (needed after fork)
+    trace._TRACER_PROVIDER = None  # type: ignore[attr-defined]
+    trace._TRACER_PROVIDER_SET_ONCE._done = False  # type: ignore[attr-defined]
     trace.set_tracer_provider(provider)
 
 

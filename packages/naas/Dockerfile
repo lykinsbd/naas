@@ -16,7 +16,13 @@ COPY packages/naas/naas/ ./naas/
 
 # Install dependencies and naas package to system Python
 # Use uv.lock directly via export to ensure sync
-RUN uv export --no-dev --no-emit-project | uv pip install --system -r /dev/stdin && \
+# Set INSTALL_OTEL=true to include OpenTelemetry dependencies
+ARG INSTALL_OTEL=false
+RUN if [ "$INSTALL_OTEL" = "true" ]; then \
+      uv export --no-dev --no-emit-project --extra otel | uv pip install --system -r /dev/stdin; \
+    else \
+      uv export --no-dev --no-emit-project | uv pip install --system -r /dev/stdin; \
+    fi && \
     uv pip install --system --no-deps -e .
 
 ########################################
