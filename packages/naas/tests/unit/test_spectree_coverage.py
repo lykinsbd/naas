@@ -15,6 +15,7 @@ from naas.resources.list_jobs import ListJobs
 from naas.resources.send_command import SendCommand
 from naas.resources.send_command_structured import SendCommandStructured
 from naas.resources.send_config import SendConfig
+from naas.resources.stream_job import StreamJob
 
 # Every Resource class and the HTTP methods that MUST have spec.validate
 _RESOURCE_METHODS: list[tuple[type, list[str]]] = [
@@ -31,6 +32,7 @@ _RESOURCE_METHODS: list[tuple[type, list[str]]] = [
     (ApiKeys, ["get", "post"]),
     (ApiKey, ["delete"]),
     (ApiKeyRotate, ["post"]),
+    (StreamJob, []),  # SSE streaming — returns raw text/event-stream, no spectree model
 ]
 
 

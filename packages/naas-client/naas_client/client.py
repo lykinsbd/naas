@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Any
+import json
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
 
 import httpx
 
@@ -151,6 +155,31 @@ class NaasClient:
         """List jobs in the failed (dead letter) registry."""
         resp = self._request("GET", "/v2/jobs/failed")
         return FailedJobsResponse.model_validate(resp.json())
+
+    def stream_job(self, job_id: str) -> Generator[dict[str, Any], None, None]:
+        """Stream real-time job status updates via SSE.
+
+        Yields dicts with ``event`` (str) and ``data`` (dict) keys.
+        The stream closes after a terminal event (result/timeout).
+        """
+        with self._client.stream("GET", f"/v2/jobs/{job_id}/stream") as resp:
+            if resp.status_code >= 400:
+                resp.read()
+                cls = NaasAuthError if resp.status_code in _AUTH_ERROR_CODES else NaasApiError
+                raise cls(resp.status_code, resp.reason_phrase or "Error", body=resp.text)
+            buf = ""
+            for chunk in resp.iter_text():
+                buf += chunk
+                while "\n\n" in buf:
+                    block, buf = buf.split("\n\n", 1)
+                    event: dict[str, Any] = {}
+                    for line in block.split("\n"):
+                        if line.startswith("event: "):
+                            event["event"] = line[7:]
+                        elif line.startswith("data: "):
+                            event["data"] = json.loads(line[6:])
+                    if event:
+                        yield event
 
     # -- Contexts ------------------------------------------------------------
 

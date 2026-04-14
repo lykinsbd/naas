@@ -49,7 +49,8 @@ def app():
             with patch("naas.resources.get_results.Job.fetch", side_effect=_mock_job_fetch):
                 with patch("naas.library.auth.Job.fetch", side_effect=_mock_job_fetch):
                     with patch("naas.resources.cancel_job.Job.fetch", side_effect=_mock_job_fetch):
-                        yield flask_app
+                        with patch("naas.resources.stream_job.Job.fetch", side_effect=_mock_job_fetch):
+                            yield flask_app
 
 
 @pytest.fixture
