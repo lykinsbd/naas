@@ -2606,6 +2606,26 @@
         "tags": []
       }
     },
+    "/v2/jobs/{job_id}/stream": {
+      "get": {
+        "description": "Args:     job_id: The job UUID to stream.\n\nReturns:     A streaming ``text/event-stream`` response.",
+        "operationId": "get__v2_jobs_{job_id}_stream",
+        "parameters": [
+          {
+            "description": "",
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {},
+        "summary": "Open an SSE stream for the given job.",
+        "tags": []
+      }
+    },
     "/v2/send-command": {
       "get": {
         "description": "",

@@ -251,3 +251,38 @@ class TestContextManager:
         c = NaasClient("https://naas.test/", username="x", password="x")
         assert c._base_url == "https://naas.test"
         c.close()
+
+
+class TestStreamJob:
+    def test_stream_job_yields_events(self, httpx_mock: HTTPXMock) -> None:
+        sse_body = (
+            b'event: status\ndata: {"job_id": "j1", "status": "queued"}\n\n'
+            b'event: status\ndata: {"job_id": "j1", "status": "started"}\n\n'
+            b'event: result\ndata: {"job_id": "j1", "status": "finished", "results": {"show version": "ok"}}\n\n'
+        )
+        httpx_mock.add_response(
+            stream=httpx.ByteStream(sse_body),
+            headers={"content-type": "text/event-stream"},
+        )
+        c = NaasClient(BASE, username="x", password="x")
+        events = list(c.stream_job("j1"))
+        c.close()
+
+        assert len(events) == 3
+        assert events[0] == {"event": "status", "data": {"job_id": "j1", "status": "queued"}}
+        assert events[2]["event"] == "result"
+        assert events[2]["data"]["status"] == "finished"
+
+    def test_stream_job_auth_error(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(status_code=403, text="Forbidden")
+        c = NaasClient(BASE, username="x", password="x")
+        with pytest.raises(NaasAuthError):
+            list(c.stream_job("j1"))
+        c.close()
+
+    def test_stream_job_not_found(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(status_code=404, text="Not Found")
+        c = NaasClient(BASE, username="x", password="x")
+        with pytest.raises(NaasApiError):
+            list(c.stream_job("j1"))
+        c.close()
