@@ -24,6 +24,22 @@ def docker_compose():
     if result.stderr:
         print(f"Docker Compose output: {result.stderr}")
 
+    # Wait for workers to register with Redis (python worker.py has startup delay)
+    import time
+
+    import requests
+
+    for _ in range(30):
+        try:
+            r = requests.get("https://localhost:18443/healthcheck", verify=False, timeout=2)
+            if r.status_code == 200:
+                data = r.json()
+                if data.get("components", {}).get("workers", {}).get("count", 0) > 0:
+                    break
+        except Exception:
+            pass
+        time.sleep(1)
+
     yield
 
     # Cleanup

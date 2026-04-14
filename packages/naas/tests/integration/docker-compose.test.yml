@@ -16,6 +16,8 @@ services:
     build:
       context: ../../../..
       dockerfile: packages/naas/Dockerfile
+      args:
+        INSTALL_OTEL: "true"
       cache_from:
         - type=gha
       cache_to:
@@ -33,11 +35,15 @@ services:
       - NAAS_JWT_SECRET=integration-test-jwt-secret
       - NAAS_ENCRYPTION_KEY=IaypjfWWRlCStgKgneWQDfteGYNdO70FSepbfHdC6yY=
       - NAAS_ADMIN_SECRET=integration-test-admin-secret
+      - OTEL_ENABLED=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
     networks:
       - naas-test
     depends_on:
       redis:
         condition: service_healthy
+      otel-collector:
+        condition: service_started
     healthcheck:
       test: ["CMD", "curl", "-k", "-f", "https://localhost:443/healthcheck"]
       interval: 2s
@@ -49,6 +55,8 @@ services:
     build:
       context: ../../../..
       dockerfile: packages/naas/Dockerfile
+      args:
+        INSTALL_OTEL: "true"
       cache_from:
         - type=gha
       cache_to:
@@ -59,7 +67,7 @@ services:
       timeout: 3s
       retries: 3
       start_period: 5s
-    command: ["rq", "worker", "naas-default", "webhooks", "--url", "redis://:test_password@redis:6379"]
+    command: ["python", "worker.py", "1", "--queues", "naas-default", "webhooks", "--redis", "redis", "--auth_password", "test_password", "--sleep", "2"]
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
@@ -68,16 +76,22 @@ services:
       - WORKER_CONTEXTS=default
       - WEBHOOK_ALLOW_HTTP=true
       - NAAS_ENCRYPTION_KEY=IaypjfWWRlCStgKgneWQDfteGYNdO70FSepbfHdC6yY=
+      - OTEL_ENABLED=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
     networks:
       - naas-test
     depends_on:
       redis:
         condition: service_healthy
+      otel-collector:
+        condition: service_started
 
   worker-alt:
     build:
       context: ../../../..
       dockerfile: packages/naas/Dockerfile
+      args:
+        INSTALL_OTEL: "true"
       cache_from:
         - type=gha
       cache_to:
@@ -88,7 +102,7 @@ services:
       timeout: 3s
       retries: 3
       start_period: 5s
-    command: ["rq", "worker", "naas-alt", "--url", "redis://:test_password@redis:6379"]
+    command: ["python", "worker.py", "1", "--queues", "naas-alt", "--redis", "redis", "--auth_password", "test_password", "--sleep", "2"]
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
@@ -97,11 +111,15 @@ services:
       - WORKER_CONTEXTS=alt
       - WEBHOOK_ALLOW_HTTP=true
       - NAAS_ENCRYPTION_KEY=IaypjfWWRlCStgKgneWQDfteGYNdO70FSepbfHdC6yY=
+      - OTEL_ENABLED=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
     networks:
       - naas-test
     depends_on:
       redis:
         condition: service_healthy
+      otel-collector:
+        condition: service_started
 
   vault:
     image: hashicorp/vault:1.17
@@ -160,8 +178,21 @@ services:
       retries: 10
       start_period: 3s
 
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.127.0
+    user: "0:0"
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol/config.yaml:ro
+      - otel-traces:/traces
+    command: ["--config", "/etc/otelcol/config.yaml"]
+    networks:
+      - naas-test
+
 networks:
   naas-test:
     ipam:
       config:
         - subnet: 240.11.2.0/24
+
+volumes:
+  otel-traces:
