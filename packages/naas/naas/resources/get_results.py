@@ -62,12 +62,20 @@ class GetResults(Resource):
             results = job.result
             result_dict = results[0]
             r["results"] = result_dict
-            r["error"] = results[1]
+            error_info = results[1]
+            if hasattr(error_info, "code"):
+                r["error"] = error_info.message
+                r["error_code"] = error_info.code
+                r["error_retryable"] = error_info.retryable
+            else:
+                r["error"] = error_info  # legacy plain string or None
             # Extract detected_platform if present
             if result_dict and "_detected_platform" in result_dict:
                 r["detected_platform"] = result_dict.pop("_detected_platform")
         elif job_status == "failed":
             r["error"] = str(job.exc_info).strip() if job.exc_info else "Job failed"
+            r["error_code"] = "UNKNOWN"
+            r["error_retryable"] = False
 
         # Include tags if present in job metadata
         tags = getattr(job, "meta", {}).get("tags") if isinstance(getattr(job, "meta", {}), dict) else None

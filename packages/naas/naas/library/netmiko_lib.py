@@ -17,6 +17,7 @@ from naas.library.audit import emit_audit_event
 from naas.library.auth import tacacs_auth_lockout
 from naas.library.circuit_breaker import _get_redis, with_circuit_breaker
 from naas.library.connection_pool import pool
+from naas.library.error_info import ErrorInfo
 from naas.library.otel import span
 
 # Common error patterns across IOS, NX-OS, EOS, JunOS, and similar platforms
@@ -25,12 +26,12 @@ _CONFIG_ERROR_PATTERN = r"(?i)(% invalid|% incomplete|% ambiguous|% error|error:
 
 def _autodetect_platform(
     ip: str, port: int, username: str, password: str, enable: str, request_id: str
-) -> tuple[str | None, str | None]:
+) -> tuple[str | None, ErrorInfo | None]:
     """
     Use SSHDetect to fingerprint device platform.
 
     Returns:
-        (detected_platform, error_string) — one will be None
+        (detected_platform, error_info) — one will be None
     """
     try:
         logger.debug("%s %s:Running SSHDetect...", request_id, ip)
@@ -47,7 +48,7 @@ def _autodetect_platform(
         return best_match, None
     except (netmiko.NetMikoTimeoutException, netmiko.NetMikoAuthenticationException, ssh_exception.SSHException) as e:
         logger.debug("%s %s:SSHDetect failed: %s", request_id, ip, e)
-        return None, f"Platform autodetect failed: {str(e)}"
+        return None, ErrorInfo(message=f"Platform autodetect failed: {e!s}", code="AUTODETECT_FAILED", retryable=False)
 
 
 if TYPE_CHECKING:
@@ -79,7 +80,7 @@ def netmiko_send_command(
     expect_string: str | None = None,
     verbose: bool = False,
     request_id: str = "",
-) -> "tuple[dict | None, str | None]":
+) -> "tuple[dict | None, ErrorInfo | None]":
     """
     Instantiate a netmiko wrapper instance, feed me an IP, Platform Type, Username, Password, any commands to run.
 
@@ -144,7 +145,7 @@ def _netmiko_send_command_impl(
     ttp_template: str | None = None,
     verbose: bool = False,
     request_id: str = "",
-) -> "tuple[dict | None, str | None]":
+) -> "tuple[dict | None, ErrorInfo | None]":
     start_time = time.time()
 
     # Handle platform autodetect
@@ -235,7 +236,7 @@ def _netmiko_send_command_impl(
         tacacs_auth_lockout(username=credentials.username, redis=_get_redis(), report_failure=True)
         duration_ms = int((time.time() - start_time) * 1000)
         emit_audit_event("job.completed", request_id=request_id, status="failed", duration_ms=duration_ms)
-        return None, str(e)  # Don't trigger circuit breaker for auth failures
+        return None, ErrorInfo(message=str(e), code="AUTH_FAILURE", retryable=False)  # Don't trigger circuit breaker
     except (ssh_exception.SSHException, ValueError) as e:
         logger.debug("%s %s:Netmiko cannot connect to device: %s", request_id, ip, e)
         duration_ms = int((time.time() - start_time) * 1000)
@@ -265,7 +266,7 @@ def netmiko_send_command_structured(
     ttp_template: str | None = None,
     verbose: bool = False,
     request_id: str = "",
-) -> "tuple[dict | None, str | None]":
+) -> "tuple[dict | None, ErrorInfo | None]":
     """
     Send commands with TextFSM or TTP parsing for structured output.
 
@@ -325,7 +326,7 @@ def netmiko_send_config(
     conn_timeout: float = 10.0,
     verbose: bool = False,
     request_id: str = "",
-) -> "tuple[dict | None, str | None]":
+) -> "tuple[dict | None, ErrorInfo | None]":
     """
     Instantiate a netmiko wrapper instance, feed me an IP, Platform Type, Username, Password, any commands to run.
 
@@ -386,7 +387,7 @@ def _netmiko_send_config_impl(
     conn_timeout: float = 10.0,
     verbose: bool = False,
     request_id: str = "",
-) -> "tuple[dict | None, str | None]":
+) -> "tuple[dict | None, ErrorInfo | None]":
     start_time = time.time()
     netmiko_device = {
         "device_type": device_type,
@@ -444,7 +445,7 @@ def _netmiko_send_config_impl(
         logger.debug("%s %s:Config rejected by device: %s", request_id, ip, e)
         duration_ms = int((time.time() - start_time) * 1000)
         emit_audit_event("job.completed", request_id=request_id, status="failed", duration_ms=duration_ms)
-        return None, str(e)  # Config error — do not trigger circuit breaker
+        return None, ErrorInfo(message=str(e), code="CONFIG_REJECTED", retryable=False)
     except (TimeoutError, netmiko.NetMikoTimeoutException) as e:
         logger.debug("%s %s:Netmiko timed out connecting to device: %s", request_id, ip, e)
         duration_ms = int((time.time() - start_time) * 1000)
@@ -455,7 +456,7 @@ def _netmiko_send_config_impl(
         tacacs_auth_lockout(username=credentials.username, redis=_get_redis(), report_failure=True)
         duration_ms = int((time.time() - start_time) * 1000)
         emit_audit_event("job.completed", request_id=request_id, status="failed", duration_ms=duration_ms)
-        return None, str(e)  # Don't trigger circuit breaker for auth failures
+        return None, ErrorInfo(message=str(e), code="AUTH_FAILURE", retryable=False)
     except (ssh_exception.SSHException, ValueError) as e:
         logger.debug("%s %s:Netmiko cannot connect to device: %s", request_id, ip, e)
         duration_ms = int((time.time() - start_time) * 1000)

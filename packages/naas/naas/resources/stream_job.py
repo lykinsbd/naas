@@ -41,13 +41,21 @@ def _build_event(job_id: str, job: Job | None, status: str) -> tuple[str, dict]:
     if status == "finished" and job is not None and job.result is not None:
         results = job.result
         data["results"] = results[0]
-        data["error"] = results[1]
+        error_info = results[1]
+        if hasattr(error_info, "code"):
+            data["error"] = error_info.message
+            data["error_code"] = error_info.code
+            data["error_retryable"] = error_info.retryable
+        else:
+            data["error"] = error_info  # legacy plain string or None
         if results[0] and "_detected_platform" in results[0]:
             data["detected_platform"] = results[0].pop("_detected_platform")
         return "result", data
 
     if status == "failed" and job is not None:
         data["error"] = str(job.exc_info).strip() if job.exc_info else "Job failed"
+        data["error_code"] = "UNKNOWN"
+        data["error_retryable"] = False
         return "result", data
 
     return "status", data

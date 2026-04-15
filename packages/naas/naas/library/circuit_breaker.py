@@ -19,6 +19,7 @@ from naas.config import (
 )
 from naas.library.audit import emit_audit_event
 from naas.library.auth import device_lockout
+from naas.library.error_info import ErrorInfo
 
 if TYPE_CHECKING:
     pass
@@ -139,10 +140,16 @@ def with_circuit_breaker(ip: str, request_id: str, fn: Callable[..., Any], *args
     except pybreaker.CircuitBreakerError:
         logger.warning("%s %s:Circuit breaker open, rejecting connection attempt", request_id, ip)
         device_lockout(ip=ip, redis=_get_redis(), report_failure=True)
-        return None, f"Circuit breaker open for device {ip} - too many recent failures"
+        return None, ErrorInfo(
+            message=f"Circuit breaker open for device {ip} - too many recent failures",
+            code="CIRCUIT_OPEN",
+            retryable=True,
+        )
     except (TimeoutError, netmiko.NetMikoTimeoutException) as e:
         device_lockout(ip=ip, redis=_get_redis(), report_failure=True)
-        return None, str(e)
+        return None, ErrorInfo(message=str(e), code="CONNECTION_TIMEOUT", retryable=True)
     except (ssh_exception.SSHException, ValueError) as e:
         device_lockout(ip=ip, redis=_get_redis(), report_failure=True)
-        return None, f"Unknown SSH error connecting to device {ip}: {str(e)}"
+        return None, ErrorInfo(
+            message=f"Unknown SSH error connecting to device {ip}: {e!s}", code="SSH_ERROR", retryable=True
+        )

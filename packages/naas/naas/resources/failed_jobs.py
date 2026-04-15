@@ -34,6 +34,8 @@ def _job_to_dict(job: Job) -> dict:
         "port": kwargs.get("port", 22),
         "failed_at": failed_at,
         "error": sanitize_error(job.exc_info),
+        "error_code": "UNKNOWN",
+        "error_retryable": False,
         "func": job.func_name,
     }
 

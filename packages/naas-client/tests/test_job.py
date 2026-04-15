@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from naas_client.exceptions import NaasJobError, NaasTimeoutError
+from naas_client.exceptions import NaasConnectionError, NaasDeviceAuthError, NaasJobError, NaasTimeoutError
 from naas_client.job import Job
 from naas_client.models import JobResult, JobSubmission
 
@@ -68,11 +68,15 @@ class TestWait:
     def test_wait_raises_on_failure(self, mock_mono: MagicMock, mock_sleep: MagicMock) -> None:
         mock_mono.side_effect = [0.0, 0.5]
         client = _mock_client()
-        client.get_command_result.return_value = _job_result("failed", error="Connection refused")
+        client.get_command_result.return_value = _job_result(
+            "failed", error="Connection refused", error_code="CONNECTION_TIMEOUT", error_retryable=True
+        )
         job = Job(client, "abc-123", "command")
-        with pytest.raises(NaasJobError) as exc_info:
+        with pytest.raises(NaasConnectionError) as exc_info:
             job.wait(timeout=10)
         assert exc_info.value.error == "Connection refused"
+        assert exc_info.value.error_code == "CONNECTION_TIMEOUT"
+        assert exc_info.value.error_retryable is True
 
     @patch("naas_client.job.time.sleep")
     @patch("naas_client.job.time.monotonic")
@@ -84,6 +88,18 @@ class TestWait:
         with pytest.raises(NaasJobError) as exc_info:
             job.wait(timeout=10)
         assert exc_info.value.error == "Unknown error"
+
+    @patch("naas_client.job.time.sleep")
+    @patch("naas_client.job.time.monotonic")
+    def test_wait_raises_subclass_for_auth_failure(self, mock_mono: MagicMock, mock_sleep: MagicMock) -> None:
+        mock_mono.side_effect = [0.0, 0.5]
+        client = _mock_client()
+        client.get_command_result.return_value = _job_result(
+            "failed", error="Auth failed", error_code="AUTH_FAILURE", error_retryable=False
+        )
+        job = Job(client, "abc-123", "command")
+        with pytest.raises(NaasDeviceAuthError):
+            job.wait(timeout=10)
 
     @patch("naas_client.job.time.sleep")
     @patch("naas_client.job.time.monotonic")
