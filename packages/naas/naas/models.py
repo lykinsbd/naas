@@ -313,6 +313,8 @@ class JobResultResponse(BaseModel):
     status: str
     results: Any | None = None
     error: str | None = None
+    error_code: str | None = None
+    error_retryable: bool | None = None
     detected_platform: str | None = None
     tags: dict[str, str] | None = None
 
@@ -422,6 +424,8 @@ class FailedJobSummary(BaseModel):
     port: int = Field(default=22, description="SSH port")
     failed_at: str | None = Field(default=None, description="ISO 8601 failure timestamp")
     error: str | None = Field(default=None, description="Sanitized error message")
+    error_code: str | None = Field(default=None, description="Machine-parseable error code")
+    error_retryable: bool | None = Field(default=None, description="Whether the caller can retry")
     func: str = Field(default="", description="Worker function name")
 
 

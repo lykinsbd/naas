@@ -854,6 +854,33 @@ class TestGetResults:
         assert response.status_code == 200
         assert response.json["status"] == "failed"
         assert "NetMikoTimeoutException" in response.json["error"]
+        assert response.json["error_code"] == "UNKNOWN"
+        assert response.json["error_retryable"] is False
+
+    def test_get_results_with_error_info(self, app, client):
+        """Test GET with ErrorInfo returns structured error fields."""
+        from naas.library.error_info import ErrorInfo
+
+        auth = b64encode(b"testuser:testpass").decode()
+        app.config["redis"].set("naas_cred_salt", b"test-salt")
+
+        job_id = "55555555-5555-5555-5555-555555555555"
+        job = MagicMock()
+        job.get_status = lambda: "finished"
+        job.result = (None, ErrorInfo(message="Auth failed", code="AUTH_FAILURE", retryable=False))
+
+        app.config["q"].fetch_job.side_effect = lambda jid: job if jid == job_id else None
+
+        with patch("naas.resources.get_results.job_unlocker", return_value=True):
+            response = client.get(
+                f"/v1/send_command/{job_id}",
+                headers={"Authorization": f"Basic {auth}"},
+            )
+
+        assert response.status_code == 200
+        assert response.json["error"] == "Auth failed"
+        assert response.json["error_code"] == "AUTH_FAILURE"
+        assert response.json["error_retryable"] is False
 
     def test_get_results_wrong_user(self, app, client):
         """Test GET with wrong user returns 403."""
