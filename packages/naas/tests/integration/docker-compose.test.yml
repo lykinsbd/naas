@@ -37,6 +37,8 @@ services:
       - NAAS_ADMIN_SECRET=integration-test-admin-secret
       - OTEL_ENABLED=true
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - RATE_LIMIT_PER_CALLER_DEVICE=2
+      - RATE_LIMIT_WINDOW=300
     networks:
       - naas-test
     depends_on:
