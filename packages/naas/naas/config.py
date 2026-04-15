@@ -81,6 +81,15 @@ API_KEY_MAX_TTL: int = int(os.environ.get("API_KEY_MAX_TTL", 0))  # 0 = unlimite
 NAAS_ADMIN_SECRET: str = os.environ.get("NAAS_ADMIN_SECRET", "")
 CREDENTIAL_ENCRYPTION_ENABLED: bool = os.environ.get("CREDENTIAL_ENCRYPTION_ENABLED", "true").lower() == "true"
 
+# Rate limiting
+RATE_LIMIT_ENABLED: bool = os.environ.get("RATE_LIMIT_ENABLED", "true").lower() == "true"
+RATE_LIMIT_PER_CALLER: int = int(os.environ.get("RATE_LIMIT_PER_CALLER", 1000))
+RATE_LIMIT_PER_CALLER_DEVICE: int = int(os.environ.get("RATE_LIMIT_PER_CALLER_DEVICE", 20))
+RATE_LIMIT_WINDOW: int = int(os.environ.get("RATE_LIMIT_WINDOW", 60))
+RATE_LIMIT_EXEMPT_ROLES: frozenset[str] = frozenset(
+    r.strip() for r in os.environ.get("RATE_LIMIT_EXEMPT_ROLES", "admin").split(",") if r.strip()
+)
+
 
 def app_configure(app):
     # Configure our environment

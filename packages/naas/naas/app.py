@@ -10,7 +10,7 @@ Description: Main app setup/config
 import logging
 import os
 
-from flask import Flask, jsonify, request
+from flask import Flask, g, jsonify, request
 from flask_restful import Api
 from prometheus_client import Gauge
 from prometheus_flask_exporter import PrometheusMetrics
@@ -156,6 +156,11 @@ def add_version_headers(response):
         response.headers["Deprecation"] = "true"
         response.headers["Sunset"] = "2027-01-01"
         response.headers["Link"] = '</v2/>; rel="successor-version"'
+    # Rate limit headers
+    if hasattr(g, "rate_limit_limit"):
+        response.headers["X-RateLimit-Limit"] = str(g.rate_limit_limit)
+        response.headers["X-RateLimit-Remaining"] = str(g.rate_limit_remaining)
+        response.headers["X-RateLimit-Reset"] = str(g.rate_limit_reset)
     return response
 
 

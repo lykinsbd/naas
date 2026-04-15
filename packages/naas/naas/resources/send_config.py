@@ -19,6 +19,7 @@ from naas.library.errorhandlers import LockedOut
 from naas.library.idempotency import get_idempotent_job_id, store_idempotency_key
 from naas.library.netmiko_lib import netmiko_send_config
 from naas.library.otel import inject_traceparent
+from naas.library.rate_limit import rate_limited
 from naas.models import JobResponse, SendConfigRequest
 from naas.spec import spec
 
@@ -30,6 +31,7 @@ class SendConfig(Resource):
 
     @valid_post
     @require_role("operator")
+    @rate_limited
     @spec.validate(json=SendConfigRequest, resp=Response(HTTP_202=JobResponse))
     def post(self):
         """
