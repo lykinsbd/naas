@@ -112,6 +112,28 @@ class TestStreamJob:
         assert events[0]["event"] == "result"
         assert events[0]["data"]["status"] == "failed"
         assert "timed out" in events[0]["data"]["error"]
+        assert events[0]["data"]["error_code"] == "UNKNOWN"
+        assert events[0]["data"]["error_retryable"] is False
+
+    def test_streams_error_info(self, app, auth):
+        """Finished job with ErrorInfo includes error_code and error_retryable."""
+        from naas.library.error_info import ErrorInfo
+
+        job = _make_job()
+        _set_job_hash(job, *auth)
+        job.get_status.return_value = "finished"
+        job.result = [None, ErrorInfo(message="Auth failed", code="AUTH_FAILURE", retryable=False)]
+
+        p1, p2 = _patch_job(job)
+        with p1, p2, patch("naas.resources.stream_job.POLL_INTERVAL", 0):
+            with app.test_client() as c:
+                resp = c.get(f"/v2/jobs/{job.id}/stream", auth=auth)
+                events = _collect_events(resp)
+
+        assert events[-1]["event"] == "result"
+        assert events[-1]["data"]["error"] == "Auth failed"
+        assert events[-1]["data"]["error_code"] == "AUTH_FAILURE"
+        assert events[-1]["data"]["error_retryable"] is False
 
     def test_job_not_found_returns_404(self, app, auth):
         """Non-existent job returns 404."""

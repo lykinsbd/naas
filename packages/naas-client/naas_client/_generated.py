@@ -51,6 +51,12 @@ class FailedJobSummary(BaseModel):
     error: str | None = Field(
         None, description='Sanitized error message', title='Error'
     )
+    error_code: str | None = Field(
+        None, description='Machine-parseable error code', title='Error Code'
+    )
+    error_retryable: bool | None = Field(
+        None, description='Whether the caller can retry', title='Error Retryable'
+    )
     failed_at: str | None = Field(
         None, description='ISO 8601 failure timestamp', title='Failed At'
     )
@@ -119,6 +125,8 @@ class JobResponse(BaseModel):
 class JobResultResponse(BaseModel):
     detected_platform: str | None = Field(None, title='Detected Platform')
     error: str | None = Field(None, title='Error')
+    error_code: str | None = Field(None, title='Error Code')
+    error_retryable: bool | None = Field(None, title='Error Retryable')
     job_id: str = Field(..., title='Job Id')
     results: Any = Field(None, title='Results')
     status: str = Field(..., title='Status')

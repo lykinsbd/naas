@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING
 
-from naas_client.exceptions import NaasJobError, NaasTimeoutError
+from naas_client.exceptions import NaasTimeoutError, _job_error_from_result
 from naas_client.models import JobResult, JobStatus
 
 if TYPE_CHECKING:
@@ -41,7 +41,7 @@ class AsyncJob:
             result = await self.poll()
             if result.status in (JobStatus.FINISHED, JobStatus.FAILED):
                 if result.status == JobStatus.FAILED:
-                    raise NaasJobError(self.job_id, result.error or "Unknown error")
+                    raise _job_error_from_result(self.job_id, result.error, result.error_code, result.error_retryable)
                 return result
             await asyncio.sleep(interval)
         raise NaasTimeoutError(f"Job {self.job_id} did not complete within {timeout}s")

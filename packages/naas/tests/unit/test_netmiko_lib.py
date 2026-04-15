@@ -11,6 +11,7 @@ from paramiko import ssh_exception
 # otherwise the lazy Redis client is initialized before fakeredis is injected.
 import naas.library.circuit_breaker
 from naas.library.auth import Credentials
+from naas.library.error_info import ErrorInfo
 
 naas.library.circuit_breaker._redis_client = FakeStrictRedis()
 
@@ -46,7 +47,9 @@ class TestAutodetectPlatform:
             platform, error = _autodetect_platform("192.168.1.1", 22, "user", "pass", "enable", "req-123")
 
             assert platform is None
-            assert "Platform autodetect failed" in error
+            assert "Platform autodetect failed" in error.message
+            assert error.code == "AUTODETECT_FAILED"
+            assert error.retryable is False
 
 
 class TestNetmikoSendCommand:
@@ -156,12 +159,13 @@ class TestNetmikoSendCommand:
     def test_autodetect_failure(self):
         """Test platform autodetect failure path."""
         creds = Credentials(username="testuser", password="testpass")
+        error_info = ErrorInfo(message="Detection failed", code="AUTODETECT_FAILED", retryable=False)
 
-        with patch("naas.library.netmiko_lib._autodetect_platform", return_value=(None, "Detection failed")):
+        with patch("naas.library.netmiko_lib._autodetect_platform", return_value=(None, error_info)):
             result, error = netmiko_send_command("192.168.1.1", creds, "autodetect", ["show version"])
 
             assert result is None
-            assert "Detection failed" in error
+            assert "Detection failed" in error.message
 
     def test_timeout_error(self):
         """Test timeout exception handling."""
@@ -174,7 +178,8 @@ class TestNetmikoSendCommand:
                 result, error = netmiko_send_command("192.168.1.1", creds, "cisco_ios", ["show version"])
 
                 assert result is None
-                assert "Connection timeout" in error
+                assert "Connection timeout" in error.message
+                assert error.code == "CONNECTION_TIMEOUT"
 
     def test_auth_failure(self):
         """Test authentication failure handling."""
@@ -190,7 +195,9 @@ class TestNetmikoSendCommand:
                     )
 
                     assert result is None
-                    assert "Auth failed" in error
+                    assert "Auth failed" in error.message
+                    assert error.code == "AUTH_FAILURE"
+                    assert error.retryable is False
                     mock_lockout.assert_called_once_with(username="testuser", redis=ANY, report_failure=True)
 
     def test_ssh_exception(self):
@@ -204,8 +211,8 @@ class TestNetmikoSendCommand:
                 result, error = netmiko_send_command("192.168.1.1", creds, "cisco_ios", ["show version"])
 
                 assert result is None
-                assert "Unknown SSH error" in error
-                assert "192.168.1.1" in error
+                assert "Unknown SSH error" in error.message
+                assert "192.168.1.1" in error.message
 
 
 class TestNetmikoSendCommandStructured:
@@ -286,7 +293,7 @@ class TestNetmikoSendCommandStructured:
                 result, error = netmiko_send_command_structured("192.168.1.1", creds, "cisco_ios", ["show version"])
 
                 assert result is None
-                assert "Auth failed" in error
+                assert "Auth failed" in error.message
                 mock_lockout.assert_called_once()
 
     def test_structured_with_autodetect(self):
@@ -400,7 +407,7 @@ class TestNetmikoSendConfig:
             result, error = netmiko_send_config("192.168.1.1", creds, "cisco_ios", ["interface Gi0/1"])
 
             assert result is None
-            assert "Connection timeout" in error
+            assert "Connection timeout" in error.message
 
     def test_config_auth_failure(self):
         """Test config authentication failure handling."""
@@ -413,7 +420,7 @@ class TestNetmikoSendConfig:
                 result, error = netmiko_send_config("192.168.1.1", creds, "cisco_ios", ["interface Gi0/1"])
 
                 assert result is None
-                assert "Auth failed" in error
+                assert "Auth failed" in error.message
                 mock_lockout.assert_called_once_with(username="testuser", redis=ANY, report_failure=True)
 
     def test_config_value_error(self):
@@ -426,7 +433,7 @@ class TestNetmikoSendConfig:
             result, error = netmiko_send_config("192.168.1.1", creds, "cisco_ios", ["interface Gi0/1"])
 
             assert result is None
-            assert "Unknown SSH error" in error
+            assert "Unknown SSH error" in error.message
 
     def test_config_invalid_exception(self):
         """Test that ConfigInvalidException is returned as error without raising."""
@@ -438,7 +445,7 @@ class TestNetmikoSendConfig:
             result, error = netmiko_send_config("192.168.1.1", creds, "cisco_ios", ["bad command"])
 
             assert result is None
-            assert "% Invalid input" in error
+            assert "% Invalid input" in error.message
 
 
 class TestCircuitBreaker:
@@ -487,12 +494,12 @@ class TestCircuitBreaker:
                 # Next call should be rejected by circuit breaker
                 result, error = netmiko_send_command("192.168.1.2", creds, "cisco_ios", ["show version"])
                 assert result is None
-                assert "Circuit breaker open" in error
+                assert "Circuit breaker open" in error.message
 
                 # Test send_config too
                 result, error = netmiko_send_config("192.168.1.2", creds, "cisco_ios", ["interface Gi0/1"])
                 assert result is None
-                assert "Circuit breaker open" in error
+                assert "Circuit breaker open" in error.message
 
     def test_circuit_breaker_per_device(self):
         """Test that circuit breakers are per-device."""
@@ -510,7 +517,7 @@ class TestCircuitBreaker:
                     result, error = netmiko_send_command(
                         "192.168.1.3", creds, "cisco_ios", ["show version"], MagicMock()
                     )
-                    assert "Circuit breaker open" in error
+                    assert "Circuit breaker open" in error.message
 
                     # Device 2 should still work
                     mock_conn = MagicMock()
