@@ -105,6 +105,30 @@ Add to `.vscode/mcp.json`:
 }
 ```
 
+### Kiro CLI
+
+Add via the CLI:
+
+```bash
+kiro-cli mcp add --name naas --command naas-mcp --env NAAS_MCP_API_URL=https://naas.example.com --env NAAS_MCP_API_KEY=your-jwt-api-key
+```
+
+Or add to `.kiro/settings/mcp.json` (workspace) or `~/.kiro/settings/mcp.json` (global):
+
+```json
+{
+  "mcpServers": {
+    "naas": {
+      "command": "naas-mcp",
+      "env": {
+        "NAAS_MCP_API_URL": "https://naas.example.com",
+        "NAAS_MCP_API_KEY": "your-jwt-api-key"
+      }
+    }
+  }
+}
+```
+
 ## Tools
 
 Tools are actions the AI can invoke. Each tool submits a request to the NAAS API and returns the result.
@@ -232,4 +256,4 @@ The AI sees structured error information including `error_code` and `error_retry
 - **Python**: 3.11+
 - **NAAS server**: ≥ 2.0
 - **MCP protocol**: via FastMCP 3.0 (supports stdio and streamable-http transports)
-- **Tested with**: Claude Desktop, Cursor, VS Code Copilot
+- **Tested with**: Claude Desktop, Cursor, VS Code Copilot, Kiro CLI

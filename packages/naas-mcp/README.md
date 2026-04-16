@@ -75,6 +75,28 @@ naas-mcp
 }
 ```
 
+### Kiro CLI
+
+```bash
+kiro-cli mcp add --name naas --command naas-mcp --env NAAS_MCP_API_URL=https://naas.example.com --env NAAS_MCP_API_KEY=your-jwt-api-key
+```
+
+Or add to `.kiro/settings/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "naas": {
+      "command": "naas-mcp",
+      "env": {
+        "NAAS_MCP_API_URL": "https://naas.example.com",
+        "NAAS_MCP_API_KEY": "your-jwt-api-key"
+      }
+    }
+  }
+}
+```
+
 ## What You Can Ask
 
 Once connected, your AI assistant can:
