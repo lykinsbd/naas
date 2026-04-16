@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import os
 from contextlib import asynccontextmanager
+from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, patch
 
-from fastmcp.client import Client
-
 from naas_mcp.server import _get_config
+
+if TYPE_CHECKING:
+    from fastmcp.client import Client
 
 
 def test_default_config():
@@ -54,6 +56,7 @@ async def test_server_lists_all_resources(mcp_client: Client):
 
 def test_main_entry_point_exists():
     from naas_mcp import main
+
     assert callable(main)
 
 
@@ -61,14 +64,19 @@ async def test_app_lifespan_creates_and_closes_client():
     """Test the real lifespan creates an AsyncNaasClient and closes it."""
     mock_instance = AsyncMock()
 
-    with patch("naas_mcp.server.AsyncNaasClient", return_value=mock_instance), \
-         patch("naas_mcp.server._get_config", return_value={
-             "api_url": "http://test:8080",
-             "api_key": "key123",
-             "timeout": 10.0,
-             "job_poll_interval": 1.0,
-             "job_timeout": 60.0,
-         }):
+    with (
+        patch("naas_mcp.server.AsyncNaasClient", return_value=mock_instance),
+        patch(
+            "naas_mcp.server._get_config",
+            return_value={
+                "api_url": "http://test:8080",
+                "api_key": "key123",
+                "timeout": 10.0,
+                "job_poll_interval": 1.0,
+                "job_timeout": 60.0,
+            },
+        ),
+    ):
         from naas_mcp.server import app_lifespan
 
         # Use the underlying async generator function directly
@@ -89,5 +97,6 @@ def test_main_imports_and_calls_run():
     """Test that main() calls mcp.run()."""
     with patch("naas_mcp.server.mcp") as mock_mcp:
         from naas_mcp import main
+
         main()
         mock_mcp.run.assert_called_once()

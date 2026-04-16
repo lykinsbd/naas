@@ -14,7 +14,6 @@ import httpx
 import pytest
 from fastmcp import FastMCP
 from fastmcp.client import Client
-
 from naas_client import AsyncNaasClient
 
 COMPOSE_FILE = "packages/naas/tests/integration/docker-compose.test.yml"

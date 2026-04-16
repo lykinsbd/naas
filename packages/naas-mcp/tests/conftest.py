@@ -25,8 +25,8 @@ def _make_test_server(mock_client: AsyncMock) -> FastMCP:
     server = FastMCP(name="naas-test", lifespan=test_lifespan)
 
     # Import tool/resource functions and register them on the test server
-    from naas_mcp.tools import cancel_job, get_job_result, list_jobs, send_command, send_config
     from naas_mcp.resources import contexts, failed_jobs, health
+    from naas_mcp.tools import cancel_job, get_job_result, list_jobs, send_command, send_config
 
     for fn in (send_command, send_config, get_job_result, cancel_job, list_jobs):
         server.add_tool(fn)

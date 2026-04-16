@@ -1,11 +1,8 @@
 """MCP tools for NAAS operations."""
 
-from __future__ import annotations
-
 from typing import Any
 
 from fastmcp import Context
-
 from naas_client import AsyncNaasClient
 
 from naas_mcp.server import mcp

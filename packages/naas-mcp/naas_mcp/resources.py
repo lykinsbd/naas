@@ -1,11 +1,8 @@
 """MCP resources for NAAS read-only data."""
 
-from __future__ import annotations
-
 import json
 
 from fastmcp import Context
-
 from naas_client import AsyncNaasClient
 
 from naas_mcp.server import mcp

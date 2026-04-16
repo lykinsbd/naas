@@ -7,19 +7,24 @@ Run with: uv run pytest packages/naas-mcp/tests/integration -v
 from __future__ import annotations
 
 import json
+from typing import TYPE_CHECKING
 
-from fastmcp.client import Client
+if TYPE_CHECKING:
+    from fastmcp.client import Client
 
 
 async def test_send_command_show_version(integration_mcp_client: Client):
     """Submit 'show version' to cisshgo and verify result."""
-    resp = await integration_mcp_client.call_tool("send_command", {
-        "host": "cisshgo",
-        "platform": "cisco_ios",
-        "commands": ["show version"],
-        "username": "admin",
-        "password": "admin",
-    })
+    resp = await integration_mcp_client.call_tool(
+        "send_command",
+        {
+            "host": "cisshgo",
+            "platform": "cisco_ios",
+            "commands": ["show version"],
+            "username": "admin",
+            "password": "admin",
+        },
+    )
 
     data = json.loads(resp.content[0].text)  # type: ignore[union-attr]
     assert data["status"] == "finished"

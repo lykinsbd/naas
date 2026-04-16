@@ -1,12 +1,9 @@
 """FastMCP server definition and configuration."""
 
-from __future__ import annotations
-
 import os
 
 from fastmcp import FastMCP
 from fastmcp.server.lifespan import lifespan
-
 from naas_client import AsyncNaasClient
 
 
