@@ -57,8 +57,6 @@ strict = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
-markers = ["integration: requires running NAAS docker-compose stack"]
-addopts = "-m 'not integration'"
 
 [tool.coverage.run]
 source = ["naas_mcp"]

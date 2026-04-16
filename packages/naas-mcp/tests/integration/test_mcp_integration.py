@@ -1,17 +1,14 @@
 """Integration tests — run against live NAAS + cisshgo stack.
 
 Requires: docker-compose up (naas-api, naas-worker, redis, cisshgo)
-Run with: uv run pytest tests/integration/ -v -m integration
+Run with: uv run pytest packages/naas-mcp/tests/integration -v
 """
 
 from __future__ import annotations
 
 import json
 
-import pytest
 from fastmcp.client import Client
-
-pytestmark = pytest.mark.integration
 
 
 async def test_send_command_show_version(integration_mcp_client: Client):
