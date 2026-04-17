@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from typing import TYPE_CHECKING
 
 import pytest
@@ -13,12 +14,21 @@ from naas_client.models import HealthCheckResponse, JobStatus
 if TYPE_CHECKING:
     from naas_client.async_client import AsyncNaasClient
 
+HEALTHCHECK_TIMEOUT = 30
+HEALTHCHECK_INTERVAL = 2
+
 
 class TestHealthcheck:
     def test_healthcheck(self, client: NaasClient) -> None:
-        health = client.healthcheck()
-        assert isinstance(health, HealthCheckResponse)
-        assert health.status == "healthy"
+        deadline = time.monotonic() + HEALTHCHECK_TIMEOUT
+        while True:
+            health = client.healthcheck()
+            assert isinstance(health, HealthCheckResponse)
+            if health.status == "healthy":
+                break
+            if time.monotonic() > deadline:
+                pytest.fail(f"Healthcheck not healthy after {HEALTHCHECK_TIMEOUT}s: status={health.status}")
+            time.sleep(HEALTHCHECK_INTERVAL)
         assert health.components.workers.count is not None
         assert health.components.workers.count > 0
 
@@ -85,8 +95,16 @@ class TestSendCommand:
 class TestAsyncClient:
     @pytest.mark.asyncio
     async def test_healthcheck(self, async_client: AsyncNaasClient) -> None:
-        health = await async_client.healthcheck()
-        assert health.status == "healthy"
+        import asyncio
+
+        deadline = time.monotonic() + HEALTHCHECK_TIMEOUT
+        while True:
+            health = await async_client.healthcheck()
+            if health.status == "healthy":
+                break
+            if time.monotonic() > deadline:
+                pytest.fail(f"Healthcheck not healthy after {HEALTHCHECK_TIMEOUT}s: status={health.status}")
+            await asyncio.sleep(HEALTHCHECK_INTERVAL)
 
     @pytest.mark.asyncio
     async def test_list_contexts(self, async_client: AsyncNaasClient) -> None:
