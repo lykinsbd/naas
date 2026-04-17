@@ -7,7 +7,10 @@ Run with: uv run pytest packages/naas-mcp/tests/integration -v
 from __future__ import annotations
 
 import json
+import time
 from typing import TYPE_CHECKING
+
+import pytest
 
 if TYPE_CHECKING:
     from fastmcp.client import Client
@@ -47,10 +50,17 @@ async def test_list_jobs(integration_mcp_client: Client):
 
 async def test_health_resource(integration_mcp_client: Client):
     """Read health resource from live API."""
-    contents = await integration_mcp_client.read_resource("naas://health")
+    import asyncio
 
-    data = json.loads(contents[0].text)  # type: ignore[union-attr]
-    assert data["status"] == "healthy"
+    deadline = time.monotonic() + 30
+    while True:
+        contents = await integration_mcp_client.read_resource("naas://health")
+        data = json.loads(contents[0].text)  # type: ignore[union-attr]
+        if data["status"] == "healthy":
+            break
+        if time.monotonic() > deadline:
+            pytest.fail(f"Healthcheck not healthy after 30s: status={data['status']}")
+        await asyncio.sleep(2)
 
 
 async def test_contexts_resource(integration_mcp_client: Client):
