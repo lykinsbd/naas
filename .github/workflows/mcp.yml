@@ -1,0 +1,95 @@
+name: MCP Server Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop, 'release/**']
+
+jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      mcp: ${{ steps.filter.outputs.mcp }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dorny/paths-filter@v4
+        id: filter
+        with:
+          filters: |
+            mcp:
+              - 'packages/naas-mcp/**'
+              - 'packages/naas-client/**'
+              - 'pyproject.toml'
+              - 'uv.lock'
+              - '.github/workflows/mcp.yml'
+
+  mcp-tests:
+    needs: [changes]
+    if: needs.changes.outputs.mcp == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12', '3.13', '3.14']
+    name: mcp-tests (${{ matrix.python-version }})
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: uv sync --package mcp-server-naas --extra dev
+
+      - name: Run ruff linter
+        run: uv run ruff check --config packages/naas-mcp/pyproject.toml packages/naas-mcp/naas_mcp/ packages/naas-mcp/tests/
+
+      - name: Check ruff formatting
+        run: uv run ruff format --check --config packages/naas-mcp/pyproject.toml packages/naas-mcp/naas_mcp/ packages/naas-mcp/tests/
+
+      - name: Run tests
+        run: uv run --package mcp-server-naas pytest packages/naas-mcp/tests --ignore=packages/naas-mcp/tests/integration --cov=naas_mcp --cov-report=term-missing --cov-config=packages/naas-mcp/pyproject.toml
+
+  mcp-integration:
+    needs: [changes]
+    if: needs.changes.outputs.mcp == 'true'
+    runs-on: ubuntu-latest
+    name: mcp-integration
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: '3.14'
+
+      - name: Install dependencies
+        run: |
+          uv sync --package naas --extra dev
+          uv sync --package mcp-server-naas --extra dev
+
+      - name: Run integration tests
+        run: uv run --package mcp-server-naas pytest packages/naas-mcp/tests/integration -v --no-cov
+
+      - name: Cleanup Docker
+        if: always()
+        run: docker compose -f packages/naas/tests/integration/docker-compose.test.yml down -v
+
+  MCP:
+    if: always()
+    needs: [changes, mcp-tests, mcp-integration]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check results
+        run: |
+          if [[ "${{ needs.changes.outputs.mcp }}" != "true" ]]; then
+            echo "No MCP changes detected, skipping"
+            exit 0
+          fi
+          if [[ "${{ needs.mcp-tests.result }}" != "success" || "${{ needs.mcp-integration.result }}" != "success" ]]; then
+            echo "MCP tests failed"
+            exit 1
+          fi
