@@ -305,6 +305,36 @@ async def test_send_command_structured_success(mcp_client: Client, mock_naas_cli
     assert data["status"] == "finished"
 
 
+async def test_send_command_structured_with_optional_params(mcp_client: Client, mock_naas_client: AsyncMock):
+    result = _finished_result()
+    mock_naas_client.send_command_structured.return_value = _mock_job(result)
+
+    await mcp_client.call_tool(
+        "send_command_structured",
+        {
+            "host": "10.0.0.1",
+            "platform": "arista_eos",
+            "commands": ["show version"],
+            "username": "admin",
+            "password": "secret",
+            "enable": "en",
+            "port": 2222,
+            "tags": {"env": "lab"},
+        },
+    )
+
+    mock_naas_client.send_command_structured.assert_called_once_with(
+        host="10.0.0.1",
+        platform="arista_eos",
+        commands=["show version"],
+        username="admin",
+        password="secret",
+        enable="en",
+        port=2222,
+        tags={"env": "lab"},
+    )
+
+
 # -- create_api_key --
 
 
