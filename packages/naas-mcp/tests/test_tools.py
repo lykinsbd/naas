@@ -278,3 +278,68 @@ async def test_list_jobs_with_filters(mcp_client: Client, mock_naas_client: Asyn
     await mcp_client.call_tool("list_jobs", {"page": 2, "per_page": 5, "status": "failed"})
 
     mock_naas_client.list_jobs.assert_called_once_with(page=2, per_page=5, status="failed")
+
+
+# -- send_command_structured --
+
+
+async def test_send_command_structured_success(mcp_client: Client, mock_naas_client: AsyncMock):
+    result = _finished_result(results={"show version": [{"version": "15.1", "hostname": "SW1"}]})
+    mock_naas_client.send_command_structured.return_value = _mock_job(result)
+
+    resp = await mcp_client.call_tool(
+        "send_command_structured",
+        {
+            "host": "192.168.1.1",
+            "platform": "cisco_ios",
+            "commands": ["show version"],
+        },
+    )
+
+    mock_naas_client.send_command_structured.assert_called_once_with(
+        host="192.168.1.1",
+        platform="cisco_ios",
+        commands=["show version"],
+    )
+    data = json.loads(resp.content[0].text)  # type: ignore[union-attr]
+    assert data["status"] == "finished"
+
+
+# -- create_api_key --
+
+
+async def test_create_api_key_success(mcp_client: Client, mock_naas_client: AsyncMock):
+    from naas_client.models import ApiKeyCreateResponse
+
+    mock_naas_client.create_api_key.return_value = ApiKeyCreateResponse.model_validate(
+        {
+            "key_id": "key-abc",
+            "token": "jwt-token-here",
+            "role": "operator",
+            "contexts": ["default"],
+            "expires_at": "2026-05-17T00:00:00Z",
+        }
+    )
+
+    resp = await mcp_client.call_tool(
+        "create_api_key",
+        {"role": "operator", "contexts": ["default"]},
+    )
+
+    mock_naas_client.create_api_key.assert_called_once_with(role="operator", contexts=["default"], ttl=None)
+    data = json.loads(resp.content[0].text)  # type: ignore[union-attr]
+    assert data["key_id"] == "key-abc"
+    assert data["role"] == "operator"
+
+
+# -- revoke_api_key --
+
+
+async def test_revoke_api_key_success(mcp_client: Client, mock_naas_client: AsyncMock):
+    mock_naas_client.delete_api_key.return_value = None
+
+    resp = await mcp_client.call_tool("revoke_api_key", {"key_id": "key-abc"})
+
+    mock_naas_client.delete_api_key.assert_called_once_with("key-abc")
+    assert "key-abc" in resp.content[0].text  # type: ignore[union-attr]
+    assert "revoked" in resp.content[0].text.lower()  # type: ignore[union-attr]

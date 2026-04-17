@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING
 
-from naas_client.models import ContextsResponse, FailedJobsResponse, HealthCheckResponse
+from naas_client.models import ContextsResponse, FailedJobsResponse, HealthCheckResponse, ListJobsResponse
 
 if TYPE_CHECKING:
     from unittest.mock import AsyncMock
@@ -63,3 +63,19 @@ async def test_failed_jobs_resource(mcp_client: Client, mock_naas_client: AsyncM
     data = json.loads(contents[0].text)  # type: ignore[union-attr]
     assert len(data["jobs"]) == 1
     assert data["jobs"][0]["job_id"] == "fail-1"
+
+
+async def test_jobs_resource(mcp_client: Client, mock_naas_client: AsyncMock):
+    mock_naas_client.list_jobs.return_value = ListJobsResponse.model_validate(
+        {
+            "jobs": [{"job_id": "j1", "status": "finished", "type": "command"}],
+            "pagination": {"page": 1, "per_page": 20, "total": 1, "pages": 1},
+        }
+    )
+
+    contents = await mcp_client.read_resource("naas://jobs")
+
+    mock_naas_client.list_jobs.assert_called_once()
+    data = json.loads(contents[0].text)  # type: ignore[union-attr]
+    assert len(data["jobs"]) == 1
+    assert data["jobs"][0]["job_id"] == "j1"
