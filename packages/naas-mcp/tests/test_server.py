@@ -46,9 +46,14 @@ async def test_server_lists_all_tools(mcp_client: Client):
     tools = await mcp_client.list_tools()
     tool_names = {t.name for t in tools}
     assert tool_names == {
-        "send_command", "send_command_structured", "send_config",
-        "get_job_result", "cancel_job", "list_jobs",
-        "create_api_key", "revoke_api_key",
+        "send_command",
+        "send_command_structured",
+        "send_config",
+        "get_job_result",
+        "cancel_job",
+        "list_jobs",
+        "create_api_key",
+        "revoke_api_key",
     }
 
 

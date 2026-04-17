@@ -39,9 +39,14 @@ def _make_test_server(mock_client: AsyncMock) -> FastMCP:
     )
 
     for fn in (
-        send_command, send_command_structured, send_config,
-        get_job_result, cancel_job, list_jobs,
-        create_api_key, revoke_api_key,
+        send_command,
+        send_command_structured,
+        send_config,
+        get_job_result,
+        cancel_job,
+        list_jobs,
+        create_api_key,
+        revoke_api_key,
     ):
         server.add_tool(fn)
 
