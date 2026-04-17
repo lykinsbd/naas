@@ -69,14 +69,33 @@ async def integration_mcp_client():
 
     server = FastMCP(name="naas-integration", lifespan=real_lifespan)
 
-    from naas_mcp.resources import contexts, failed_jobs, health
-    from naas_mcp.tools import cancel_job, get_job_result, list_jobs, send_command, send_config
+    from naas_mcp.resources import contexts, failed_jobs, health, jobs
+    from naas_mcp.tools import (
+        cancel_job,
+        create_api_key,
+        get_job_result,
+        list_jobs,
+        revoke_api_key,
+        send_command,
+        send_command_structured,
+        send_config,
+    )
 
-    for fn in (send_command, send_config, get_job_result, cancel_job, list_jobs):
+    for fn in (
+        send_command,
+        send_command_structured,
+        send_config,
+        get_job_result,
+        cancel_job,
+        list_jobs,
+        create_api_key,
+        revoke_api_key,
+    ):
         server.add_tool(fn)
     server.resource("naas://health", name="Health")(health)
     server.resource("naas://contexts", name="Contexts")(contexts)
     server.resource("naas://jobs/failed", name="Failed Jobs")(failed_jobs)
+    server.resource("naas://jobs", name="Jobs")(jobs)
 
     async with Client(transport=server) as client:
         yield client
