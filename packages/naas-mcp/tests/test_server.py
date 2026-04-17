@@ -45,13 +45,22 @@ def test_config_from_env():
 async def test_server_lists_all_tools(mcp_client: Client):
     tools = await mcp_client.list_tools()
     tool_names = {t.name for t in tools}
-    assert tool_names == {"send_command", "send_config", "get_job_result", "cancel_job", "list_jobs"}
+    assert tool_names == {
+        "send_command",
+        "send_command_structured",
+        "send_config",
+        "get_job_result",
+        "cancel_job",
+        "list_jobs",
+        "create_api_key",
+        "revoke_api_key",
+    }
 
 
 async def test_server_lists_all_resources(mcp_client: Client):
     resources = await mcp_client.list_resources()
     resource_uris = {str(r.uri) for r in resources}
-    assert resource_uris == {"naas://health", "naas://contexts", "naas://jobs/failed"}
+    assert resource_uris == {"naas://health", "naas://contexts", "naas://jobs/failed", "naas://jobs"}
 
 
 def test_main_entry_point_exists():

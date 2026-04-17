@@ -153,3 +153,76 @@ async def list_jobs(
     """
     result = await _client(ctx).list_jobs(page=page, per_page=per_page, status=status)
     return _result_to_dict(result)
+
+
+@mcp.tool
+async def send_command_structured(
+    ctx: Context,
+    host: str,
+    platform: str,
+    commands: list[str],
+    username: str | None = None,
+    password: str | None = None,
+    enable: str | None = None,
+    port: int | None = None,
+    tags: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    """Send commands to a network device and get structured (parsed) output.
+
+    Uses TextFSM/NTC templates to parse command output into structured data.
+    Falls back to raw text if no template is available.
+
+    Args:
+        host: Device hostname or IP address.
+        platform: Netmiko platform type (e.g. cisco_ios, arista_eos).
+        commands: List of commands to execute.
+        username: Device username.
+        password: Device password.
+        enable: Enable/privilege password.
+        port: SSH port (default 22).
+        tags: Optional key-value tags for the job.
+    """
+    kwargs: dict[str, Any] = {"host": host, "platform": platform, "commands": commands}
+    if username is not None:
+        kwargs["username"] = username
+    if password is not None:
+        kwargs["password"] = password
+    if enable is not None:
+        kwargs["enable"] = enable
+    if port is not None:
+        kwargs["port"] = port
+    if tags is not None:
+        kwargs["tags"] = tags
+
+    job = await _client(ctx).send_command_structured(**kwargs)
+    result = await job.wait(timeout=_job_timeout(ctx), interval=_job_poll_interval(ctx))
+    return _result_to_dict(result)
+
+
+@mcp.tool
+async def create_api_key(
+    ctx: Context,
+    role: str = "operator",
+    contexts: list[str] | None = None,
+    ttl: int | None = None,
+) -> dict[str, Any]:
+    """Create a new NAAS API key.
+
+    Args:
+        role: Role to assign (viewer, operator, admin).
+        contexts: List of allowed routing contexts (None = all).
+        ttl: Time-to-live in seconds (None = default expiry).
+    """
+    result = await _client(ctx).create_api_key(role=role, contexts=contexts, ttl=ttl)
+    return _result_to_dict(result)
+
+
+@mcp.tool
+async def revoke_api_key(ctx: Context, key_id: str) -> str:
+    """Revoke an existing API key.
+
+    Args:
+        key_id: The key ID to revoke.
+    """
+    await _client(ctx).delete_api_key(key_id)
+    return f"API key {key_id} revoked."

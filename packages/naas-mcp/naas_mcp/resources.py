@@ -31,3 +31,10 @@ async def failed_jobs(ctx: Context) -> str:
     """List of jobs that have failed and are in the dead letter registry."""
     result = await _client(ctx).failed_jobs()
     return json.dumps(result.model_dump(mode="json"))
+
+
+@mcp.resource("naas://jobs", name="Jobs", description="Current job queue state")
+async def jobs(ctx: Context) -> str:
+    """Current jobs in the NAAS queue."""
+    result = await _client(ctx).list_jobs()
+    return json.dumps(result.model_dump(mode="json"))

@@ -47,6 +47,7 @@ mcp = FastMCP(
     lifespan=app_lifespan,
 )
 
-# Register tools and resources via imports (side effects)
+# Register tools, resources, and prompts via imports (side effects)
+import naas_mcp.prompts  # noqa: E402, F401
 import naas_mcp.resources  # noqa: E402, F401
 import naas_mcp.tools  # noqa: E402, F401
