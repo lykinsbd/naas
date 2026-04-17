@@ -18,7 +18,7 @@ uv pip install mcp-server-naas
 
 ## Architecture
 
-```
+```text
 AI Assistant (Claude / Cursor / ChatGPT)
     │
     │ MCP Protocol (JSON-RPC 2.0 over stdio)
@@ -41,7 +41,7 @@ The MCP server never connects to devices directly. It authenticates to the NAAS 
 All configuration is via environment variables:
 
 | Variable | Default | Description |
-|----------|---------|-------------|
+| -------- | ------- | ----------- |
 | `NAAS_MCP_API_URL` | `http://localhost:8080` | NAAS API base URL |
 | `NAAS_MCP_API_KEY` | *(none)* | API key (JWT) for Bearer auth |
 | `NAAS_MCP_TIMEOUT` | `30` | HTTP request timeout in seconds |
@@ -140,7 +140,7 @@ Send show/read commands to a network device and wait for results.
 **Parameters:**
 
 | Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
+| --------- | ---- | -------- | ----------- |
 | `host` | string | ✅ | Device hostname or IP |
 | `platform` | string | ✅ | Netmiko platform (e.g. `cisco_ios`, `arista_eos`) |
 | `commands` | list[string] | ✅ | Commands to execute |
@@ -173,7 +173,7 @@ Push configuration commands to a network device and wait for results.
 **Parameters:**
 
 | Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
+| --------- | ---- | -------- | ----------- |
 | `host` | string | ✅ | Device hostname or IP |
 | `platform` | string | ✅ | Netmiko platform |
 | `commands` | list[string] | ✅ | Configuration commands |
@@ -194,7 +194,7 @@ Get the result of a previously submitted job by ID.
 **Parameters:**
 
 | Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
+| --------- | ---- | -------- | ----------- |
 | `job_id` | string | ✅ | Job ID from a previous send_command or send_config |
 
 ### cancel_job
@@ -204,7 +204,7 @@ Cancel a queued or running job.
 **Parameters:**
 
 | Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
+| --------- | ---- | -------- | ----------- |
 | `job_id` | string | ✅ | Job ID to cancel |
 
 ### list_jobs
@@ -214,7 +214,7 @@ List jobs with optional filtering and pagination.
 **Parameters:**
 
 | Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
+| --------- | ---- | -------- | ----------- |
 | `page` | integer | | Page number (default 1) |
 | `per_page` | integer | | Results per page (default 20) |
 | `status` | string | | Filter: `queued`, `started`, `finished`, `failed` |
@@ -224,7 +224,7 @@ List jobs with optional filtering and pagination.
 Resources provide read-only data the AI can access for context.
 
 | URI | Description |
-|-----|-------------|
+| --- | ----------- |
 | `naas://health` | API health status (server version, uptime, worker count, queue depth) |
 | `naas://contexts` | Available routing contexts and their worker/queue state |
 | `naas://jobs/failed` | Jobs in the failed (dead letter) registry |
