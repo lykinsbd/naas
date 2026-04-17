@@ -225,9 +225,13 @@ chore(deps): upgrade netmiko to 4.6.0
 
 **Before committing:**
 
-- Run `invoke check` (linting, formatting, type checking)
+- Run `uv run invoke check` **from `packages/naas/`** (linting, formatting, type checking)
 - Fix any ruff or mypy errors
 - Ensure pre-commit hooks pass
+
+> **⚠️ `uv run` is required.** All Python tools (`invoke`, `towncrier`, `pytest`, `ruff`, `mypy`) are dev dependencies managed by `uv`. Always prefix commands with `uv run`. Running bare `invoke` or `pytest` will fail with "command not found".
+
+> **⚠️ Working directory matters.** The `tasks.py` (invoke) and `towncrier` config live in `packages/naas/`. Run `invoke` commands from there, not the repo root.
 
 **Standards:**
 
@@ -268,9 +272,9 @@ chore(deps): upgrade netmiko to 4.6.0
 
 ### Current State
 
-- **Version:** v1.2.0 released, develop at v1.3.0a1
+- **Version:** v2.0.0 released, develop at v2.1.0a1
 - **Active branches:** main, develop, release/1.0, release/1.1, release/1.2
-- **Milestone:** v1.3 (next development cycle)
+- **Milestone:** v2.1 (next development cycle)
 
 ### Key Technologies
 
@@ -279,17 +283,37 @@ chore(deps): upgrade netmiko to 4.6.0
 - RQ (job queue)
 - Redis (queue backend)
 - Netmiko (device connectivity)
-- uv (dependency management)
+- uv (dependency management, workspace manager)
 - Docker Compose (deployment)
+
+### Monorepo Structure
+
+This is a **uv workspace** with three packages:
+
+```text
+packages/
+├── naas/              # Main API server (Flask + RQ)
+│   ├── pyproject.toml # Dev deps: pytest, ruff, mypy, invoke, towncrier
+│   ├── tasks.py       # Invoke tasks (check, test, etc.)
+│   └── changes/       # Changelog fragments go HERE
+├── naas-client/       # Python SDK + CLI
+│   └── pyproject.toml
+└── naas-mcp/          # MCP server for AI assistants
+    └── pyproject.toml
+```
+
+**Key rule:** `uv run` resolves the correct package environment. When running `invoke` or `towncrier`, you must be in `packages/naas/` or use `uv run --package naas`.
 
 ### Important Files
 
-- `pyproject.toml` - Project config, dependencies, version
+- `pyproject.toml` - Workspace root config
+- `packages/naas/pyproject.toml` - Server config, dependencies, version, towncrier config
+- `packages/naas/tasks.py` - Invoke tasks (run from `packages/naas/`)
+- `packages/naas/changes/` - Changelog fragments directory
+- `packages/naas/changes/template.md.j2` - Changelog template
 - `CONTRIBUTING.md` - Development guidelines
 - `docs/adr/` - Architectural Decision Records (MADR format)
 - `CHANGELOG.md` - Generated from fragments
-- `changes/` - Changelog fragments directory
-- `changes/template.md.j2` - Changelog template
 
 ### Common Tasks
 
@@ -318,14 +342,16 @@ git_push(branch="feature/new-feature", set_upstream=True)
 **CLI Fallbacks (when MCP unavailable):**
 
 ```bash
-# Create fragment
+# Create fragment (from packages/naas/)
 uv run towncrier create 123.feature.md --content "Add new feature"
+# If towncrier CLI fails, create the file directly:
+echo "Add new feature" > packages/naas/changes/123.feature.md
 
-# Run tests
-invoke test
+# Run tests (from packages/naas/)
+uv run invoke test
 
-# Code quality
-invoke check
+# Code quality (from packages/naas/)
+uv run invoke check
 
 # Create issue (fallback)
 gh issue create --title "Title" --body "Description" --label enhancement
@@ -339,8 +365,8 @@ gh pr create --base develop --title "Title" --body "Description"
 **Before I commit, I will:**
 
 1. ✅ Verify I am on the correct feature branch (`git status` / `git branch`) — NEVER commit directly to `develop` or `main`
-2. ✅ Verify changelog fragment exists
-3. ✅ Run `invoke check` and fix all errors
+2. ✅ Verify changelog fragment exists in `packages/naas/changes/`
+3. ✅ Run `uv run invoke check` (from `packages/naas/`) and fix all errors
 4. ✅ Ensure commit message is conventional
 5. ✅ Confirm all tests pass
 
@@ -380,7 +406,7 @@ gh pr create --base develop --title "Title" --body "Description"
 
 - Create or link to an issue before starting work
 - Add changelog fragments before committing
-- Run `invoke check` before committing
+- Run `uv run invoke check` (from `packages/naas/`) before committing
 - Let pre-commit hooks run (never use `noVerify=true`)
 - Target the correct base branch for PRs
 - Use GPG signing when available (`-S` flag)
