@@ -1,0 +1,18 @@
+{
+  "version": "2.0.0",
+  "date": "2026-04-17",
+  "note": "Placeholder baseline. Run full profile against v2.0.0 to populate with real data.",
+  "config": {
+    "api_workers": 4,
+    "rq_processes": 10,
+    "cisshgo_replicas": 5
+  },
+  "results": {
+    "throughput_jobs_per_sec": null,
+    "p50_ms": null,
+    "p95_ms": null,
+    "p99_ms": null,
+    "error_rate_pct": null,
+    "max_queue_depth": null
+  }
+}
