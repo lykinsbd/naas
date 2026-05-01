@@ -42,3 +42,12 @@ uv run invoke test      # pytest
 Current test coverage: 94 tests, 80%+ coverage
 
 Target: 80%+ coverage on all new code
+
+## Load Testing
+
+NAAS includes Locust-based load tests for performance baselining and regression detection.
+
+- **Smoke test (CI, every PR):** 30s, 10 users — catches gross regressions
+- **Full profile (CI, RC tags):** 10min, ramp to 100 users — capacity baseline
+
+See [`tests/load/README.md`](https://github.com/lykinsbd/naas/blob/develop/tests/load/README.md) for run instructions, configuration, and result interpretation.

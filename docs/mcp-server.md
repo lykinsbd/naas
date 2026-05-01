@@ -219,6 +219,47 @@ List jobs with optional filtering and pagination.
 | `per_page` | integer | | Results per page (default 20) |
 | `status` | string | | Filter: `queued`, `started`, `finished`, `failed` |
 
+### send_command_structured
+
+Send commands to a network device and get structured (parsed) output using TextFSM/NTC templates.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `host` | string | ✅ | Device hostname or IP |
+| `platform` | string | ✅ | Netmiko platform (e.g. `cisco_ios`, `arista_eos`) |
+| `commands` | list[string] | ✅ | Commands to execute |
+| `username` | string | | Device username |
+| `password` | string | | Device password |
+| `enable` | string | | Enable/privilege password |
+| `port` | integer | | SSH port (default 22) |
+| `tags` | dict | | Key-value tags for the job |
+
+**Example prompt:** *"Show me the interface status on switch-core-01 as structured data"*
+
+### create_api_key
+
+Create a new NAAS API key. Requires `admin` role.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `role` | string | | Role to assign: `viewer`, `operator`, `admin` (default `operator`) |
+| `contexts` | list[string] | | Allowed routing contexts (default: all) |
+| `ttl` | integer | | Time-to-live in seconds (default: server default) |
+
+### revoke_api_key
+
+Revoke an existing API key. Requires `admin` role.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `key_id` | string | ✅ | The key ID to revoke |
+
 ## Resources
 
 Resources provide read-only data the AI can access for context.
@@ -227,7 +268,36 @@ Resources provide read-only data the AI can access for context.
 | --- | ----------- |
 | `naas://health` | API health status (server version, uptime, worker count, queue depth) |
 | `naas://contexts` | Available routing contexts and their worker/queue state |
+| `naas://jobs` | Current job queue state (list of jobs with pagination) |
 | `naas://jobs/failed` | Jobs in the failed (dead letter) registry |
+
+## Prompts
+
+Prompts are reusable templates that guide the AI through common workflows.
+
+### show_commands
+
+Template for running show commands with proper device targeting.
+
+**Parameters:** `host`, `platform`, `commands` (comma-separated)
+
+**Example:** The AI receives a pre-built instruction to run the specified commands using `send_command` and report the output.
+
+### config_push
+
+Template for safe configuration push with pre/post verification.
+
+**Parameters:** `host`, `platform`, `commands` (comma-separated), `save` (yes/no)
+
+**Example:** The AI receives a workflow: capture current config → apply changes via `send_config` → verify → report results.
+
+### troubleshoot_device
+
+Guided troubleshooting workflow that checks version, interfaces, logs, and CPU.
+
+**Parameters:** `host`, `platform`
+
+**Example:** The AI runs `show version`, `show interfaces status`, `show logging last 50`, and `show processes cpu history` in sequence, then summarizes findings.
 
 ## Security
 
