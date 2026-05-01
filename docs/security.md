@@ -248,19 +248,43 @@ services:
 
 ### Rate Limiting
 
-Implement rate limiting to prevent abuse:
+NAAS includes a built-in per-caller sliding window rate limiter backed by Redis sorted sets. It applies to all submission endpoints (`/v2/send-command`, `/v2/send-config`, `/v2/send-command-structured`).
 
-```python
-# Using nginx (see reverse proxy example above)
-# Or implement in application code
-from flask_limiter import Limiter
+**Two tiers:**
 
-limiter = Limiter(
-    app,
-    key_func=lambda: request.authorization.username,
-    default_limits=["100 per hour", "10 per minute"]
-)
+- **Per-caller:** Limits total submissions across all devices for a given identity
+- **Per-caller-per-device:** Limits submissions to a single device from a given identity
+
+When a limit is exceeded, the API returns `429 Too Many Requests` with a `Retry-After` header.
+
+**Configuration (environment variables):**
+
+| Variable | Default | Description |
+| -------- | ------- | ----------- |
+| `RATE_LIMIT_ENABLED` | `true` | Enable/disable rate limiting |
+| `RATE_LIMIT_PER_CALLER` | `1000` | Max requests per caller per window |
+| `RATE_LIMIT_PER_CALLER_DEVICE` | `20` | Max requests per caller per device per window |
+| `RATE_LIMIT_WINDOW` | `60` | Sliding window size in seconds |
+| `RATE_LIMIT_EXEMPT_ROLES` | `admin` | Comma-separated roles exempt from limits |
+
+**Response headers** (included on every submission response):
+
+- `X-RateLimit-Limit` — the applicable limit
+- `X-RateLimit-Remaining` — requests remaining in the window
+- `X-RateLimit-Reset` — Unix timestamp when the window resets
+
+**429 response body:**
+
+```json
+{
+  "error": "Rate limit exceeded",
+  "retry_after": 60
+}
 ```
+
+Basic auth users are implicitly exempt (treated as admin). API key users are subject to limits based on their role.
+
+You can also add external rate limiting via a reverse proxy (see the nginx example above).
 
 ## Monitoring and Auditing
 
