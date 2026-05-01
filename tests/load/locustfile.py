@@ -62,7 +62,7 @@ class NaasUser(HttpUser):
             name="/v2/send-command [submit]",
             catch_response=True,
         ) as resp:
-            if resp.status_code != 200:
+            if resp.status_code not in (200, 201, 202):
                 resp.failure(f"Submit failed: {resp.status_code}")
                 return
             job_id = resp.json().get("job_id")
