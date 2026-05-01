@@ -1,0 +1,137 @@
+name: Load Tests
+
+on:
+  pull_request:
+    branches: [develop, 'release/**']
+  push:
+    tags: ['v*rc*']
+
+jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      load: ${{ steps.filter.outputs.load }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dorny/paths-filter@v4
+        id: filter
+        with:
+          filters: |
+            load:
+              - 'tests/load/**'
+              - 'packages/naas/**'
+              - 'pyproject.toml'
+              - 'uv.lock'
+              - '.github/workflows/load.yml'
+
+  smoke:
+    needs: [changes]
+    if: >-
+      github.event_name == 'pull_request' &&
+      needs.changes.outputs.load == 'true'
+    runs-on: ubuntu-latest
+    name: load-smoke
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: '3.14'
+
+      - name: Install dependencies
+        run: uv sync --package naas --extra dev
+
+      - name: Start load test stack
+        run: docker compose -f tests/load/docker-compose.load.yml up -d --build --wait
+
+      - name: Wait for API health
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sk https://localhost:18443/healthcheck | grep -q '"status"'; then
+              echo "API ready"
+              break
+            fi
+            sleep 2
+          done
+
+      - name: Run smoke test
+        run: |
+          uv run locust -f tests/load/locustfile.py --headless \
+            -u 10 -r 10 -t 30s \
+            --host https://localhost:18443 \
+            --csv results \
+            --exit-code-on-error 1 2>&1 | tee locust-output.txt
+
+      - name: Check error rate
+        run: |
+          if [ -f results_stats.csv ]; then
+            # Check aggregate error rate from the last row (Aggregated)
+            error_pct=$(tail -1 results_stats.csv | awk -F',' '{print $5}')
+            echo "Aggregate error rate: ${error_pct}%"
+            if [ "$(echo "$error_pct > 1" | bc -l 2>/dev/null || echo 0)" = "1" ]; then
+              echo "::error::Error rate ${error_pct}% exceeds 1% threshold"
+              exit 1
+            fi
+          fi
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: load-smoke-results
+          path: results_*.csv
+
+      - name: Tear down stack
+        if: always()
+        run: docker compose -f tests/load/docker-compose.load.yml down -v
+
+  full-profile:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && contains(github.ref, 'rc')
+    runs-on: ubuntu-latest
+    name: load-full-profile
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: '3.14'
+
+      - name: Install dependencies
+        run: uv sync --package naas --extra dev
+
+      - name: Start load test stack
+        run: docker compose -f tests/load/docker-compose.load.yml up -d --build --wait
+
+      - name: Wait for API health
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sk https://localhost:18443/healthcheck | grep -q '"status"'; then
+              echo "API ready"
+              break
+            fi
+            sleep 2
+          done
+
+      - name: Run full profile
+        run: |
+          uv run locust -f tests/load/locustfile.py --headless \
+            -u 100 -r 10 -t 10m \
+            --host https://localhost:18443 \
+            --csv results \
+            --html report.html 2>&1 | tee locust-output.txt
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: load-full-profile-results
+          path: |
+            results_*.csv
+            report.html
+
+      - name: Tear down stack
+        if: always()
+        run: docker compose -f tests/load/docker-compose.load.yml down -v
