@@ -1,0 +1,91 @@
+# Load testing stack for NAAS.
+# Extends the integration test stack with scaled cisshgo replicas.
+#
+# Usage:
+#   docker compose -f tests/load/docker-compose.load.yml up -d --build --wait
+#   locust -f tests/load/locustfile.py --host https://localhost:18443
+
+services:
+  redis:
+    image: redis:7-alpine
+    command: redis-server --requirepass test_password
+    ports:
+      - "16379:6379"
+    networks:
+      - naas-load
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 5
+
+  api:
+    build:
+      context: ../..
+      dockerfile: packages/naas/Dockerfile
+      cache_from:
+        - type=gha
+      cache_to:
+        - type=gha,mode=max
+    ports:
+      - "18443:443"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=test_password
+      - APP_ENVIRONMENT=test
+      - NAAS_CONTEXTS=default
+      - GUNICORN_WORKERS=4
+      - NAAS_JWT_SECRET=load-test-jwt-secret
+      - NAAS_ENCRYPTION_KEY=IaypjfWWRlCStgKgneWQDfteGYNdO70FSepbfHdC6yY=
+      - NAAS_ADMIN_SECRET=load-test-admin-secret
+    networks:
+      - naas-load
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-k", "-f", "https://localhost:443/healthcheck"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+      start_period: 10s
+
+  worker:
+    build:
+      context: ../..
+      dockerfile: packages/naas/Dockerfile
+      cache_from:
+        - type=gha
+      cache_to:
+        - type=gha,mode=max
+    command: ["python", "worker.py", "10", "--queues", "naas-default", "--redis", "redis", "--auth_password", "test_password", "--sleep", "1"]
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=test_password
+      - APP_ENVIRONMENT=test
+      - WORKER_CONTEXTS=default
+      - NAAS_ENCRYPTION_KEY=IaypjfWWRlCStgKgneWQDfteGYNdO70FSepbfHdC6yY=
+    networks:
+      - naas-load
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "sh", "-c", "kill -0 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+  cisshgo:
+    image: ghcr.io/tbotnz/cisshgo:v0.2.0
+    command: ["-listeners", "2", "-startingPort", "10022"]
+    deploy:
+      replicas: 5
+    networks:
+      - naas-load
+
+networks:
+  naas-load:
