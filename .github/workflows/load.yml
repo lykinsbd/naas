@@ -67,12 +67,19 @@ jobs:
       - name: Check error rate
         run: |
           if [ -f results_stats.csv ]; then
-            # Check aggregate error rate from the last row (Aggregated)
-            error_pct=$(tail -1 results_stats.csv | awk -F',' '{print $5}')
-            echo "Aggregate error rate: ${error_pct}%"
-            if [ "$(echo "$error_pct > 1" | bc -l 2>/dev/null || echo 0)" = "1" ]; then
-              echo "::error::Error rate ${error_pct}% exceeds 1% threshold"
-              exit 1
+            # Locust CSV columns: Type,Name,Request Count,Failure Count,...
+            # Last row is "Aggregated" — extract request count (col 3) and failure count (col 4)
+            agg=$(tail -1 results_stats.csv)
+            reqs=$(echo "$agg" | awk -F',' '{print $3}')
+            fails=$(echo "$agg" | awk -F',' '{print $4}')
+            echo "Requests: $reqs, Failures: $fails"
+            if [ "$reqs" -gt 0 ] 2>/dev/null; then
+              error_pct=$(awk "BEGIN {printf \"%.1f\", ($fails/$reqs)*100}")
+              echo "Aggregate error rate: ${error_pct}%"
+              if [ "$(awk "BEGIN {print ($error_pct > 1)}")" = "1" ]; then
+                echo "::error::Error rate ${error_pct}% exceeds 1% threshold"
+                exit 1
+              fi
             fi
           fi
 
