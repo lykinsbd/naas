@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- towncrier release notes start -->
 
-# NAAS 2.1.0b1 (2026-05-01)
+# NAAS 2.1.0rc1 (2026-05-02)
 
 ## ✨ Features
 
@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add ADR 0010: MCP Server as Thin Client over REST API. ([#365](https://github.com/lykinsbd/naas/issues/365))
 - ADR 0009: command authorization deferred to AAA/TACACS+ — NAAS does not filter commands at the proxy layer. ([#425](https://github.com/lykinsbd/naas/issues/425))
+- Document rate limiting, OpenTelemetry tracing, SSE streaming, remaining MCP components, and load testing.
 
 ## 🧪 Testing & CI/CD
 
