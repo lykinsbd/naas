@@ -1,18 +1,17 @@
 # NAAS - Netmiko As A Service
 
-Welcome to the NAAS documentation! NAAS is a REST API wrapper for [Netmiko](https://github.com/ktbyers/netmiko), enabling network device automation through a simple HTTP interface.
+NAAS is a REST API wrapper for [Netmiko](https://github.com/ktbyers/netmiko) that runs commands and pushes configurations to network devices over SSH. You submit jobs via HTTP; workers execute them asynchronously and store results in Redis.
 
-## What is NAAS?
+## What does it do?
 
-NAAS provides a production-ready API for executing commands and configurations on network devices. It handles:
-
-- **Asynchronous job processing**: Commands run in background workers
-- **Multiple device platforms**: Supports all Netmiko-compatible devices (Cisco, Arista, Juniper, etc.)
-- **Python client & CLI**: `pip install naas-client[cli]` for typed API access and terminal usage
-- **Secure authentication**: HTTPS, Basic Auth, JWT API keys with RBAC
-- **Context routing**: Isolate workloads across dedicated worker pools
-- **Job tracking**: Query status, wait for completion, cancel, replay
-- **Production features**: Prometheus metrics, audit logging, circuit breakers, connection pooling
+- **Asynchronous job processing** — Commands run in background workers; the API returns immediately with a job ID
+- **Broad device support** — Works with any device Netmiko supports (Cisco IOS/NX-OS, Arista EOS, Juniper Junos, Palo Alto, and many others)
+- **Python client & CLI** — `pip install naas-client[cli]` for typed API access and terminal usage
+- **Authentication & RBAC** — HTTPS, HTTP Basic Auth, JWT API keys with role-based access control (admin/operator/viewer)
+- **Context routing** — Route jobs to workers in specific network segments, VRFs, or geographies
+- **Job lifecycle** — Query status, wait for completion, cancel in-flight jobs, replay failed jobs
+- **Observability** — Prometheus metrics, structured audit logging, OpenTelemetry distributed tracing
+- **Reliability** — Circuit breakers, SSH connection pooling, graceful shutdown, queue backpressure
 
 ## Quick Example
 
@@ -52,27 +51,15 @@ NAAS provides a production-ready API for executing commands and configurations o
       -H "Authorization: Bearer eyJ..."
     ```
 
-## Features
-
-- ✅ REST API for network device automation (v2 with hyphenated routes)
-- ✅ Python client library with sync and async support
-- ✅ CLI tool with human and JSON output modes
-- ✅ Asynchronous job processing with Redis Queue (RQ)
-- ✅ Support for 100+ device platforms via Netmiko
-- ✅ JWT API key authentication with RBAC (admin/operator/viewer)
-- ✅ Context-based routing and worker isolation
-- ✅ Prometheus metrics (API and worker)
-- ✅ Helm chart for Kubernetes deployment
-- ✅ Structured audit logging
-- ✅ Circuit breakers and SSH connection pooling
-- ✅ Credential encryption at rest
+Basic Auth also works for quick testing — see the [Quick Start](quickstart.md) for a minimal example.
 
 ## Getting Started
 
-- [Quick Start](quickstart.md): Get NAAS running in 5 minutes
-- [Python Client](client.md): Library and CLI usage
-- [API Usage](api-usage.md): REST API examples
-- [Upgrading to v2.0](upgrading.md): Migration guide from v1.x
+- [Quick Start](quickstart.md) — Get NAAS running in 5 minutes with Docker Compose
+- [Deployment Overview](deployment/index.md) — Choose a deployment method (Helm, Docker Compose, or manual)
+- [Python Client & CLI](client.md) — Library and CLI usage
+- [API Usage](api-usage.md) — REST API examples
+- [Upgrading to v2.0](upgrading.md) — Migration guide from v1.x
 
 ## Project Links
 

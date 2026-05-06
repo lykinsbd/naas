@@ -10,12 +10,6 @@ NAAS supports multiple deployment methods. Choose based on your environment and 
 | **[Docker Compose](docker-compose.md)** | Development, small/single-node deployments | Docker, Docker Compose |
 | **Manual** | Custom environments, development without Docker | Python 3.11+, Redis 6+, uv |
 
-## Quick Decision Guide
-
-- **Production deployment?** → Use the [Helm chart](../kubernetes.md)
-- **Local development or quick evaluation?** → Use [Docker Compose](docker-compose.md) or the [Quick Start](../quickstart.md)
-- **Need fine-grained control or no container runtime?** → Manual installation (see below)
-
 ## Manual Installation
 
 ### Prerequisites
@@ -36,9 +30,10 @@ uv sync
 # Set environment variables
 export REDIS_HOST=localhost
 export REDIS_PORT=6379
+export REDIS_PASSWORD=your-redis-password
 
-# Start Redis
-redis-server
+# Start Redis (with password)
+redis-server --requirepass "$REDIS_PASSWORD"
 
 # Start API server (in one terminal)
 uv run gunicorn -c gunicorn.py naas.app:app
@@ -46,6 +41,8 @@ uv run gunicorn -c gunicorn.py naas.app:app
 # Start worker (in another terminal)
 uv run python worker.py
 ```
+
+NAAS uses HTTP Basic Auth — credentials in requests are passed through to network devices as SSH credentials. No separate user database is required.
 
 ## Configuration
 
