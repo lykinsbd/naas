@@ -76,8 +76,9 @@ nav:
       - Troubleshooting: troubleshooting.md
       - Upgrading to v2.0: upgrading.md
   - Deployment:
-      - Docker Compose: deployment/docker-compose.md
+      - Overview: deployment/index.md
       - Kubernetes: kubernetes.md
+      - Docker Compose: deployment/docker-compose.md
       - Environment Variables: deployment/environment-variables.md
   - Development:
       - Contributing: contributing.md
@@ -97,6 +98,7 @@ nav:
           - "0007: API Versioning Strategy": adr/0007-api-versioning-strategy.md
           - "0008: OpenTelemetry Instrumentation": adr/0008-opentelemetry-instrumentation-strategy.md
           - "0009: Command Authorization Deferred to AAA": adr/0009-command-authorization-deferred-to-aaa.md
+          - "0010: MCP Server Thin Client over REST API": adr/0010-mcp-server-thin-client-over-rest-api.md
       - Changelog: changelog.md
       - Release Notes:
           - v2.0: release-notes/v2.0.md
