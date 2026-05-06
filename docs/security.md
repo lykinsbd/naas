@@ -20,15 +20,25 @@ NAAS transmits credentials to network devices. **Never** use HTTP in production.
 
 **Default**: NAAS generates a self-signed certificate at startup if no certificate is provided.
 
-**Production**: Supply a valid TLS certificate via environment variables:
+**Production**: Supply a valid TLS certificate:
 
-```bash
-export NAAS_CERT=$(cat /path/to/fullchain.pem)
-export NAAS_KEY=$(cat /path/to/privkey.pem)
-export NAAS_CA_BUNDLE=$(cat /path/to/chain.pem)
+=== "Docker Compose"
 
-docker compose up -d
-```
+    ```bash
+    export NAAS_CERT=$(cat /path/to/fullchain.pem)
+    export NAAS_KEY=$(cat /path/to/privkey.pem)
+    export NAAS_CA_BUNDLE=$(cat /path/to/chain.pem)
+    docker compose up -d
+    ```
+
+=== "Kubernetes (Helm)"
+
+    ```bash
+    helm upgrade naas charts/naas \
+      --set secrets.tlsCert="$(cat fullchain.pem)" \
+      --set secrets.tlsKey="$(cat privkey.pem)" \
+      --set secrets.tlsCaBundle="$(cat chain.pem)"
+    ```
 
 ### TLS Configuration
 
@@ -46,13 +56,27 @@ Rotate certificates before expiration:
 ```bash
 # Check certificate expiration
 openssl x509 -in cert.pem -noout -enddate
-
-# Update certificates and restart
-export NAAS_CERT=$(cat new-cert.pem)
-export NAAS_KEY=$(cat new-key.pem)
-export NAAS_CA_BUNDLE=$(cat new-bundle.pem)
-docker compose up -d
 ```
+
+=== "Docker Compose"
+
+    ```bash
+    export NAAS_CERT=$(cat new-cert.pem)
+    export NAAS_KEY=$(cat new-key.pem)
+    export NAAS_CA_BUNDLE=$(cat new-bundle.pem)
+    docker compose up -d
+    ```
+
+=== "Kubernetes (Helm)"
+
+    ```bash
+    helm upgrade naas charts/naas \
+      --set secrets.tlsCert="$(cat new-cert.pem)" \
+      --set secrets.tlsKey="$(cat new-key.pem)" \
+      --set secrets.tlsCaBundle="$(cat new-bundle.pem)"
+    ```
+
+    Or with cert-manager, rotation is automatic.
 
 ## Authentication
 
@@ -167,7 +191,7 @@ server {
 ```python
 # Don't do this!
 response = requests.post(
-    "https://naas.example.com/send_command",
+    "https://naas.example.com/v2/send-command",
     auth=("admin", "password123"),  # Hardcoded!
     json=payload
 )
@@ -184,7 +208,7 @@ username = os.environ["DEVICE_USERNAME"]
 password = os.environ["DEVICE_PASSWORD"]
 
 response = requests.post(
-    "https://naas.example.com/send_command",
+    "https://naas.example.com/v2/send-command",
     auth=HTTPBasicAuth(username, password),
     json=payload
 )
@@ -221,30 +245,43 @@ Implement automated credential rotation:
 
 Secure Redis with authentication:
 
-```bash
-# Use strong password
-export REDIS_PASSWORD=$(openssl rand -base64 32)
+=== "Docker Compose"
 
-# Disable dangerous commands
-docker compose exec redis redis-cli -a $REDIS_PASSWORD \
-  CONFIG SET rename-command FLUSHDB ""
-```
+    ```bash
+    export REDIS_PASSWORD=$(openssl rand -base64 32)
+    docker compose up -d
+    ```
+
+=== "Kubernetes (Helm)"
+
+    ```bash
+    helm upgrade naas charts/naas \
+      --set secrets.redisPassword=$(openssl rand -base64 32)
+    ```
+
+    Or reference an existing secret: `--set secrets.existingSecret=my-naas-secrets`
 
 ### Container Isolation
 
-Run containers with minimal privileges:
+Run with minimal privileges:
 
-```yaml
-# docker-compose.override.yml
-services:
-  api:
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-    tmpfs:
-      - /tmp
-    user: "1000:1000"
-```
+=== "Docker Compose"
+
+    ```yaml
+    # docker-compose.override.yml
+    services:
+      api:
+        security_opt:
+          - no-new-privileges:true
+        read_only: true
+        tmpfs:
+          - /tmp
+        user: "1000:1000"
+    ```
+
+=== "Kubernetes"
+
+    The Helm chart applies these by default: non-root UID 1000, all capabilities dropped, read-only root filesystem. No additional configuration needed.
 
 ### Rate Limiting
 
@@ -339,16 +376,21 @@ tokens. Only usernames, key IDs, and operational metadata are logged.
 Audit events are mixed with operational logs in the JSON output stream. Filter on
 the `event_type` field:
 
-```bash
-# All audit events
-docker compose logs api | jq 'select(.event_type)'
+=== "Docker Compose"
 
-# Auth failures only
-docker compose logs api | jq 'select(.event_type == "auth.failure")'
+    ```bash
+    docker compose logs api | jq 'select(.event_type)'
+    docker compose logs api | jq 'select(.event_type == "auth.failure")'
+    docker compose logs api | jq 'select(.event_type | startswith("auth."))'
+    ```
 
-# All security events
-docker compose logs api | jq 'select(.event_type | startswith("auth."))'
-```
+=== "Kubernetes"
+
+    ```bash
+    kubectl -n naas logs deploy/naas-api | jq 'select(.event_type)'
+    kubectl -n naas logs deploy/naas-api | jq 'select(.event_type == "auth.failure")'
+    kubectl -n naas logs deploy/naas-api | jq 'select(.event_type | startswith("auth."))'
+    ```
 
 ### SIEM Integration
 
@@ -376,22 +418,28 @@ For compliance, ship logs to an append-only store:
 
 Send logs to centralized logging:
 
-```yaml
-# docker-compose.override.yml
-services:
-  api:
-    logging:
-      driver: "syslog"
-      options:
-        syslog-address: "tcp://logserver.example.com:514"
-        tag: "naas-api"
-  worker:
-    logging:
-      driver: "syslog"
-      options:
-        syslog-address: "tcp://logserver.example.com:514"
-        tag: "naas-worker"
-```
+=== "Docker Compose"
+
+    ```yaml
+    # docker-compose.override.yml
+    services:
+      api:
+        logging:
+          driver: "syslog"
+          options:
+            syslog-address: "tcp://logserver.example.com:514"
+            tag: "naas-api"
+      worker:
+        logging:
+          driver: "syslog"
+          options:
+            syslog-address: "tcp://logserver.example.com:514"
+            tag: "naas-worker"
+    ```
+
+=== "Kubernetes"
+
+    Use a log shipper DaemonSet (Fluentd, Vector, Filebeat) to collect pod logs from `/var/log/containers/`. NAAS emits structured JSON, so no parsing is needed — route directly to your SIEM or log backend.
 
 ### Monitor Authentication Failures
 
@@ -403,13 +451,18 @@ Set up alerts for `auth.failure` events (see [Recommended Alerts](#recommended-a
 
 Regularly update NAAS and dependencies:
 
-```bash
-# Pull latest images
-docker compose pull
+=== "Docker Compose"
 
-# Restart with new images
-docker compose up -d
-```
+    ```bash
+    docker compose pull
+    docker compose up -d
+    ```
+
+=== "Kubernetes (Helm)"
+
+    ```bash
+    helm upgrade naas charts/naas --set image.tag=2.1.0
+    ```
 
 ### Scan for Vulnerabilities
 
@@ -427,28 +480,40 @@ docker scout cves ghcr.io/lykinsbd/naas:latest
 
 Prevent resource exhaustion:
 
-```yaml
-# docker-compose.override.yml
-services:
-  api:
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 512M
-        reservations:
-          cpus: '0.5'
-          memory: 256M
-  worker:
-    deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 1G
-        reservations:
-          cpus: '1'
-          memory: 512M
-```
+=== "Docker Compose"
+
+    ```yaml
+    # docker-compose.override.yml
+    services:
+      api:
+        deploy:
+          resources:
+            limits:
+              cpus: '1'
+              memory: 512M
+            reservations:
+              cpus: '0.5'
+              memory: 256M
+      worker:
+        deploy:
+          resources:
+            limits:
+              cpus: '2'
+              memory: 1G
+            reservations:
+              cpus: '1'
+              memory: 512M
+    ```
+
+=== "Kubernetes (Helm)"
+
+    ```bash
+    helm upgrade naas charts/naas \
+      --set api.resources.limits.cpu=1000m \
+      --set api.resources.limits.memory=512Mi \
+      --set worker.resources.limits.cpu=2000m \
+      --set worker.resources.limits.memory=1Gi
+    ```
 
 ### Read-Only Filesystem
 
@@ -524,13 +589,25 @@ For healthcare environments:
 
 ### Emergency Shutdown
 
-```bash
-# Stop all NAAS services immediately
-docker compose down
+=== "Docker Compose"
 
-# Clear Redis data if compromised
-docker compose down -v
-```
+    ```bash
+    # Stop all NAAS services immediately
+    docker compose down
+
+    # Clear Redis data if compromised
+    docker compose down -v
+    ```
+
+=== "Kubernetes (Helm)"
+
+    ```bash
+    # Stop all NAAS services
+    helm uninstall naas
+
+    # Or delete the namespace entirely (including PVCs)
+    kubectl delete namespace naas
+    ```
 
 ## Next steps
 

@@ -1,6 +1,6 @@
 # Environment Variables Reference
 
-All NAAS configuration is driven by environment variables. Set these in `docker-compose.yml`, a `.env` file, or your deployment platform's secrets manager.
+All NAAS configuration is driven by environment variables. Set these in your Helm `values.yaml` (under `config:`), `docker-compose.yml`, a `.env` file, or your deployment platform's secrets manager.
 
 ## Redis
 
@@ -83,31 +83,54 @@ All NAAS configuration is driven by environment variables. Set these in `docker-
 
 Requires the `otel` extra: `pip install naas[otel]`. Set on both API and worker processes.
 
-## Example docker-compose.yml
+## Configuration Examples
 
-```yaml
-services:
-  api:
-    environment:
-      - REDIS_HOST=redis
-      - REDIS_PASSWORD=your-secure-password
-      - LOG_LEVEL=INFO
-      - JOB_TTL_SUCCESS=86400
-      - JOB_TTL_FAILED=604800
-      - CIRCUIT_BREAKER_THRESHOLD=5
-      - CIRCUIT_BREAKER_TIMEOUT=300
-      - RATE_LIMIT_PER_CALLER=1000
-      - RATE_LIMIT_PER_CALLER_DEVICE=20
-      - OTEL_ENABLED=true
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+=== "Kubernetes (Helm values.yaml)"
 
-  worker:
-    environment:
-      - REDIS_HOST=redis
-      - REDIS_PASSWORD=your-secure-password
-      - SHUTDOWN_TIMEOUT=60
-      - CIRCUIT_BREAKER_THRESHOLD=5
-      - CIRCUIT_BREAKER_TIMEOUT=300
-      - OTEL_ENABLED=true
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
-```
+    ```yaml
+    config:
+      LOG_LEVEL: "INFO"
+      CIRCUIT_BREAKER_THRESHOLD: "5"
+      CIRCUIT_BREAKER_TIMEOUT: "300"
+      RATE_LIMIT_PER_CALLER: "1000"
+      RATE_LIMIT_PER_CALLER_DEVICE: "20"
+      OTEL_ENABLED: "true"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
+
+    secrets:
+      redisPassword: "your-secure-password"
+
+    worker:
+      replicas: 4
+    ```
+
+    All `config.*` values are injected as a ConfigMap. Secrets are stored in a Kubernetes Secret.
+
+=== "Docker Compose"
+
+    ```yaml
+    services:
+      api:
+        environment:
+          - REDIS_HOST=redis
+          - REDIS_PASSWORD=your-secure-password
+          - LOG_LEVEL=INFO
+          - JOB_TTL_SUCCESS=86400
+          - JOB_TTL_FAILED=604800
+          - CIRCUIT_BREAKER_THRESHOLD=5
+          - CIRCUIT_BREAKER_TIMEOUT=300
+          - RATE_LIMIT_PER_CALLER=1000
+          - RATE_LIMIT_PER_CALLER_DEVICE=20
+          - OTEL_ENABLED=true
+          - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+
+      worker:
+        environment:
+          - REDIS_HOST=redis
+          - REDIS_PASSWORD=your-secure-password
+          - SHUTDOWN_TIMEOUT=60
+          - CIRCUIT_BREAKER_THRESHOLD=5
+          - CIRCUIT_BREAKER_TIMEOUT=300
+          - OTEL_ENABLED=true
+          - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+    ```
