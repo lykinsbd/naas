@@ -102,7 +102,7 @@ Omitting `context` defaults to `"default"`. Existing deployments require no chan
 List active contexts with worker counts and queue depths:
 
 ```bash
-curl -k https://naas.example.com/v1/contexts
+curl -k https://naas.example.com/v2/contexts
 ```
 
 ```json
@@ -121,7 +121,7 @@ curl -k https://naas.example.com/v1/contexts
 ### Unknown context (400)
 
 ```json
-{"error": "Unknown context. See GET /v1/contexts for valid contexts."}
+{"error": "Unknown context. See GET /v2/contexts for valid contexts."}
 ```
 
 ### No workers available (503)
@@ -134,26 +134,51 @@ This occurs when the context is valid but no workers are currently serving it. C
 
 ## Kubernetes Deployment
 
-Deploy separate worker Deployments per context:
+Deploy separate worker pools per context:
 
-```yaml
-# Corp workers
-- name: naas-worker-corp
-  env:
-    - name: WORKER_CONTEXTS
-      value: "corp"
+=== "Helm"
 
-# OOB workers (deployed in OOB network segment)
-- name: naas-worker-oob
-  env:
-    - name: WORKER_CONTEXTS
-      value: "oob-dc1,oob-dc2"
+    ```bash
+    # Main deployment (API + shared Redis)
+    helm install naas charts/naas \
+      --set config.NAAS_CONTEXTS=corp,oob-dc1,oob-dc2,hk-prod,hk-oob
 
-# Hong Kong workers
-- name: naas-worker-hk
-  env:
-    - name: WORKER_CONTEXTS
-      value: "hk-prod,hk-oob"
-```
+    # Corp workers
+    helm install naas-worker-corp charts/naas \
+      --set api.replicas=0 --set redis.enabled=false \
+      --set redis.external.host=naas-redis.naas.svc \
+      --set config.WORKER_CONTEXTS=corp
 
-See [Kubernetes deployment guide](kubernetes.md) for full examples.
+    # OOB workers
+    helm install naas-worker-oob charts/naas \
+      --set api.replicas=0 --set redis.enabled=false \
+      --set redis.external.host=naas-redis.naas.svc \
+      --set config.WORKER_CONTEXTS=oob-dc1,oob-dc2
+
+    # Hong Kong workers
+    helm install naas-worker-hk charts/naas \
+      --set api.replicas=0 --set redis.enabled=false \
+      --set redis.external.host=naas-redis.naas.svc \
+      --set config.WORKER_CONTEXTS=hk-prod,hk-oob
+    ```
+
+=== "Raw Manifests"
+
+    ```yaml
+    # k8s/worker-corp/deployment.yaml
+    env:
+      - name: WORKER_CONTEXTS
+        value: "corp"
+
+    # k8s/worker-oob/deployment.yaml
+    env:
+      - name: WORKER_CONTEXTS
+        value: "oob-dc1,oob-dc2"
+
+    # k8s/worker-hk/deployment.yaml
+    env:
+      - name: WORKER_CONTEXTS
+        value: "hk-prod,hk-oob"
+    ```
+
+See [Kubernetes deployment guide](kubernetes.md) for full details.

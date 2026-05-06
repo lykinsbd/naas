@@ -12,7 +12,7 @@ sequenceDiagram
     participant Worker as RQ Worker
     participant Device as Network Device
 
-    Client->>API: POST /v1/send_command
+    Client->>API: POST /v2/send-command
     API->>Queue: enqueue job (job_id = X-Request-ID)
     API-->>Client: 202 Accepted { job_id }
 
@@ -21,7 +21,7 @@ sequenceDiagram
     Device-->>Worker: command output
     Worker->>Queue: store result
 
-    Client->>API: GET /v1/send_command/{job_id}
+    Client->>API: GET /v2/send-command/{job_id}
     API->>Queue: fetch job result
     API-->>Client: 200 { status: finished, results: {...} }
 ```
@@ -83,11 +83,11 @@ NAAS connects to devices over SSH using Netmiko. The API credentials (HTTP Basic
 
 ## Request Lifecycle
 
-1. **Client** sends `POST /v1/send_command` with device IP, platform, and commands
-2. **API** validates the request (IP format, platform, auth), checks for duplicate job IDs and device lockout, then enqueues the job
+1. **Client** sends `POST /v2/send-command` with device host, platform, and commands
+2. **API** validates the request (host format, platform, auth), checks for duplicate job IDs and device lockout, then enqueues the job
 3. **API** returns `202 Accepted` with the `job_id` (= `X-Request-ID`)
 4. **Worker** picks up the job, checks the circuit breaker, connects to the device via SSH, runs the commands, and stores the result
-5. **Client** polls `GET /v1/send_command/{job_id}` until `status` is `finished` or `failed`
+5. **Client** polls `GET /v2/send-command/{job_id}` until `status` is `finished` or `failed`
 
 ## Why Async?
 
@@ -117,5 +117,17 @@ graph LR
 ```
 
 - **API** scales horizontally — stateless, any instance can handle any request
-- **Workers** scale horizontally — add containers with `docker compose up -d --scale worker=N`
+- **Workers** scale horizontally — add replicas to increase concurrent job capacity
 - **Redis** is the single coordination point — use Redis Sentinel or Cluster for HA
+
+=== "Docker Compose"
+
+    ```bash
+    docker compose up -d --scale worker=N
+    ```
+
+=== "Kubernetes (Helm)"
+
+    ```bash
+    helm upgrade naas charts/naas --set worker.replicas=N --set api.replicas=M
+    ```

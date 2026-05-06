@@ -5,10 +5,10 @@ typed data structures (list of dicts). This eliminates custom parsing logic in c
 
 ## Quick Start
 
-Use the `/v1/send_command_structured` endpoint:
+Use the `/v2/send-command-structured` endpoint:
 
 ```bash
-curl -k -u "username:password" https://localhost:8443/v1/send_command_structured \
+curl -k -u "username:password" https://localhost:8443/v2/send-command-structured \
   -H "Content-Type: application/json" \
   -d '{
     "host": "192.168.1.1",
@@ -23,7 +23,7 @@ curl -k -u "username:password" https://localhost:8443/v1/send_command_structured
    a community library with 1000+ TextFSM templates for common vendor commands
 2. **Template matching** — Netmiko matches `(platform, command)` to a template automatically
 3. **Structured output** — Returns `list[dict]` per command instead of raw strings
-4. **Fallback** — If no template exists, returns raw string (same as `/v1/send_command`)
+4. **Fallback** — If no template exists, returns raw string (same as `/v2/send-command`)
 
 ## Return Type
 
@@ -124,13 +124,13 @@ connection pooling. Best for discovery workflows, not production automation.
 
 ## When to Use Structured Output
 
-**Use `/v1/send_command_structured` when:**
+**Use `/v2/send-command-structured` when:**
 
 - You need typed data for programmatic processing
 - The command is covered by ntc-templates (check [the template index](https://github.com/networktocode/ntc-templates/tree/master/ntc_templates/templates))
 - You're willing to handle mixed return types (list vs string)
 
-**Use `/v1/send_command` when:**
+**Use `/v2/send-command` when:**
 
 - You need raw output for logging/display
 - The command has no ntc-template and you don't want to write one
@@ -151,7 +151,7 @@ connection pooling. Best for discovery workflows, not production automation.
 import requests
 
 response = requests.post(
-    "https://naas.local/v1/send_command_structured",
+    "https://naas.local/v2/send-command-structured",
     auth=("user", "pass"),
     json={
         "host": "192.168.1.1",
@@ -165,7 +165,7 @@ job_id = response.json()["job_id"]
 
 # Poll for results
 result = requests.get(
-    f"https://naas.local/v1/send_command_structured/{job_id}",
+    f"https://naas.local/v2/send-command-structured/{job_id}",
     auth=("user", "pass"),
     verify=False
 ).json()
@@ -178,7 +178,7 @@ for device in result["results"]["show version"]:
 
 ```python
 response = requests.post(
-    "https://naas.local/v1/send_command_structured",
+    "https://naas.local/v2/send-command-structured",
     auth=("user", "pass"),
     json={
         "host": "192.168.1.1",
@@ -207,7 +207,7 @@ Start
 """
 
 response = requests.post(
-    "https://naas.local/v1/send_command_structured",
+    "https://naas.local/v2/send-command-structured",
     auth=("user", "pass"),
     json={
         "host": "192.168.1.1",
