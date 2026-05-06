@@ -40,3 +40,6 @@ Do **not** write an ADR for:
 | [0005](0005-structured-audit-event-logging.md) | Structured audit event logging | Accepted |
 | [0006](0006-credential-encryption-at-rest.md) | Credential encryption at rest | Accepted |
 | [0007](0007-api-versioning-strategy.md) | API versioning strategy | Accepted |
+| [0008](0008-opentelemetry-instrumentation-strategy.md) | OpenTelemetry instrumentation strategy | Accepted |
+| [0009](0009-command-authorization-deferred-to-aaa.md) | Command authorization deferred to AAA | Accepted |
+| [0010](0010-mcp-server-thin-client-over-rest-api.md) | MCP server as thin client over REST API | Accepted |
