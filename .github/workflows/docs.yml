@@ -31,7 +31,12 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Run markdownlint
-        uses: DavidAnson/markdownlint-cli2-action@v23
+        # Pinned to a specific minor version (rather than the @v23 major-floating
+        # convention used elsewhere) because this action's behavior is gated by
+        # the bundled markdownlint engine, which introduces new lint rules in
+        # minor releases. v23.1.0 enabled MD060 by default and broke the v2.1.0
+        # release PR. See #472, #461, #462.
+        uses: DavidAnson/markdownlint-cli2-action@v23.2.0
         with:
           globs: |
             README.md
