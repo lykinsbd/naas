@@ -69,7 +69,7 @@ NAAS supports two authentication methods:
 ### RBAC
 
 | Role | Can do |
-|------|--------|
+| ---- | ------ |
 | `admin` | Everything, including API key management |
 | `operator` | Submit jobs, view results |
 | `viewer` | View job status and results only |
@@ -118,7 +118,7 @@ For production, use a managed Redis (ElastiCache, Redis Cloud, etc.) with encryp
 Built-in per-caller sliding window rate limiter on all submission endpoints.
 
 | Variable | Default | Description |
-|----------|---------|-------------|
+| -------- | ------- | ----------- |
 | `RATE_LIMIT_ENABLED` | `true` | Enable/disable |
 | `RATE_LIMIT_PER_CALLER` | `1000` | Max requests per caller per window |
 | `RATE_LIMIT_PER_CALLER_DEVICE` | `20` | Max requests per caller per device per window |
@@ -196,7 +196,7 @@ NAAS emits structured JSON audit events via the `NAAS` logger. Each event has an
 ### Event Reference
 
 | Event | Key Fields | Meaning |
-|-------|-----------|---------|
+| ----- | --------- | ------- |
 | `auth.success` | `method`, `identity` | Successful authentication |
 | `auth.failure` | `method`, `reason` | Failed authentication attempt |
 | `auth.context_denied` | `identity`, `context`, `allowed_contexts` | Context authorization failure |
@@ -233,7 +233,7 @@ Ship to your SIEM via any log shipper (Fluentd, Vector, Filebeat). Filter on `ev
 ### Recommended Alerts
 
 | Event | Condition | Indicates |
-|-------|-----------|-----------|
+| ----- | --------- | --------- |
 | `auth.failure` | >10 in 5 minutes | Brute force attempt |
 | `auth.rbac_denied` | Any occurrence | Privilege escalation attempt |
 | `apikey.created` | Any occurrence | New API key — verify expected |

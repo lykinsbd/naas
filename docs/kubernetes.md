@@ -137,7 +137,7 @@ helm uninstall naas
 ### Values Reference
 
 | Value | Default | Description |
-|-------|---------|-------------|
+| ----- | ------- | ----------- |
 | `image.repository` | `ghcr.io/lykinsbd/naas` | Container image |
 | `image.tag` | Chart `appVersion` | Image tag |
 | `namespace` | `naas` | Target namespace |
@@ -240,7 +240,7 @@ scrape_configs:
 ```
 
 | Metric | Type | Description |
-|--------|------|-------------|
+| ------ | ---- | ----------- |
 | `naas_http_requests_total` | Counter | HTTP requests by endpoint, method, status |
 | `naas_http_request_duration_seconds` | Histogram | Request latency by endpoint |
 | `naas_queue_depth` | Gauge | Jobs waiting in queue |
@@ -251,7 +251,7 @@ scrape_configs:
 Workers reuse SSH connections across sequential jobs to the same device. Configure via `config.*` values:
 
 | Value | Default | Description |
-|-------|---------|-------------|
+| ----- | ------- | ----------- |
 | `config.CONNECTION_POOL_ENABLED` | `true` | Enable pooling |
 | `config.CONNECTION_POOL_MAX_SIZE` | `10` | Max connections per worker process |
 | `config.CONNECTION_POOL_IDLE_TIMEOUT` | `300` | Evict idle connections (seconds) |
