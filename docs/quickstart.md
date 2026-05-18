@@ -1,6 +1,9 @@
 # Quick Start Guide
 
-Get NAAS up and running in 5 minutes.
+Get NAAS up and running in 5 minutes using Docker Compose.
+
+!!! tip "Prefer Kubernetes?"
+    If you already have a cluster, skip this and go to the [Helm chart deployment](kubernetes.md).
 
 ## Prerequisites
 
@@ -16,12 +19,12 @@ docker compose up -d
 curl -k https://localhost:8443/healthcheck
 ```
 
-Expected response:
+Expected response (version will match your release):
 
 ```json
 {
   "status": "healthy",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "uptime_seconds": 42,
   "components": {
     "redis": { "status": "healthy" },
@@ -31,6 +34,8 @@ Expected response:
 ```
 
 ## 2. Send a command
+
+The default `docker-compose.yml` ships with Basic Auth credentials `admin:admin`. These are passed through to your network devices as SSH credentials — replace them with valid device credentials for your environment.
 
 === "Python Client"
 

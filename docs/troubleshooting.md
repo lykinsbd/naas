@@ -20,26 +20,40 @@ Common issues and solutions for NAAS deployment and operation.
 
 **Solutions**:
 
-1. Check if containers are running:
+1. Check if services are running:
 
-   ```bash
-   docker compose ps
-   ```
+    === "Docker Compose"
 
-2. Check container logs:
+        ```bash
+        docker compose ps
+        docker compose logs api
+        ```
 
-   ```bash
-   docker compose logs api
-   ```
+    === "Kubernetes"
 
-3. Verify port mapping:
+        ```bash
+        kubectl -n naas get pods
+        kubectl -n naas logs deploy/naas-api
+        ```
 
-   ```bash
-   docker compose ps | grep api
-   # Should show 0.0.0.0:8443->8443/tcp
-   ```
+2. Verify port/service exposure:
 
-4. Check firewall rules:
+    === "Docker Compose"
+
+        ```bash
+        docker compose ps | grep api
+        # Should show 0.0.0.0:8443->8443/tcp
+        ```
+
+    === "Kubernetes"
+
+        ```bash
+        kubectl -n naas get svc
+        # For port-forward testing:
+        kubectl -n naas port-forward svc/naas-api 8443:443
+        ```
+
+3. Check firewall rules:
 
    ```bash
    sudo ufw status
@@ -55,27 +69,38 @@ Common issues and solutions for NAAS deployment and operation.
 1. Verify network connectivity from NAAS host:
 
    ```bash
-   # From the host
    ping 192.168.1.1
    telnet 192.168.1.1 22
    ```
 
-2. Check Docker network configuration:
+2. Check connectivity from inside the container/pod:
 
-   ```bash
-   docker compose exec api ping 192.168.1.1
-   ```
+    === "Docker Compose"
+
+        ```bash
+        docker compose exec worker ping 192.168.1.1
+        ```
+
+    === "Kubernetes"
+
+        ```bash
+        kubectl -n naas exec deploy/naas-worker -- ping 192.168.1.1
+        ```
 
 3. If using custom networks, ensure proper routing:
 
-   ```yaml
-   # docker-compose.override.yml
-   services:
-     api:
-       network_mode: host
-     worker:
-       network_mode: host
-   ```
+    === "Docker Compose"
+
+        ```yaml
+        # docker-compose.override.yml
+        services:
+          worker:
+            network_mode: host
+        ```
+
+    === "Kubernetes"
+
+        Ensure worker pods have network policies allowing egress to device subnets, or use `hostNetwork: true` in the worker Deployment spec if required.
 
 ## Authentication Problems
 
@@ -89,17 +114,17 @@ Common issues and solutions for NAAS deployment and operation.
 
    ```bash
    # Correct
-   curl -k -u "username:password" https://localhost:8443/v1/send_command
+   curl -k -u "username:password" https://localhost:8443/v2/send-command
 
    # Wrong - missing credentials
-   curl -k https://localhost:8443/v1/send_command
+   curl -k https://localhost:8443/v2/send-command
    ```
 
 2. Check for special characters in password:
 
    ```bash
    # URL encode special characters
-   curl -k -u "username:p@ssw0rd!" https://localhost:8443/v1/send_command
+   curl -k -u "username:p@ssw0rd!" https://localhost:8443/v2/send-command
    ```
 
 3. Verify credentials work directly on device:
@@ -137,28 +162,50 @@ Common issues and solutions for NAAS deployment and operation.
 
 **Solutions**:
 
-1. Check Redis container:
+1. Check Redis is running:
 
-   ```bash
-   docker compose ps redis
-   docker compose logs redis
-   ```
+    === "Docker Compose"
+
+        ```bash
+        docker compose ps redis
+        docker compose logs redis
+        ```
+
+    === "Kubernetes"
+
+        ```bash
+        kubectl -n naas get pods -l app=redis
+        kubectl -n naas logs deploy/redis
+        ```
 
 2. Verify Redis password:
 
-   ```bash
-   # Check environment variable
-   docker compose exec api env | grep REDIS_PASSWORD
+    === "Docker Compose"
 
-   # Test Redis connection
-   docker compose exec redis redis-cli -a your_password ping
-   ```
+        ```bash
+        docker compose exec api env | grep REDIS_PASSWORD
+        docker compose exec redis redis-cli -a your_password ping
+        ```
 
-3. Check Redis connectivity from API:
+    === "Kubernetes"
 
-   ```bash
-   docker compose exec api nc -zv redis 6379
-   ```
+        ```bash
+        kubectl -n naas exec deploy/redis -- redis-cli -a "$REDIS_PASSWORD" ping
+        ```
+
+3. Check connectivity from API to Redis:
+
+    === "Docker Compose"
+
+        ```bash
+        docker compose exec api nc -zv redis 6379
+        ```
+
+    === "Kubernetes"
+
+        ```bash
+        kubectl -n naas exec deploy/naas-api -- nc -zv naas-redis 6379
+        ```
 
 ### Redis Out of Memory
 
@@ -168,24 +215,48 @@ Common issues and solutions for NAAS deployment and operation.
 
 1. Check Redis memory usage:
 
-   ```bash
-   docker compose exec redis redis-cli -a your_password INFO memory
-   ```
+    === "Docker Compose"
+
+        ```bash
+        docker compose exec redis redis-cli -a your_password INFO memory
+        ```
+
+    === "Kubernetes"
+
+        ```bash
+        kubectl -n naas exec deploy/redis -- redis-cli -a "$REDIS_PASSWORD" INFO memory
+        ```
 
 2. Increase Redis memory limit:
 
-   ```yaml
-   # docker-compose.override.yml
-   services:
-     redis:
-       command: redis-server --maxmemory 2gb --maxmemory-policy allkeys-lru
-   ```
+    === "Docker Compose"
+
+        ```yaml
+        # docker-compose.override.yml
+        services:
+          redis:
+            command: redis-server --maxmemory 2gb --maxmemory-policy allkeys-lru
+        ```
+
+    === "Kubernetes (Helm)"
+
+        ```bash
+        helm upgrade naas charts/naas --set redis.resources.limits.memory=2Gi
+        ```
 
 3. Clear old job data:
 
-   ```bash
-   docker compose exec redis redis-cli -a your_password FLUSHDB
-   ```
+    === "Docker Compose"
+
+        ```bash
+        docker compose exec redis redis-cli -a your_password FLUSHDB
+        ```
+
+    === "Kubernetes"
+
+        ```bash
+        kubectl -n naas exec deploy/redis -- redis-cli -a "$REDIS_PASSWORD" FLUSHDB
+        ```
 
 ## Worker Problems
 
@@ -195,53 +266,78 @@ Common issues and solutions for NAAS deployment and operation.
 
 **Solutions**:
 
-1. Check worker containers:
+1. Check workers are running:
 
-   ```bash
-   docker compose ps worker
-   docker compose logs worker
-   ```
+    === "Docker Compose"
+
+        ```bash
+        docker compose ps worker
+        docker compose logs worker
+        ```
+
+    === "Kubernetes"
+
+        ```bash
+        kubectl -n naas get pods -l app=naas-worker
+        kubectl -n naas logs deploy/naas-worker
+        ```
 
 2. Scale up workers:
 
-   ```bash
-   docker compose up -d --scale worker=5
-   ```
+    === "Docker Compose"
 
-3. Check worker processes:
+        ```bash
+        docker compose up -d --scale worker=5
+        ```
 
-   ```bash
-   docker compose exec worker ps aux | grep rq
-   ```
+    === "Kubernetes (Helm)"
+
+        ```bash
+        helm upgrade naas charts/naas --set worker.replicas=5
+        ```
 
 ### Workers Crashing
 
-**Symptom**: Worker containers restart frequently
+**Symptom**: Worker containers/pods restart frequently
 
 **Solutions**:
 
-1. Check worker logs for errors:
+1. Check worker logs:
 
-   ```bash
-   docker compose logs worker --tail=100
-   ```
+    === "Docker Compose"
 
-2. Common issues:
-   - Memory limits too low
-   - Network connectivity problems
-   - Python dependency issues
+        ```bash
+        docker compose logs worker --tail=100
+        ```
 
-3. Increase worker resources:
+    === "Kubernetes"
 
-   ```yaml
-   # docker-compose.override.yml
-   services:
-     worker:
-       deploy:
-         resources:
-           limits:
-             memory: 1G
-   ```
+        ```bash
+        kubectl -n naas logs deploy/naas-worker --tail=100
+        kubectl -n naas describe pod -l app=naas-worker  # Check events/OOMKilled
+        ```
+
+2. Increase worker resources:
+
+    === "Docker Compose"
+
+        ```yaml
+        # docker-compose.override.yml
+        services:
+          worker:
+            deploy:
+              resources:
+                limits:
+                  memory: 1G
+        ```
+
+    === "Kubernetes (Helm)"
+
+        ```bash
+        helm upgrade naas charts/naas \
+          --set worker.resources.limits.memory=1Gi \
+          --set worker.resources.limits.cpu=1000m
+        ```
 
 ## SSL/TLS Issues
 
@@ -259,11 +355,21 @@ Common issues and solutions for NAAS deployment and operation.
 
 2. For production, use valid certificates:
 
-   ```bash
-   export NAAS_CERT=$(cat /path/to/cert.crt)
-   export NAAS_KEY=$(cat /path/to/key.pem)
-   docker compose up -d
-   ```
+    === "Docker Compose"
+
+        ```bash
+        export NAAS_CERT=$(cat /path/to/cert.crt)
+        export NAAS_KEY=$(cat /path/to/key.pem)
+        docker compose up -d
+        ```
+
+    === "Kubernetes (Helm)"
+
+        ```bash
+        helm upgrade naas charts/naas \
+          --set secrets.tlsCert="$(cat cert.crt)" \
+          --set secrets.tlsKey="$(cat key.pem)"
+        ```
 
 3. Add CA certificate to trust store:
 
@@ -282,24 +388,45 @@ Common issues and solutions for NAAS deployment and operation.
 
 **Solutions**:
 
-1. Generate new self-signed certificate:
+1. Regenerate self-signed certificate (restart the service):
 
-   ```bash
-   docker compose down
-   docker compose up -d
-   # NAAS generates new cert on startup
-   ```
+    === "Docker Compose"
+
+        ```bash
+        docker compose down
+        docker compose up -d
+        # NAAS generates new cert on startup
+        ```
+
+    === "Kubernetes"
+
+        ```bash
+        kubectl -n naas rollout restart deploy/naas-api
+        ```
 
 2. Or provide your own:
 
-   ```bash
-   openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-     -keyout naas.key -out naas.crt
+    === "Docker Compose"
 
-   export NAAS_CERT=$(cat naas.crt)
-   export NAAS_KEY=$(cat naas.key)
-   docker compose up -d
-   ```
+        ```bash
+        openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+          -keyout naas.key -out naas.crt
+
+        export NAAS_CERT=$(cat naas.crt)
+        export NAAS_KEY=$(cat naas.key)
+        docker compose up -d
+        ```
+
+    === "Kubernetes (Helm)"
+
+        ```bash
+        openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+          -keyout naas.key -out naas.crt
+
+        helm upgrade naas charts/naas \
+          --set secrets.tlsCert="$(cat naas.crt)" \
+          --set secrets.tlsKey="$(cat naas.key)"
+        ```
 
 ## Performance Issues
 
@@ -369,66 +496,102 @@ Common issues and solutions for NAAS deployment and operation.
 
 3. Scale workers for parallel execution:
 
-   ```bash
-   docker compose up -d --scale worker=10
-   ```
+    === "Docker Compose"
+
+        ```bash
+        docker compose up -d --scale worker=10
+        ```
+
+    === "Kubernetes (Helm)"
+
+        ```bash
+        helm upgrade naas charts/naas --set worker.replicas=10
+        ```
 
 ### High Memory Usage
 
-**Symptom**: Containers using excessive memory
+**Symptom**: Containers/pods using excessive memory
 
 **Solutions**:
 
 1. Check memory usage:
 
-   ```bash
-   docker stats
-   ```
+    === "Docker Compose"
 
-2. Reduce worker processes per container:
+        ```bash
+        docker stats
+        ```
 
-   ```bash
-   export NAAS_WORKER_PROCESSES=50
-   docker compose up -d
-   ```
+    === "Kubernetes"
 
-3. Set memory limits:
+        ```bash
+        kubectl -n naas top pods
+        ```
 
-   ```yaml
-   # docker-compose.override.yml
-   services:
-     api:
-       deploy:
-         resources:
-           limits:
-             memory: 512M
-     worker:
-       deploy:
-         resources:
-           limits:
-             memory: 1G
-   ```
+2. Set memory limits:
+
+    === "Docker Compose"
+
+        ```yaml
+        # docker-compose.override.yml
+        services:
+          api:
+            deploy:
+              resources:
+                limits:
+                  memory: 512M
+          worker:
+            deploy:
+              resources:
+                limits:
+                  memory: 1G
+        ```
+
+    === "Kubernetes (Helm)"
+
+        ```bash
+        helm upgrade naas charts/naas \
+          --set api.resources.limits.memory=512Mi \
+          --set worker.resources.limits.memory=1Gi
+        ```
 
 ## Debugging
 
 ### Enable Debug Logging
 
-```bash
-# Set environment to dev for debug logs
-export APP_ENVIRONMENT=dev
-docker compose up -d
+=== "Docker Compose"
 
-# View logs
-docker compose logs -f api
-docker compose logs -f worker
-```
+    ```bash
+    LOG_LEVEL=DEBUG docker compose up -d
+    docker compose logs -f api
+    docker compose logs -f worker
+    ```
+
+=== "Kubernetes (Helm)"
+
+    ```bash
+    helm upgrade naas charts/naas --set config.LOG_LEVEL=DEBUG
+    kubectl -n naas logs -f deploy/naas-api
+    kubectl -n naas logs -f deploy/naas-worker
+    ```
 
 ### Check Job Details in Redis
 
-```bash
-# Connect to Redis
-docker compose exec redis redis-cli -a your_password
+=== "Docker Compose"
 
+    ```bash
+    docker compose exec redis redis-cli -a your_password
+    ```
+
+=== "Kubernetes"
+
+    ```bash
+    kubectl -n naas exec deploy/redis -- redis-cli -a "$REDIS_PASSWORD"
+    ```
+
+Common Redis commands:
+
+```bash
 # List all jobs
 KEYS rq:job:*
 
@@ -439,41 +602,23 @@ HGETALL rq:job:550e8400-e29b-41d4-a716-446655440000
 LLEN rq:queue:default
 ```
 
-### Test API Endpoints
+### Container/Pod Shell Access
 
-```bash
-# Health check
-curl -k https://localhost:8443/healthcheck
+=== "Docker Compose"
 
-# Test with verbose output
-curl -k -v -X POST https://localhost:8443/v1/send_command \
-  -u "admin:password" \
-  -H "Content-Type: application/json" \
-  -d '{"host": "192.168.1.1", "platform": "cisco_ios", "commands": ["show version"]}'
-```
+    ```bash
+    docker compose exec api bash
+    docker compose exec worker bash
+    docker compose exec redis sh
+    ```
 
-### Container Shell Access
+=== "Kubernetes"
 
-```bash
-# Access API container
-docker compose exec api bash
-
-# Access worker container
-docker compose exec worker bash
-
-# Access Redis container
-docker compose exec redis sh
-```
-
-### Check Python Dependencies
-
-```bash
-# List installed packages
-docker compose exec api pip list
-
-# Check specific package
-docker compose exec api pip show netmiko
-```
+    ```bash
+    kubectl -n naas exec -it deploy/naas-api -- bash
+    kubectl -n naas exec -it deploy/naas-worker -- bash
+    kubectl -n naas exec -it deploy/redis -- sh
+    ```
 
 ## Getting help
 
@@ -483,7 +628,7 @@ If you're still experiencing issues:
 2. Review [API documentation](https://naas.readthedocs.io/en/latest/api-reference/)
 3. Open a new issue with:
    - NAAS version
-   - Docker/Docker Compose version
+   - Deployment method and version (Docker Compose, Helm chart, Kubernetes version)
    - Error messages and logs
    - Steps to reproduce
 
@@ -523,7 +668,7 @@ CONNECTION_POOL_MAX_SIZE: "5"  # Default is 10
 
 ### No Template Found
 
-**Symptom:** `/v1/send_command_structured` returns raw string instead of list[dict].
+**Symptom:** `/v2/send-command-structured` returns raw string instead of list[dict].
 
 **Cause:** No TextFSM template exists for the (platform, command) combination.
 

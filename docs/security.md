@@ -1,81 +1,84 @@
-# Security best practices
+# Security
 
-Guidelines for securing your NAAS deployment.
+NAAS transmits SSH credentials to network devices. This page covers how to secure the deployment itself.
 
-## Contents
+## TLS
 
-- [Transport Security](#transport-security)
-- [Authentication](#authentication)
-- [Network Security](#network-security)
-- [Credential Management](#credential-management)
-- [Access Control](#access-control)
-- [Monitoring and Auditing](#monitoring-and-auditing)
-- [Container Security](#container-security)
+NAAS listens on HTTPS only. Gunicorn handles TLS directly — no reverse proxy required.
 
-## Transport security
+**Default behavior:** Generates a self-signed certificate at startup if none is provided.
 
-### Always use HTTPS
+**Production:** Supply a valid certificate:
 
-NAAS transmits credentials to network devices. **Never** use HTTP in production.
+=== "Docker Compose"
 
-**Default**: NAAS generates a self-signed certificate at startup if no certificate is provided.
+    ```bash
+    export NAAS_CERT=$(cat /path/to/fullchain.pem)
+    export NAAS_KEY=$(cat /path/to/privkey.pem)
+    export NAAS_CA_BUNDLE=$(cat /path/to/chain.pem)
+    docker compose up -d
+    ```
 
-**Production**: Supply a valid TLS certificate via environment variables:
+=== "Kubernetes (Helm)"
 
-```bash
-export NAAS_CERT=$(cat /path/to/fullchain.pem)
-export NAAS_KEY=$(cat /path/to/privkey.pem)
-export NAAS_CA_BUNDLE=$(cat /path/to/chain.pem)
+    ```bash
+    helm upgrade naas charts/naas \
+      --set secrets.tlsCert="$(cat fullchain.pem)" \
+      --set secrets.tlsKey="$(cat privkey.pem)" \
+      --set secrets.tlsCaBundle="$(cat chain.pem)"
+    ```
 
-docker compose up -d
-```
+    With cert-manager, create a `Certificate` resource and reference the resulting secret via `secrets.existingSecret`.
 
-### TLS Configuration
+**TLS settings** (hardcoded, not configurable):
 
-TLS is handled by Gunicorn directly — no reverse proxy required. The cipher suite and minimum TLS version are hardcoded to secure defaults:
+- Minimum version: TLS 1.2
+- Ciphers: `HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!3DES:!MD5:!PSK`
 
-- **Minimum version**: TLS 1.2
-- **Ciphers**: `HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!3DES:!MD5:!PSK`
-
-For custom cipher configuration, use a reverse proxy (see [Reverse Proxy](#reverse-proxy) below).
+To customize ciphers, terminate TLS at a reverse proxy instead.
 
 ### Certificate Rotation
 
-Rotate certificates before expiration:
-
 ```bash
-# Check certificate expiration
 openssl x509 -in cert.pem -noout -enddate
-
-# Update certificates and restart
-export NAAS_CERT=$(cat new-cert.pem)
-export NAAS_KEY=$(cat new-key.pem)
-export NAAS_CA_BUNDLE=$(cat new-bundle.pem)
-docker compose up -d
 ```
+
+=== "Docker Compose"
+
+    ```bash
+    export NAAS_CERT=$(cat new-cert.pem)
+    export NAAS_KEY=$(cat new-key.pem)
+    docker compose up -d
+    ```
+
+=== "Kubernetes (Helm)"
+
+    ```bash
+    helm upgrade naas charts/naas \
+      --set secrets.tlsCert="$(cat new-cert.pem)" \
+      --set secrets.tlsKey="$(cat new-key.pem)"
+    ```
 
 ## Authentication
 
-### Basic Authentication
+NAAS supports two authentication methods:
 
-NAAS uses HTTP Basic Authentication. Credentials are passed through to network devices.
+- **HTTP Basic Auth** — Credentials are passed through to the target device as SSH credentials. NAAS does not store them.
+- **JWT API keys** — Created via `/v2/api-keys`. Scoped by role and context. Used for automation and service-to-service access.
 
-**Important**:
+### RBAC
 
-- Credentials are **not** stored by NAAS
-- Credentials are transmitted to the target device
-- Always use HTTPS to protect credentials in transit
+| Role | Can do |
+| ---- | ------ |
+| `admin` | Everything, including API key management |
+| `operator` | Submit jobs, view results |
+| `viewer` | View job status and results only |
+
+API keys carry a `role` and optional `contexts` claim. Requests to endpoints above the key's role return `403`.
 
 ### Device Credentials
 
-**Best Practices**:
-
-1. **Use dedicated service accounts** for automation
-2. **Rotate credentials regularly**
-3. **Use least privilege** - only grant necessary permissions
-4. **Monitor authentication failures** - detect brute force attempts
-
-### Enable Password
+NAAS is a pass-through — it connects to devices using whatever credentials the caller provides. Use dedicated service accounts with least privilege on your devices. Rotate them on your own schedule.
 
 For devices requiring enable mode:
 
@@ -88,49 +91,159 @@ For devices requiring enable mode:
 }
 ```
 
-**Note**: Enable passwords are also transmitted securely over HTTPS.
+## Redis
 
-## Network Security
+Redis holds the job queue, results, circuit breaker state, and rate limit counters. Secure it:
 
-### Firewall Rules
+=== "Docker Compose"
 
-Restrict access to NAAS:
+    ```bash
+    export REDIS_PASSWORD=$(openssl rand -base64 32)
+    docker compose up -d
+    ```
 
-```bash
-# Allow only from specific networks
-sudo ufw allow from 10.0.0.0/8 to any port 8443
-sudo ufw deny 8443
+=== "Kubernetes (Helm)"
 
-# Or using iptables
-sudo iptables -A INPUT -p tcp -s 10.0.0.0/8 --dport 8443 -j ACCEPT
-sudo iptables -A INPUT -p tcp --dport 8443 -j DROP
-```
+    ```bash
+    helm upgrade naas charts/naas \
+      --set secrets.redisPassword=$(openssl rand -base64 32)
+    ```
 
-### Network Segmentation
+    Or reference an existing secret: `--set secrets.existingSecret=my-naas-secrets`
 
-Deploy NAAS in a management network:
+For production, use a managed Redis (ElastiCache, Redis Cloud, etc.) with encryption in transit and at rest. The bundled Redis is single-replica with no persistence.
 
-```text
-[Automation Tools] --> [NAAS] --> [Network Devices]
-     10.0.1.0/24      10.0.2.0/24    10.0.3.0/24
-```
+## Rate Limiting
 
-**Benefits**:
+Built-in per-caller sliding window rate limiter on all submission endpoints.
 
-- Limit blast radius
-- Easier to audit and monitor
-- Centralized access control
+| Variable | Default | Description |
+| -------- | ------- | ----------- |
+| `RATE_LIMIT_ENABLED` | `true` | Enable/disable |
+| `RATE_LIMIT_PER_CALLER` | `1000` | Max requests per caller per window |
+| `RATE_LIMIT_PER_CALLER_DEVICE` | `20` | Max requests per caller per device per window |
+| `RATE_LIMIT_WINDOW` | `60` | Window size in seconds |
+| `RATE_LIMIT_EXEMPT_ROLES` | `admin` | Roles exempt from limits |
 
-### Reverse Proxy
+When exceeded, returns `429 Too Many Requests` with `Retry-After` header. Basic auth users are exempt (treated as admin role).
 
-Use a reverse proxy for additional security:
+Response headers on every submission:
+
+- `X-RateLimit-Limit` — applicable limit
+- `X-RateLimit-Remaining` — requests left in window
+- `X-RateLimit-Reset` — Unix timestamp when window resets
+
+## Container Security
+
+The Helm chart and default `docker-compose.yml` apply these by default:
+
+- Non-root user (UID 1000)
+- All Linux capabilities dropped (API retains `NET_BIND_SERVICE` for port 443)
+- Read-only root filesystem (`/tmp` writable via tmpfs)
+
+### Resource Limits
+
+=== "Docker Compose"
+
+    ```yaml
+    # docker-compose.override.yml
+    services:
+      api:
+        deploy:
+          resources:
+            limits:
+              cpus: '1'
+              memory: 512M
+      worker:
+        deploy:
+          resources:
+            limits:
+              cpus: '2'
+              memory: 1G
+    ```
+
+=== "Kubernetes (Helm)"
+
+    ```bash
+    helm upgrade naas charts/naas \
+      --set api.resources.limits.cpu=1000m \
+      --set api.resources.limits.memory=512Mi \
+      --set worker.resources.limits.cpu=2000m \
+      --set worker.resources.limits.memory=1Gi
+    ```
+
+### Image Updates
+
+=== "Docker Compose"
+
+    ```bash
+    docker compose pull
+    docker compose up -d
+    ```
+
+=== "Kubernetes (Helm)"
+
+    ```bash
+    helm upgrade naas charts/naas --set image.tag=2.1.0
+    ```
+
+Scan images with `trivy image ghcr.io/lykinsbd/naas:latest` or Docker Scout.
+
+## Audit Events
+
+NAAS emits structured JSON audit events via the `NAAS` logger. Each event has an `event_type` field.
+
+### Event Reference
+
+| Event | Key Fields | Meaning |
+| ----- | --------- | ------- |
+| `auth.success` | `method`, `identity` | Successful authentication |
+| `auth.failure` | `method`, `reason` | Failed authentication attempt |
+| `auth.context_denied` | `identity`, `context`, `allowed_contexts` | Context authorization failure |
+| `auth.rbac_denied` | `identity`, `role`, `required_role`, `endpoint` | Insufficient role |
+| `apikey.created` | `key_id`, `role`, `contexts`, `created_by` | New API key created |
+| `apikey.revoked` | `key_id`, `revoked_by` | API key revoked |
+| `job.submitted` | `host`, `platform`, `command_count`, `request_id` | Job enqueued |
+| `job.completed` | `request_id`, `status`, `duration_ms` | Job finished |
+| `job.cancelled` | `request_id`, `cancelled_by_hash` | Job cancelled |
+| `job.orphaned` | `request_id`, `worker_name` | Orphaned job reaped |
+| `device.locked_out` | `host`, `failure_count` | Device locked after repeated failures |
+| `circuit.opened` | `host` | Circuit breaker tripped |
+| `circuit.closed` | `host` | Circuit breaker recovered |
+
+Audit events never contain passwords, command output, or API key tokens.
+
+### Filtering
+
+=== "Docker Compose"
+
+    ```bash
+    docker compose logs api | jq 'select(.event_type)'
+    docker compose logs api | jq 'select(.event_type | startswith("auth."))'
+    ```
+
+=== "Kubernetes"
+
+    ```bash
+    kubectl -n naas logs deploy/naas-api | jq 'select(.event_type)'
+    ```
+
+Ship to your SIEM via any log shipper (Fluentd, Vector, Filebeat). Filter on `event_type` to route audit events to a dedicated index.
+
+### Recommended Alerts
+
+| Event | Condition | Indicates |
+| ----- | --------- | --------- |
+| `auth.failure` | >10 in 5 minutes | Brute force attempt |
+| `auth.rbac_denied` | Any occurrence | Privilege escalation attempt |
+| `apikey.created` | Any occurrence | New API key — verify expected |
+| `device.locked_out` | Any occurrence | Device under attack or misconfigured credentials |
+
+## Reverse Proxy (Optional)
+
+If you need custom TLS ciphers, additional rate limiting, or security headers beyond what NAAS provides:
 
 ```nginx
-# nginx.conf
-upstream naas {
-    server localhost:8443;
-}
-
 server {
     listen 443 ssl http2;
     server_name naas.example.com;
@@ -138,378 +251,40 @@ server {
     ssl_certificate /path/to/cert.pem;
     ssl_certificate_key /path/to/key.pem;
 
-    # Security headers
     add_header Strict-Transport-Security "max-age=31536000" always;
-    add_header X-Frame-Options "DENY" always;
     add_header X-Content-Type-Options "nosniff" always;
-
-    # Rate limiting
-    limit_req_zone $binary_remote_addr zone=naas:10m rate=10r/s;
-    limit_req zone=naas burst=20;
 
     location / {
         proxy_pass https://naas;
         proxy_ssl_verify off;
-
-        # Pass through auth headers
         proxy_set_header Authorization $http_authorization;
-        proxy_pass_header Authorization;
     }
 }
 ```
 
-## Credential Management
-
-### Avoid Hardcoding Credentials
-
-**Bad**:
-
-```python
-# Don't do this!
-response = requests.post(
-    "https://naas.example.com/send_command",
-    auth=("admin", "password123"),  # Hardcoded!
-    json=payload
-)
-```
-
-**Good**:
-
-```python
-import os
-from requests.auth import HTTPBasicAuth
-
-# Use environment variables
-username = os.environ["DEVICE_USERNAME"]
-password = os.environ["DEVICE_PASSWORD"]
-
-response = requests.post(
-    "https://naas.example.com/send_command",
-    auth=HTTPBasicAuth(username, password),
-    json=payload
-)
-```
-
-### Use Secrets Management
-
-Integrate with secrets management systems:
-
-```python
-# Using HashiCorp Vault
-import hvac
-
-client = hvac.Client(url='https://vault.example.com')
-secret = client.secrets.kv.v2.read_secret_version(path='network/devices')
-
-username = secret['data']['data']['username']
-password = secret['data']['data']['password']
-```
-
-### Credential Rotation
-
-Implement automated credential rotation:
-
-1. Generate new credentials
-2. Update on all devices
-3. Update in secrets management
-4. Verify NAAS can authenticate
-5. Revoke old credentials
-
-## Access Control
-
-### Redis Security
-
-Secure Redis with authentication:
-
-```bash
-# Use strong password
-export REDIS_PASSWORD=$(openssl rand -base64 32)
-
-# Disable dangerous commands
-docker compose exec redis redis-cli -a $REDIS_PASSWORD \
-  CONFIG SET rename-command FLUSHDB ""
-```
-
-### Container Isolation
-
-Run containers with minimal privileges:
-
-```yaml
-# docker-compose.override.yml
-services:
-  api:
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-    tmpfs:
-      - /tmp
-    user: "1000:1000"
-```
-
-### Rate Limiting
-
-Implement rate limiting to prevent abuse:
-
-```python
-# Using nginx (see reverse proxy example above)
-# Or implement in application code
-from flask_limiter import Limiter
-
-limiter = Limiter(
-    app,
-    key_func=lambda: request.authorization.username,
-    default_limits=["100 per hour", "10 per minute"]
-)
-```
-
-## Monitoring and Auditing
-
-### Structured Audit Events
-
-NAAS emits structured JSON audit events at INFO level via the `NAAS` logger. Each
-event includes an `event_type` field for filtering.
-
-#### Authentication Events
-
-| Event | Fields | Description |
-| --- | --- | --- |
-| `auth.success` | `method`, `identity` | Successful authentication (Basic or Bearer) |
-| `auth.failure` | `method`, `reason` | Failed authentication attempt |
-
-#### Authorization Events
-
-| Event | Fields | Description |
-| --- | --- | --- |
-| `auth.context_denied` | `identity`, `context`, `allowed_contexts` | Context authorization failure |
-| `auth.rbac_denied` | `identity`, `role`, `required_role`, `endpoint` | Insufficient role |
-
-#### API Key Management Events
-
-| Event | Fields | Description |
-| --- | --- | --- |
-| `apikey.created` | `key_id`, `role`, `contexts`, `created_by` | New API key created |
-| `apikey.revoked` | `key_id`, `revoked_by` | API key revoked |
-
-#### Job Lifecycle Events
-
-| Event | Fields | Description |
-| --- | --- | --- |
-| `job.submitted` | `host`, `platform`, `port`, `command_count`, `user_hash`, `request_id` | Job enqueued |
-| `job.completed` | `request_id`, `status`, `duration_ms` | Job finished |
-| `job.cancelled` | `request_id`, `cancelled_by_hash` | Job cancelled |
-| `job.orphaned` | `request_id`, `worker_name` | Orphaned job reaped |
-
-#### Device Events
-
-| Event | Fields | Description |
-| --- | --- | --- |
-| `device.locked_out` | `host`, `failure_count` | Device locked after repeated failures |
-| `circuit.opened` | `host` | Circuit breaker opened |
-| `circuit.closed` | `host` | Circuit breaker closed |
-
-**Data privacy**: Audit events never contain passwords, command output, or API key
-tokens. Only usernames, key IDs, and operational metadata are logged.
-
-### Filtering Audit Events
-
-Audit events are mixed with operational logs in the JSON output stream. Filter on
-the `event_type` field:
-
-```bash
-# All audit events
-docker compose logs api | jq 'select(.event_type)'
-
-# Auth failures only
-docker compose logs api | jq 'select(.event_type == "auth.failure")'
-
-# All security events
-docker compose logs api | jq 'select(.event_type | startswith("auth."))'
-```
-
-### SIEM Integration
-
-Ship structured JSON logs to your SIEM using any log shipper (Fluentd, Vector,
-Filebeat). Filter on `event_type` to route audit events to a dedicated index.
-
-### Tamper-Evident Logging
-
-For compliance, ship logs to an append-only store:
-
-- **AWS**: CloudWatch Logs with retention policy
-- **S3**: With Object Lock enabled
-- **Syslog**: Forward to a hardened syslog server
-
-### Recommended Alerts
-
-| Event | Alert condition | Indicates |
-| --- | --- | --- |
-| `auth.failure` | >10 in 5 minutes | Brute force attempt |
-| `auth.rbac_denied` | Any occurrence | Privilege escalation attempt |
-| `apikey.created` | Any occurrence | New API key (verify expected) |
-| `device.locked_out` | Any occurrence | Device under attack or misconfigured |
-
-### Log Aggregation
-
-Send logs to centralized logging:
-
-```yaml
-# docker-compose.override.yml
-services:
-  api:
-    logging:
-      driver: "syslog"
-      options:
-        syslog-address: "tcp://logserver.example.com:514"
-        tag: "naas-api"
-  worker:
-    logging:
-      driver: "syslog"
-      options:
-        syslog-address: "tcp://logserver.example.com:514"
-        tag: "naas-worker"
-```
-
-### Monitor Authentication Failures
-
-Set up alerts for `auth.failure` events (see [Recommended Alerts](#recommended-alerts) above).
-
-## Container Security
-
-### Keep Images Updated
-
-Regularly update NAAS and dependencies:
-
-```bash
-# Pull latest images
-docker compose pull
-
-# Restart with new images
-docker compose up -d
-```
-
-### Scan for Vulnerabilities
-
-Use container scanning tools:
-
-```bash
-# Using Trivy
-trivy image ghcr.io/lykinsbd/naas:latest
-
-# Using Docker Scout
-docker scout cves ghcr.io/lykinsbd/naas:latest
-```
-
-### Resource Limits
-
-Prevent resource exhaustion:
-
-```yaml
-# docker-compose.override.yml
-services:
-  api:
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 512M
-        reservations:
-          cpus: '0.5'
-          memory: 256M
-  worker:
-    deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 1G
-        reservations:
-          cpus: '1'
-          memory: 512M
-```
-
-### Read-Only Filesystem
-
-Run containers with read-only root filesystem:
-
-```yaml
-# docker-compose.override.yml
-services:
-  api:
-    read_only: true
-    tmpfs:
-      - /tmp
-      - /var/run
-```
-
-## Security Checklist
-
-Before deploying to production:
-
-- [ ] Use valid TLS certificates (not self-signed)
-- [ ] Configure firewall rules
-- [ ] Use strong Redis password
-- [ ] Enable production logging
-- [ ] Set up log aggregation
-- [ ] Configure rate limiting
-- [ ] Implement network segmentation
-- [ ] Use secrets management for credentials
-- [ ] Set resource limits on containers
-- [ ] Enable container security options
-- [ ] Set up monitoring and alerting
-- [ ] Document incident response procedures
-- [ ] Plan credential rotation schedule
-- [ ] Review and update regularly
-
-## Compliance Considerations
-
-### PCI DSS
-
-If handling payment card data:
-
-- Use TLS 1.2 or higher
-- Implement strong access controls
-- Log all access to network devices
-- Encrypt credentials at rest and in transit
-
-### SOC 2
-
-For SOC 2 compliance:
-
-- Maintain audit logs
-- Implement access controls
-- Monitor for security events
-- Document security procedures
-
-### HIPAA
-
-For healthcare environments:
-
-- Encrypt all data in transit
-- Implement access controls
-- Maintain audit trails
-- Use secure credential management
-
-## Incident Response
-
-### Security Incident Procedure
-
-1. **Detect**: Monitor logs for suspicious activity
-2. **Contain**: Isolate affected systems
-3. **Investigate**: Review logs and audit trail
-4. **Remediate**: Rotate credentials, patch vulnerabilities
-5. **Document**: Record incident details and response
-
-### Emergency Shutdown
-
-```bash
-# Stop all NAAS services immediately
-docker compose down
-
-# Clear Redis data if compromised
-docker compose down -v
-```
-
-## Next steps
-
-- [Troubleshooting Guide](troubleshooting.md) - Common issues
-- [API Usage Examples](api-usage.md) - Learn the API
-- [Quick Start Guide](quickstart.md) - Get started with NAAS
+## Emergency Shutdown
+
+=== "Docker Compose"
+
+    ```bash
+    docker compose down        # Stop services
+    docker compose down -v     # Stop and wipe Redis data
+    ```
+
+=== "Kubernetes (Helm)"
+
+    ```bash
+    helm uninstall naas              # Remove release
+    kubectl delete namespace naas    # Remove everything including PVCs
+    ```
+
+## Pre-Production Checklist
+
+- [ ] Valid TLS certificate (not self-signed)
+- [ ] Strong Redis password
+- [ ] Rate limiting configured
+- [ ] Resource limits set
+- [ ] Log aggregation configured
+- [ ] Alerts on `auth.failure` and `device.locked_out`
+- [ ] Network access restricted to authorized callers
+- [ ] Container images scanned for vulnerabilities

@@ -1,17 +1,204 @@
 # Kubernetes Deployment
 
-NAAS ships plain YAML manifests in `k8s/` for deploying to any Kubernetes cluster.
+NAAS provides a Helm chart for production Kubernetes deployments, with raw YAML manifests available as an alternative.
 
-## Prerequisites
+## Helm Chart (Recommended)
 
-- Kubernetes 1.27+ (or k3d for local dev — see below)
-- `kubectl` configured for your cluster
-- A container image of NAAS (built and pushed to a registry your cluster can pull from)
+The Helm chart in `charts/naas/` is the recommended way to deploy NAAS on Kubernetes. It handles namespaces, secrets, config, scaling, and ingress out of the box.
 
-> The manifests in `main` reference the image tag for that release. The manifests in `develop`
-> use `latest`. For production deployments, always deploy from a tagged release branch and
-> verify the image tag in `k8s/api/deployment.yaml` and `k8s/worker/deployment.yaml` matches
-> the version you intend to run.
+### Prerequisites
+
+- Kubernetes 1.27+
+- Helm 3.x
+- A container image of NAAS accessible to your cluster
+
+### Quick Start
+
+```bash
+helm install naas charts/naas \
+  --set secrets.redisPassword=changeme \
+  --set secrets.encryptionKey=$(openssl rand -base64 32)
+```
+
+Verify:
+
+```bash
+kubectl -n naas get pods
+```
+
+All pods should reach `Running`. The API readiness probe hits `/healthcheck` — pods will not become ready until Redis is up.
+
+### Common Configurations
+
+#### External Redis
+
+Disable the bundled Redis and point to a managed instance:
+
+```bash
+helm install naas charts/naas \
+  --set redis.enabled=false \
+  --set redis.external.host=redis.prod.internal \
+  --set redis.external.port=6379 \
+  --set secrets.redisPassword=changeme
+```
+
+#### Ingress
+
+```bash
+helm install naas charts/naas \
+  --set ingress.enabled=true \
+  --set ingress.className=nginx \
+  --set "ingress.hosts[0].host=naas.example.com" \
+  --set "ingress.hosts[0].paths[0].path=/" \
+  --set "ingress.hosts[0].paths[0].pathType=Prefix"
+```
+
+#### TLS with Custom Certificates
+
+```bash
+helm install naas charts/naas \
+  --set secrets.tlsCert="$(cat fullchain.pem)" \
+  --set secrets.tlsKey="$(cat privkey.pem)" \
+  --set secrets.tlsCaBundle="$(cat chain.pem)"
+```
+
+Without certificates, NAAS generates a self-signed cert at startup.
+
+**cert-manager:** Create a `Certificate` resource targeting the `naas-api` Service and reference the resulting secret via `secrets.existingSecret`.
+
+#### Context Routing
+
+Deploy workers for specific network contexts:
+
+```yaml
+# values-contexts.yaml
+worker:
+  replicas: 0  # Disable default workers
+
+# Use multiple helm releases or subcharts for context-specific workers.
+# Alternatively, deploy additional worker Deployments:
+```
+
+For context-based worker isolation, override `config` per worker pool:
+
+```bash
+# Corp workers
+helm install naas-worker-corp charts/naas \
+  --set api.replicas=0 \
+  --set redis.enabled=false \
+  --set redis.external.host=redis.naas.svc \
+  --set config.WORKER_CONTEXTS=corp \
+  --set config.NAAS_CONTEXTS=corp
+
+# OOB workers
+helm install naas-worker-oob charts/naas \
+  --set api.replicas=0 \
+  --set redis.enabled=false \
+  --set redis.external.host=redis.naas.svc \
+  --set config.WORKER_CONTEXTS=oob-dc1,oob-dc2 \
+  --set config.NAAS_CONTEXTS=oob-dc1,oob-dc2
+```
+
+See [Context Routing](contexts.md) for full details.
+
+#### Scaling
+
+```bash
+# Scale workers
+helm upgrade naas charts/naas --set worker.replicas=5
+
+# Scale API
+helm upgrade naas charts/naas --set api.replicas=4
+```
+
+Each worker pod runs `worker.processes` RQ processes (default: 10). Total job concurrency = `worker.replicas × worker.processes`.
+
+#### OpenTelemetry
+
+```bash
+helm install naas charts/naas \
+  --set config.OTEL_ENABLED=true \
+  --set config.OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector.monitoring:4317
+```
+
+### Upgrade and Rollback
+
+```bash
+# Upgrade to new values or chart version
+helm upgrade naas charts/naas -f values-prod.yaml
+
+# Rollback to previous release
+helm rollback naas
+
+# Uninstall
+helm uninstall naas
+```
+
+### Values Reference
+
+| Value | Default | Description |
+| ----- | ------- | ----------- |
+| `image.repository` | `ghcr.io/lykinsbd/naas` | Container image |
+| `image.tag` | Chart `appVersion` | Image tag |
+| `namespace` | `naas` | Target namespace |
+| `api.replicas` | `2` | API pod replicas |
+| `api.port` | `443` | API listen port |
+| `api.resources.limits.memory` | `768Mi` | API memory limit |
+| `api.resources.limits.cpu` | `500m` | API CPU limit |
+| `worker.replicas` | `2` | Worker pod replicas |
+| `worker.processes` | `10` | RQ processes per worker pod |
+| `worker.metricsPort` | `9090` | Worker metrics port |
+| `worker.resources.limits.memory` | `512Mi` | Worker memory limit |
+| `worker.resources.limits.cpu` | `500m` | Worker CPU limit |
+| `config.*` | *(see below)* | Application env vars (injected as ConfigMap) |
+| `secrets.existingSecret` | `""` | Use an existing K8s Secret |
+| `secrets.redisPassword` | `""` | Redis password |
+| `secrets.encryptionKey` | `""` | Credential encryption key |
+| `secrets.tlsCert` | `""` | TLS certificate (PEM) |
+| `secrets.tlsKey` | `""` | TLS private key (PEM) |
+| `secrets.tlsCaBundle` | `""` | TLS CA bundle (PEM) |
+| `redis.enabled` | `true` | Deploy bundled Redis |
+| `redis.external.host` | `""` | External Redis host |
+| `redis.external.port` | `6379` | External Redis port |
+| `ingress.enabled` | `false` | Create Ingress resource |
+| `ingress.className` | `""` | Ingress class |
+| `service.type` | `ClusterIP` | Service type |
+
+All `config.*` values map to environment variables. See [Environment Variables](deployment/environment-variables.md) for the full list.
+
+### Production Redis
+
+The bundled Redis is a single-replica deployment with no persistence — suitable for dev/test. **For production, use a managed Redis** (AWS ElastiCache, Redis Cloud, etc.) with `redis.enabled=false`.
+
+## Raw Manifests (Alternative)
+
+If you cannot use Helm, plain YAML manifests are available in `k8s/`.
+
+### Applying Manifests
+
+```bash
+# Create the secret from the example
+cp k8s/secret.yaml.example k8s/secret.yaml
+# Edit k8s/secret.yaml with base64-encoded values
+
+# Apply in order
+kubectl apply -f k8s/namespace.yaml
+kubectl apply -f k8s/secret.yaml
+kubectl apply -f k8s/configmap.yaml
+kubectl apply -f k8s/redis/
+kubectl apply -f k8s/api/
+kubectl apply -f k8s/worker/
+```
+
+> **Never commit `k8s/secret.yaml`** — it is in `.gitignore`.
+
+### Scaling Workers (Manifests)
+
+Edit `spec.replicas` in `k8s/worker/deployment.yaml`, or:
+
+```bash
+kubectl -n naas scale deploy/naas-worker --replicas=5
+```
 
 ## Local Development with k3d
 
@@ -24,193 +211,49 @@ curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
 # Create a cluster
 k3d cluster create naas-dev --port "8443:443@loadbalancer"
 
+# Deploy with Helm
+helm install naas charts/naas \
+  --set secrets.redisPassword=devpassword \
+  --set secrets.encryptionKey=dev-encryption-key-32bytes!!
+
 # Verify
-kubectl get nodes
-```
-
-## Applying the Manifests
-
-### 1. Create the secret
-
-```bash
-cp k8s/secret.yaml.example k8s/secret.yaml
-```
-
-Edit `k8s/secret.yaml` and replace the placeholder values with base64-encoded secrets:
-
-```bash
-# Generate base64 values
-echo -n 'your-redis-password' | base64
-```
-
-> **Never commit `k8s/secret.yaml`** — it is in `.gitignore`.
-
-### 2. Apply in order
-
-```bash
-kubectl apply -f k8s/namespace.yaml
-kubectl apply -f k8s/secret.yaml
-kubectl apply -f k8s/configmap.yaml
-kubectl apply -f k8s/redis/
-kubectl apply -f k8s/api/
-kubectl apply -f k8s/worker/
-```
-
-### 3. Verify
-
-```bash
 kubectl -n naas get pods
-kubectl -n naas get svc
+curl -k https://localhost:8443/healthcheck
 ```
-
-All pods should reach `Running` status. The API readiness probe hits `/healthcheck` — pods
-will not become ready until Redis is up and responding.
 
 ## Security Context
 
-Both the API and worker deployments run as UID 1000 (`naas` user, non-root) with all
-Linux capabilities dropped. The API retains `NET_BIND_SERVICE` to bind port 443 without
-root. TLS certificates are written to `/tmp/` at startup (world-writable, no special
-permissions required).
-
-## TLS / Ingress
-
-The NAAS API listens on HTTPS (port 443). The `api` Service is `ClusterIP` — expose it
-via your cluster's ingress controller or a `LoadBalancer` service as appropriate for your
-environment.
-
-**With a custom certificate:** populate `NAAS_CERT`, `NAAS_KEY`, and optionally
-`NAAS_CA_BUNDLE` in `k8s/secret.yaml`. These values must be the **raw PEM content**
-(not a file path), base64-encoded for the Kubernetes Secret.
-
-```bash
-# Encode a certificate file for use in secret.yaml
-cat cert.pem | base64 -w 0
-```
-
-The double-encoding works as follows: Kubernetes decodes the base64 value from the Secret
-and injects the raw PEM string as an environment variable. NAAS writes that string to disk
-at startup for Gunicorn to use.
-
-**Without a certificate:** NAAS generates a self-signed certificate at startup. Suitable
-for dev/internal use where clients can skip TLS verification or trust the self-signed cert.
-
-**cert-manager:** If your cluster runs cert-manager, create a `Certificate` resource
-targeting the `naas-api` Service and mount the resulting secret into the API pods via
-`NAAS_CERT` / `NAAS_KEY` / `NAAS_CA_BUNDLE` environment variables.
-
-## Resource Sizing
-
-The manifests include conservative defaults suitable for a small deployment:
-
-| Component | Memory request | Memory limit | CPU request | CPU limit |
-| ----------- | --------------- | -------------- | ------------- | ----------- |
-| API | 256Mi | 768Mi | 100m | 500m |
-| Worker | 128Mi | 512Mi | 100m | 500m |
-| Redis | 64Mi | 256Mi | 50m | 200m |
-
-Workers are CPU-bound during Netmiko SSH operations. Increase `limits.cpu` and replica
-count if you observe throttling under load.
-
-## Production Redis
-
-The bundled Redis manifest is a single-replica Deployment with no persistence — suitable
-for dev and testing. **For production, use a managed Redis service** (AWS ElastiCache,
-Redis Cloud, DigitalOcean Managed Redis, etc.) or a Redis Operator with replication and
-persistence configured.
-
-To use an external Redis, update `REDIS_HOST` and `REDIS_PORT` in `k8s/configmap.yaml`
-and remove the `k8s/redis/` manifests.
-
-## Connection Pooling
-
-NAAS reuses SSH connections across sequential jobs to the same device, reducing VTY session
-overhead on network equipment. Pooling is enabled by default.
-
-| Variable | Default | Description |
-| ---------- | --------- | ------------- |
-| `CONNECTION_POOL_ENABLED` | `true` | Set to `false` to disable pooling for all devices |
-| `CONNECTION_POOL_MAX_SIZE` | `10` | Max pooled connections per worker process |
-| `CONNECTION_POOL_IDLE_TIMEOUT` | `300` | Evict connections idle for this many seconds |
-| `CONNECTION_POOL_MAX_AGE` | `3600` | Evict connections older than this many seconds |
-| `CONNECTION_POOL_KEEPALIVE` | `60` | Paramiko SSH keepalive interval (seconds) |
-
-Disable pooling for specific environments where devices do not handle persistent SSH sessions
-well (e.g. older IOS, out-of-band management platforms). Per-device exclusions are tracked
-in [#187](https://github.com/lykinsbd/naas/issues/187).
-
-## Scaling Workers
-
-Worker replicas are set to `2` by default. Increase `spec.replicas` in
-`k8s/worker/deployment.yaml` based on your job throughput requirements. Each worker
-handles one job at a time per process; the number of concurrent jobs equals the number
-of worker replicas.
-
-**Note:** Connection pooling (v1.2+) reuses SSH sessions across sequential jobs on the
-same worker, reducing latency. However, it does not change job concurrency—each worker
-still processes one job at a time. Scale replicas to increase concurrent job capacity.
-
-The worker process writes a heartbeat file to `/tmp/worker_heartbeat` every 30 seconds.
-The liveness probe checks this file was modified within the last 2 minutes — if the
-parent process hangs, Kubernetes will restart the pod. Override the path via the
-`WORKER_HEARTBEAT_FILE` environment variable if needed.
+Both API and worker pods run as UID 1000 (`naas` user, non-root) with all Linux capabilities dropped. The API retains `NET_BIND_SERVICE` to bind port 443 without root.
 
 ## Monitoring
 
-The `/metrics` endpoint on the API pods exposes Prometheus metrics. Configure your
-Prometheus instance to scrape port `443` (HTTPS) with the appropriate TLS config, or
-use a `ServiceMonitor` if running the Prometheus Operator.
+The `/metrics` endpoint on API pods exposes Prometheus metrics. Configure scraping via a `ServiceMonitor` (Prometheus Operator) or static config:
 
-| Metric | Type | Description |
-| -------- | ------ | ------------- |
-| `naas_http_requests_total` | Counter | Total HTTP requests by endpoint, method, and status code |
-| `naas_http_request_duration_seconds` | Histogram | Request latency by endpoint |
-| `naas_queue_depth` | Gauge | Number of jobs waiting in the RQ queue |
-| `naas_workers_active` | Gauge | Number of active RQ worker processes (cached, 10s TTL) |
-
-## Helm Chart
-
-A Helm chart is available in `charts/naas/` for parameterized deployments.
-
-### Quickstart
-
-```bash
-helm install naas charts/naas \
-  --set secrets.redisPassword=changeme \
-  --set secrets.encryptionKey=my-32-byte-key
+```yaml
+scrape_configs:
+  - job_name: naas
+    static_configs:
+      - targets: ['naas-api.naas.svc:443']
+    scheme: https
+    tls_config:
+      insecure_skip_verify: true
 ```
 
-### Key values
+| Metric | Type | Description |
+| ------ | ---- | ----------- |
+| `naas_http_requests_total` | Counter | HTTP requests by endpoint, method, status |
+| `naas_http_request_duration_seconds` | Histogram | Request latency by endpoint |
+| `naas_queue_depth` | Gauge | Jobs waiting in queue |
+| `naas_workers_active` | Gauge | Active RQ worker processes |
+
+## Connection Pooling
+
+Workers reuse SSH connections across sequential jobs to the same device. Configure via `config.*` values:
 
 | Value | Default | Description |
 | ----- | ------- | ----------- |
-| `api.replicas` | `2` | API pod replicas |
-| `worker.replicas` | `2` | Worker pod replicas |
-| `worker.processes` | `10` | RQ worker processes per pod |
-| `redis.enabled` | `true` | Deploy bundled Redis |
-| `redis.external.host` | `""` | External Redis host (when `redis.enabled=false`) |
-| `ingress.enabled` | `false` | Create Ingress resource |
-| `secrets.existingSecret` | `""` | Use an existing Secret instead of creating one |
-| `image.tag` | `appVersion` | Container image tag |
-
-### External Redis
-
-```bash
-helm install naas charts/naas \
-  --set redis.enabled=false \
-  --set redis.external.host=redis.prod.internal \
-  --set secrets.redisPassword=changeme
-```
-
-### Ingress
-
-```bash
-helm install naas charts/naas \
-  --set ingress.enabled=true \
-  --set ingress.className=nginx \
-  --set ingress.hosts[0].host=naas.example.com \
-  --set ingress.hosts[0].paths[0].path=/ \
-  --set ingress.hosts[0].paths[0].pathType=Prefix
-```
-
-See `charts/naas/values.yaml` for the full list of configurable values.
+| `config.CONNECTION_POOL_ENABLED` | `true` | Enable pooling |
+| `config.CONNECTION_POOL_MAX_SIZE` | `10` | Max connections per worker process |
+| `config.CONNECTION_POOL_IDLE_TIMEOUT` | `300` | Evict idle connections (seconds) |
+| `config.CONNECTION_POOL_MAX_AGE` | `3600` | Evict old connections (seconds) |
+| `config.CONNECTION_POOL_KEEPALIVE` | `60` | SSH keepalive interval (seconds) |
