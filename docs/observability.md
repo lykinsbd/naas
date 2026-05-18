@@ -32,9 +32,17 @@ This format is directly ingestible by ELK, Splunk, CloudWatch Logs, Datadog, and
 
 Set via `LOG_LEVEL` environment variable (default: `INFO`). Use `DEBUG` for verbose output including per-command device interaction.
 
-```bash
-LOG_LEVEL=DEBUG docker compose up -d
-```
+=== "Docker Compose"
+
+    ```bash
+    LOG_LEVEL=DEBUG docker compose up -d
+    ```
+
+=== "Kubernetes (Helm)"
+
+    ```bash
+    helm upgrade naas charts/naas --set config.LOG_LEVEL=DEBUG
+    ```
 
 ## Correlation ID Tracing
 
@@ -51,7 +59,7 @@ This enables end-to-end tracing of a single request across API and worker logs.
 Pass `X-Request-ID` in the request to use your own correlation ID (must be a valid UUID v4):
 
 ```bash
-curl -k -X POST https://localhost:8443/v1/send_command \
+curl -k -X POST https://localhost:8443/v2/send-command \
   -u "admin:password" \
   -H "Content-Type: application/json" \
   -H "X-Request-ID: 550e8400-e29b-41d4-a716-446655440000" \
@@ -62,10 +70,17 @@ If omitted, NAAS generates one automatically.
 
 ### Tracing a request through logs
 
-```bash
-# Find all log lines for a specific job
-docker compose logs worker | grep "550e8400-e29b-41d4-a716-446655440000"
-```
+=== "Docker Compose"
+
+    ```bash
+    docker compose logs worker | grep "550e8400-e29b-41d4-a716-446655440000"
+    ```
+
+=== "Kubernetes"
+
+    ```bash
+    kubectl -n naas logs deploy/naas-worker | grep "550e8400-e29b-41d4-a716-446655440000"
+    ```
 
 ## Health Check
 
@@ -273,3 +288,69 @@ When a job is reaped, a `job.orphaned` audit event is emitted:
 | `JOB_REAPER_ENABLED` | `true` | Enable orphaned job detection |
 | `JOB_REAPER_INTERVAL` | `60` | Seconds between reaper scans |
 | `WORKER_STALE_THRESHOLD` | `120` | Seconds since last heartbeat before worker considered dead |
+
+## OpenTelemetry Distributed Tracing
+
+NAAS supports OpenTelemetry (OTel) distributed tracing with trace context propagation through the RQ job queue. When enabled, a single trace spans the full request lifecycle: API → queue → worker → device.
+
+### Enabling
+
+Set `OTEL_ENABLED=true` and point the OTLP exporter at your collector:
+
+| Variable | Default | Description |
+| -------- | ------- | ----------- |
+| `OTEL_ENABLED` | `false` | Enable OpenTelemetry tracing |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4317` | OTLP gRPC collector endpoint |
+| `OTEL_SERVICE_NAME` | `naas` | Service name in traces (set automatically) |
+
+Both the API and worker processes must have `OTEL_ENABLED=true`. Install the `otel` extra:
+
+```bash
+pip install naas[otel]
+```
+
+### How It Works
+
+1. **API receives request** — a span is created for the Flask route
+2. **Job enqueued** — the current trace context (`traceparent`) is injected into the RQ job metadata
+3. **Worker picks up job** — the `traceparent` is extracted from job metadata, and a child span is created linked to the original trace
+4. **Device operation** — Netmiko SSH operations are wrapped in spans with device attributes
+
+This means a single trace ID connects the HTTP request, queue wait time, and device operation — visible in Jaeger, Grafana Tempo, or any OTLP-compatible backend.
+
+### Deployment Example
+
+=== "Docker Compose"
+
+    ```yaml
+    services:
+      api:
+        environment:
+          - OTEL_ENABLED=true
+          - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+
+      worker:
+        environment:
+          - OTEL_ENABLED=true
+          - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+
+      otel-collector:
+        image: otel/opentelemetry-collector-contrib:0.127.0
+        ports:
+          - "4317:4317"   # OTLP gRPC
+          - "4318:4318"   # OTLP HTTP
+    ```
+
+=== "Kubernetes (Helm)"
+
+    ```bash
+    helm upgrade naas charts/naas \
+      --set config.OTEL_ENABLED=true \
+      --set config.OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector.monitoring:4317
+    ```
+
+    Deploy an OpenTelemetry Collector separately (e.g. via the [OpenTelemetry Helm chart](https://opentelemetry.io/docs/kubernetes/helm/)).
+
+### Graceful Degradation
+
+When `OTEL_ENABLED=false` (the default), all tracing functions are safe no-ops that never import OpenTelemetry packages. There is zero performance overhead when disabled.

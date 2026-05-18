@@ -548,6 +548,51 @@ JOB_ID=$(curl -k -s -D - -X POST https://localhost:8443/v2/send-command \
 }
 ```
 
+## SSE Streaming
+
+Stream real-time job status updates via Server-Sent Events instead of polling.
+
+**Endpoint:** `GET /v2/jobs/<job_id>/stream`
+
+**Auth:** Same as job results (basic auth, must own the job)
+
+```bash
+curl -N -k -u admin:admin https://localhost:8443/v2/jobs/abc-123/stream
+```
+
+**Event types:**
+
+| Event | When | Data |
+| ----- | ---- | ---- |
+| `status` | Job status changes (queued → started) | `{"job_id": "...", "status": "started"}` |
+| `result` | Job reaches terminal state | `{"job_id": "...", "status": "finished", "results": {...}}` |
+| `timeout` | Server-side stream timeout (5 min) | `{"job_id": "...", "message": "Stream timeout"}` |
+
+**Example event stream:**
+
+```text
+event: status
+data: {"job_id": "abc-123", "status": "queued"}
+
+event: status
+data: {"job_id": "abc-123", "status": "started"}
+
+event: result
+data: {"job_id": "abc-123", "status": "finished", "results": {"show version": "..."}}
+```
+
+**Limits:**
+
+- Max 100 concurrent SSE connections per API process
+- Server-side timeout: 5 minutes
+- Returns `429` if connection limit is reached
+
+**When to use SSE vs polling:**
+
+- Use SSE when you need instant notification of job completion
+- Use polling (`GET /v2/send-command/<id>`) for simple scripts or when SSE isn't supported
+- The Python client library uses polling by default; SSE is for direct API consumers
+
 ## List Jobs
 
 List all jobs with optional pagination and status filtering.

@@ -1,6 +1,6 @@
 # Environment Variables Reference
 
-All NAAS configuration is driven by environment variables. Set these in `docker-compose.yml`, a `.env` file, or your deployment platform's secrets manager.
+All NAAS configuration is driven by environment variables. Set these in your Helm `values.yaml` (under `config:`), `docker-compose.yml`, a `.env` file, or your deployment platform's secrets manager.
 
 ## Redis
 
@@ -64,25 +64,73 @@ All NAAS configuration is driven by environment variables. Set these in `docker-
 | `JOB_REAPER_INTERVAL` | `60` | Seconds between reaper scans |
 | `WORKER_STALE_THRESHOLD` | `120` | Seconds since last heartbeat before worker considered dead |
 
-## Example docker-compose.yml
+## Rate Limiting
 
-```yaml
-services:
-  api:
-    environment:
-      - REDIS_HOST=redis
-      - REDIS_PASSWORD=your-secure-password
-      - LOG_LEVEL=INFO
-      - JOB_TTL_SUCCESS=86400
-      - JOB_TTL_FAILED=604800
-      - CIRCUIT_BREAKER_THRESHOLD=5
-      - CIRCUIT_BREAKER_TIMEOUT=300
+| Variable | Default | Description |
+| --- | --- | --- |
+| `RATE_LIMIT_ENABLED` | `true` | Enable/disable built-in rate limiting |
+| `RATE_LIMIT_PER_CALLER` | `1000` | Max submissions per caller per window |
+| `RATE_LIMIT_PER_CALLER_DEVICE` | `20` | Max submissions per caller per device per window |
+| `RATE_LIMIT_WINDOW` | `60` | Sliding window size in seconds |
+| `RATE_LIMIT_EXEMPT_ROLES` | `admin` | Comma-separated roles exempt from rate limits |
 
-  worker:
-    environment:
-      - REDIS_HOST=redis
-      - REDIS_PASSWORD=your-secure-password
-      - SHUTDOWN_TIMEOUT=60
-      - CIRCUIT_BREAKER_THRESHOLD=5
-      - CIRCUIT_BREAKER_TIMEOUT=300
-```
+## OpenTelemetry
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `OTEL_ENABLED` | `false` | Enable OpenTelemetry distributed tracing |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4317` | OTLP gRPC collector endpoint |
+
+Requires the `otel` extra: `pip install naas[otel]`. Set on both API and worker processes.
+
+## Configuration Examples
+
+=== "Kubernetes (Helm values.yaml)"
+
+    ```yaml
+    config:
+      LOG_LEVEL: "INFO"
+      CIRCUIT_BREAKER_THRESHOLD: "5"
+      CIRCUIT_BREAKER_TIMEOUT: "300"
+      RATE_LIMIT_PER_CALLER: "1000"
+      RATE_LIMIT_PER_CALLER_DEVICE: "20"
+      OTEL_ENABLED: "true"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
+
+    secrets:
+      redisPassword: "your-secure-password"
+
+    worker:
+      replicas: 4
+    ```
+
+    All `config.*` values are injected as a ConfigMap. Secrets are stored in a Kubernetes Secret.
+
+=== "Docker Compose"
+
+    ```yaml
+    services:
+      api:
+        environment:
+          - REDIS_HOST=redis
+          - REDIS_PASSWORD=your-secure-password
+          - LOG_LEVEL=INFO
+          - JOB_TTL_SUCCESS=86400
+          - JOB_TTL_FAILED=604800
+          - CIRCUIT_BREAKER_THRESHOLD=5
+          - CIRCUIT_BREAKER_TIMEOUT=300
+          - RATE_LIMIT_PER_CALLER=1000
+          - RATE_LIMIT_PER_CALLER_DEVICE=20
+          - OTEL_ENABLED=true
+          - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+
+      worker:
+        environment:
+          - REDIS_HOST=redis
+          - REDIS_PASSWORD=your-secure-password
+          - SHUTDOWN_TIMEOUT=60
+          - CIRCUIT_BREAKER_THRESHOLD=5
+          - CIRCUIT_BREAKER_TIMEOUT=300
+          - OTEL_ENABLED=true
+          - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+    ```
