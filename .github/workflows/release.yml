@@ -15,7 +15,10 @@ jobs:
   check-version:
     runs-on: ubuntu-latest
     outputs:
-      should_release: ${{ steps.version.outputs.should_release }}
+      # Only release when the version qualifies AND the tag does not already exist.
+      # tag_check.exists is empty when the tag-check step is skipped (because should_release was false from the version step),
+      # so the != 'true' comparison correctly yields true in that case and we fall back to version.should_release.
+      should_release: ${{ steps.version.outputs.should_release == 'true' && steps.tag_check.outputs.exists != 'true' }}
       version: ${{ steps.version.outputs.version }}
       is_prerelease: ${{ steps.version.outputs.is_prerelease }}
     steps:
@@ -70,11 +73,10 @@ jobs:
             echo "✅ Tag v${{ steps.version.outputs.version }} does not exist"
           fi
 
-      - name: Stop if tag exists
+      - name: Skip if tag exists
         if: steps.version.outputs.should_release == 'true' && steps.tag_check.outputs.exists == 'true'
         run: |
-          echo "Tag already exists, skipping release"
-          exit 0
+          echo "::notice::Tag v${{ steps.version.outputs.version }} already exists — release job will be skipped via job output."
 
   release:
     needs: check-version
