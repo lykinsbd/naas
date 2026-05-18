@@ -5,7 +5,7 @@ NAAS supports multiple deployment methods. Choose based on your environment and 
 ## Deployment Methods
 
 | Method | Best For | Prerequisites |
-|--------|----------|---------------|
+| ------ | -------- | ------------- |
 | **[Kubernetes (Helm)](../kubernetes.md)** | Production, team environments, scalability | Kubernetes 1.27+, Helm 3 |
 | **[Docker Compose](docker-compose.md)** | Development, small/single-node deployments | Docker, Docker Compose |
 | **Manual** | Custom environments, development without Docker | Python 3.11+, Redis 6+, uv |
