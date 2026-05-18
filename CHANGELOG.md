@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- towncrier release notes start -->
 
-# NAAS 2.1.0rc2 (2026-05-06)
+# NAAS 2.1.0 (2026-05-18)
 
 ## ✨ Features
 
@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add ADR 0010: MCP Server as Thin Client over REST API. ([#365](https://github.com/lykinsbd/naas/issues/365))
 - ADR 0009: command authorization deferred to AAA/TACACS+ — NAAS does not filter commands at the proxy layer. ([#425](https://github.com/lykinsbd/naas/issues/425))
 - Restructure documentation for v2.1: Helm-first Kubernetes page, add K8s/Helm equivalents across all operational docs, create deployment overview page, update v1 API references to v2 ([#448](https://github.com/lykinsbd/naas/issues/448))
+- Fix MD060 table-column-style violations in deployment, kubernetes, security, and v2.1 release-notes pages. ([#461](https://github.com/lykinsbd/naas/issues/461))
 - Document rate limiting, OpenTelemetry tracing, SSE streaming, remaining MCP components, and load testing.
 - Editorial improvements to home page, quick start, installation, and deployment overview
 - Reorganize documentation navigation: split User Guide into Usage and Operations, move Architecture to Reference, collapse ADRs to single index link
