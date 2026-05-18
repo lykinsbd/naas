@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- towncrier release notes start -->
 
-# NAAS 2.1.0rc2 (2026-05-18)
+# NAAS 2.1.0 (2026-05-18)
 
 ## ✨ Features
 
@@ -24,42 +24,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ADR 0009: command authorization deferred to AAA/TACACS+ — NAAS does not filter commands at the proxy layer. ([#425](https://github.com/lykinsbd/naas/issues/425))
 - Restructure documentation for v2.1: Helm-first Kubernetes page, add K8s/Helm equivalents across all operational docs, create deployment overview page, update v1 API references to v2 ([#448](https://github.com/lykinsbd/naas/issues/448))
 - Fix MD060 table-column-style violations in deployment, kubernetes, security, and v2.1 release-notes pages. ([#461](https://github.com/lykinsbd/naas/issues/461))
-- Document rate limiting, OpenTelemetry tracing, SSE streaming, remaining MCP components, and load testing.
-- Editorial improvements to home page, quick start, installation, and deployment overview
-- Reorganize documentation navigation: split User Guide into Usage and Operations, move Architecture to Reference, collapse ADRs to single index link
-- Rewrite security page: remove generic advice, keep NAAS-specific actionable content
-- Update architecture page to reflect v2.x features: RBAC, context routing, rate limiting, SSE, OTel, MCP server
-
-## 🧪 Testing & CI/CD
-
-- Add Locust-based load testing with smoke (PR) and full profile (RC tag) CI tiers. ([#403](https://github.com/lykinsbd/naas/issues/403))
-- Add OTel integration tests with OTLP collector in docker-compose ([#417](https://github.com/lykinsbd/naas/issues/417))
-- Add SSE streaming endpoint integration tests. ([#423](https://github.com/lykinsbd/naas/issues/423))
-- Add retry/backoff to healthcheck integration tests to handle worker startup timing. ([#437](https://github.com/lykinsbd/naas/issues/437))
-- Add RBAC, API key, and v2 field rejection integration tests.
-- Add retry/backoff to MCP integration healthcheck test to handle worker startup timing.
-
-## 🔧 Internal Changes
-
-- Sync docs changelog from root CHANGELOG.md on every release (beta, RC, and final)
-- Update naas-dev agent prompt with uv run requirements, monorepo structure, correct working directories, and current version info.
-
-# NAAS 2.1.0rc2 (2026-05-06)
-
-## ✨ Features
-
-- Add per-caller and per-caller-per-device sliding window rate limits on submission endpoints. ([#86](https://github.com/lykinsbd/naas/issues/86))
-- Add OpenTelemetry distributed tracing with trace context propagation through RQ ([#284](https://github.com/lykinsbd/naas/issues/284))
-- Add SSE streaming endpoint for real-time job status updates. ([#404](https://github.com/lykinsbd/naas/issues/404))
-- Add `error_code` and `error_retryable` fields to job results for machine-parseable error classification. Maps each netmiko/paramiko exception to a structured error code (e.g. `CONNECTION_TIMEOUT`, `AUTH_FAILURE`, `CONFIG_REJECTED`). Client library gains exception subclasses routed by error code. ([#430](https://github.com/lykinsbd/naas/issues/430))
-- Add MCP server package (``packages/naas-mcp``) for AI-assisted network operations via FastMCP 3.0. Published as ``mcp-server-naas`` on PyPI. ([#434](https://github.com/lykinsbd/naas/issues/434))
-- Add remaining MCP tools (send_command_structured, create_api_key, revoke_api_key), naas://jobs resource, and prompt templates (show_commands, config_push, troubleshoot_device).
-
-## 📚 Documentation
-
-- Add ADR 0010: MCP Server as Thin Client over REST API. ([#365](https://github.com/lykinsbd/naas/issues/365))
-- ADR 0009: command authorization deferred to AAA/TACACS+ — NAAS does not filter commands at the proxy layer. ([#425](https://github.com/lykinsbd/naas/issues/425))
-- Restructure documentation for v2.1: Helm-first Kubernetes page, add K8s/Helm equivalents across all operational docs, create deployment overview page, update v1 API references to v2 ([#448](https://github.com/lykinsbd/naas/issues/448))
 - Document rate limiting, OpenTelemetry tracing, SSE streaming, remaining MCP components, and load testing.
 - Editorial improvements to home page, quick start, installation, and deployment overview
 - Reorganize documentation navigation: split User Guide into Usage and Operations, move Architecture to Reference, collapse ADRs to single index link
