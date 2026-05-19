@@ -36,6 +36,7 @@ theme:
 plugins:
   - search
   - swagger-ui-tag
+  - include-markdown
   - mkdocstrings:
       handlers:
         python:
