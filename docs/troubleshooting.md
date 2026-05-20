@@ -625,7 +625,7 @@ LLEN rq:queue:default
 If you're still experiencing issues:
 
 1. Check [GitHub Issues](https://github.com/lykinsbd/naas/issues) for similar problems
-2. Review [API documentation](https://naas.readthedocs.io/en/latest/api-reference/)
+2. Review [API documentation](https://naas.readthedocs.io/en/stable/api-reference/)
 3. Open a new issue with:
    - NAAS version
    - Deployment method and version (Docker Compose, Helm chart, Kubernetes version)
