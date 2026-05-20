@@ -1,5 +1,18 @@
 name: Sync Release to Develop
 
+# Runs after a final release tag is pushed (vX.Y.Z, no b/rc suffix).
+# Two jobs:
+#   1. sync-to-develop: open a PR to bring main → develop with the
+#      newly-released commits.
+#   2. bump-develop: open a PR to bump develop's version to the next
+#      minor's alpha — only for X.Y.0 releases, NOT for patch releases
+#      (X.Y.Z, Z > 0). Patch releases don't change the develop minor
+#      stream and don't need a develop bump.
+#
+# Note: there is no longer a sync-to-release-branch job. Under the new
+# release model (ADR 0011), release/X.Y is the source of truth during
+# a release and the merge of release/X.Y → main is a merge-commit, so
+# the tag SHA is reachable from main without any further sync work.
 on:
   push:
     tags:
@@ -12,7 +25,7 @@ permissions:
 jobs:
   sync-to-develop:
     runs-on: ubuntu-latest
-    # Only run for final releases (not pre-releases like v1.3.0b1, v1.3.0rc1)
+    # Only run for final releases (vX.Y.Z, not vX.Y.ZbN or vX.Y.ZrcN).
     if: "!contains(github.ref_name, 'b') && !contains(github.ref_name, 'rc')"
     steps:
       - uses: actions/checkout@v6
@@ -26,64 +39,29 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
 
-          # Check if PR already exists
+          # Skip if a main → develop sync PR is already open.
           EXISTING_PR=$(gh pr list --base develop --head main --json number --jq '.[0].number')
-
           if [ -n "$EXISTING_PR" ]; then
             echo "PR #$EXISTING_PR already exists, skipping"
             exit 0
           fi
 
-          # Create PR
           gh pr create \
             --base develop \
             --head main \
             --title "chore: sync v${VERSION} release back to develop" \
-            --body "Automated PR to sync release v${VERSION} from main back to develop. After merging, manually bump develop to the next alpha version."
-
-  sync-to-release-branch:
-    runs-on: ubuntu-latest
-    # Only run for patch releases (v1.3.1, v1.3.2, etc.) - not initial releases (v1.3.0)
-    if: "!contains(github.ref_name, 'b') && !contains(github.ref_name, 'rc') && contains(github.ref_name, '.')"
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: main
-          fetch-depth: 0
-
-      - name: Sync to release branch
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          # Extract major.minor (e.g., 1.3 from 1.3.1)
-          MAJOR_MINOR=$(echo "$VERSION" | cut -d. -f1,2)
-          RELEASE_BRANCH="release/${MAJOR_MINOR}"
-
-          # Check if release branch exists
-          if ! git ls-remote --heads origin "$RELEASE_BRANCH" | grep -q "$RELEASE_BRANCH"; then
-            echo "Release branch $RELEASE_BRANCH does not exist, skipping"
-            exit 0
-          fi
-
-          # Fetch release branch
-          git fetch origin "$RELEASE_BRANCH"
-
-          # Check if main is ahead of release branch (has the tag commit)
-          if git merge-base --is-ancestor "origin/$RELEASE_BRANCH" main; then
-            # Fast-forward merge is possible
-            git checkout "$RELEASE_BRANCH"
-            git merge --ff-only main
-            git push origin "$RELEASE_BRANCH"
-            echo "✅ Fast-forwarded $RELEASE_BRANCH to include v${VERSION} release commit"
-          else
-            echo "⚠️  Cannot fast-forward $RELEASE_BRANCH - manual merge required"
-            exit 1
-          fi
+            --body "Automated PR to sync release v${VERSION} from main back to develop."
 
   bump-develop:
     runs-on: ubuntu-latest
     needs: sync-to-develop
+    # Only run for new minor releases (X.Y.0). Patch releases (X.Y.Z, Z > 0)
+    # don't change the develop minor stream — develop is already at the
+    # next minor's alpha and shouldn't be re-bumped.
+    if: |
+      !contains(github.ref_name, 'b') &&
+      !contains(github.ref_name, 'rc') &&
+      endsWith(github.ref_name, '.0')
     steps:
       - uses: actions/checkout@v6
         with:
@@ -97,17 +75,15 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Extract current version from tag
           VERSION="${GITHUB_REF_NAME#v}"
 
-          # Calculate next minor version
-          MAJOR=$(echo $VERSION | cut -d. -f1)
-          MINOR=$(echo $VERSION | cut -d. -f2)
+          # Calculate next minor: 1.3.0 → 1.4.0a1
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
+          MINOR=$(echo "$VERSION" | cut -d. -f2)
           NEXT_MINOR=$((MINOR + 1))
           NEXT_VERSION="${MAJOR}.${NEXT_MINOR}.0a1"
           BRANCH="chore/bump-develop-v${NEXT_VERSION}"
 
-          # Create branch, bump version, and open PR
           git checkout -b "$BRANCH"
           sed -i "s/^version = \".*\"/version = \"${NEXT_VERSION}\"/" packages/naas/pyproject.toml
           uv lock
