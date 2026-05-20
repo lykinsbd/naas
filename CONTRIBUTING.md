@@ -34,7 +34,7 @@ Thank you for your interest in contributing to NAAS!
 4. Ensure `uv run invoke check` and `uv run invoke test` pass
 5. Open a PR targeting `develop` and reference the related issue
 
-PRs are merged via squash or rebase — no merge commits.
+PRs targeting `develop` are merged via squash or rebase to keep history linear. Release PRs into `main` (`release/X.Y` → `main`) use a merge commit so the release tag SHA stays reachable from `main`'s history — see [ADR 0011](https://naas.readthedocs.io/en/develop/adr/0011-release-process/).
 
 ## Full development reference
 

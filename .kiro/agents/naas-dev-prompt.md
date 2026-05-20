@@ -126,7 +126,8 @@ Every tool call should:
 
 - `hotfix/` - Critical fixes for released versions
 - Branch from appropriate `release/X.Y`, NOT from main
-- Merge to `release/X.Y` → `main` → `develop`
+- Merge to `release/X.Y` (rebase or squash), then `release/X.Y` → `main` (merge commit), then `main` → `develop` (auto-PR)
+- Release ceremony itself uses `inv release-bump VERSION` on `release/X.Y` (see ADR 0011 for design rationale)
 
 **Decision Tree:**
 
@@ -208,9 +209,9 @@ chore(deps): upgrade netmiko to 4.6.0
 
 **Merge Strategy:**
 
-- Squash merge for feature branches (multiple commits)
-- Rebase merge for clean history (single/few commits)
-- Never merge commits (no merge bubbles)
+- Squash or rebase merge for ordinary feature/fix branches into `develop` or `release/X.Y` (linear history)
+- **Merge commit for release PRs** — `release/X.Y` → `main` PRs MUST use a merge commit, not rebase or squash. This preserves the release tag SHA as a real ancestor of `main`. See [ADR 0011](../../docs/adr/0011-release-process.md).
+- Auto-created sync PRs (`main` → `develop`, develop bump): standard merge for these as well
 
 ### 6. Testing Requirements
 
@@ -230,7 +231,7 @@ chore(deps): upgrade netmiko to 4.6.0
 - Ensure pre-commit hooks pass
 
 > **⚠️ `uv run` is required.** All Python tools (`invoke`, `towncrier`, `pytest`, `ruff`, `mypy`) are dev dependencies managed by `uv`. Always prefix commands with `uv run`. Running bare `invoke` or `pytest` will fail with "command not found".
-
+>
 > **⚠️ Working directory matters.** The `tasks.py` (invoke) and `towncrier` config live in `packages/naas/`. Run `invoke` commands from there, not the repo root.
 
 **Standards:**
@@ -360,6 +361,26 @@ gh issue create --title "Title" --body "Description" --label enhancement
 gh pr create --base develop --title "Title" --body "Description"
 ```
 
+**Release Tasks (run on a `release/X.Y` branch):**
+
+The release ceremony is a single invoke task — see [ADR 0011](../../docs/adr/0011-release-process.md) for the design.
+
+```bash
+# Bump to a new beta/RC/final version. This is the ONLY way to bump
+# release versions — never edit pyproject.toml or CHANGELOG.md by hand
+# during a release.
+uv run invoke release-bump 1.3.0b1     # first beta
+uv run invoke release-bump 1.3.0rc1    # bump to rc
+uv run invoke release-bump 1.3.0       # final release (also runs towncrier, pins k8s)
+uv run invoke release-bump 1.3.1       # patch / hotfix release
+
+# Useful flags:
+uv run invoke release-bump 1.3.0 --dry-run    # preview without doing anything
+uv run invoke release-bump 1.3.0 --no-push    # commit + tag locally, skip push
+```
+
+The task validates the working tree, branch, and version before any side effect, then commits, tags, and pushes atomically. CI takes over from the tag push to create the GitHub Release.
+
 ## Proactive Checks
 
 **Before I commit, I will:**
@@ -416,10 +437,11 @@ gh pr create --base develop --title "Title" --body "Description"
 
 ## Reminders
 
-- Release branches are NEVER deleted (long-lived)
-- Hotfixes go to release/X.Y first, then main, then develop
+- Release branches are NEVER deleted (long-lived; protected by repo ruleset)
+- Hotfixes go to release/X.Y first (rebase/squash merge), then release/X.Y → main (merge commit), then sync-release.yml auto-PRs main → develop
+- Use `inv release-bump VERSION` for ALL release version bumps; never hand-edit `pyproject.toml` or `CHANGELOG.md` during a release
 - Documentation-only changes can go directly to main if urgent
-- Internal type fragments don't show in user-facing changelog
+- All fragment types are visible in the user-facing changelog (`showcontent = true` for every type, including `internal`); use `internal` for project-mechanics changes that aren't customer features
 - Always use `--force-with-lease` instead of `--force` for safety
 - Never force push without asking user first: "I need to force push. May I proceed?"
 - Sign commits with GPG when possible (`-S` flag)
