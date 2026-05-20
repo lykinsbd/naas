@@ -1,0 +1,1 @@
+Add inv release-bump VERSION invoke task that performs the entire release ceremony in one command: bump pyproject.toml + uv lock + (final only) towncrier build + k8s manifest pinning + commit + annotated tag + atomic push. See ADR 0011 for design.
