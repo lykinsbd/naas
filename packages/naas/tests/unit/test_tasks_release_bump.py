@@ -17,8 +17,11 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from tasks import (
+    K8S_API_DEPLOYMENT,
+    K8S_WORKER_DEPLOYMENT,
     RELEASE_BRANCH_RE,
     RELEASE_VERSION_RE,
+    REPO_ROOT,
     _is_final_release,
     _validate_target_version,
 )
@@ -160,3 +163,29 @@ class TestValidateTargetVersion:
     def test_finalize_branch_rejected(self):
         with pytest.raises(SystemExit, match="not a release branch"):
             _validate_target_version("1.3.0", "1.3.1", "release/finalize-2.1.0")
+
+
+class TestK8sManifestPaths:
+    """K8s manifest path constants must be absolute.
+
+    The release-bump task runs `sed -i ... <path>` on these manifests via
+    invoke's `c.run`, which executes in the current working directory.
+    The documented invocation is `cd packages/naas && uv run invoke
+    release-bump VERSION`, so a relative path would resolve against
+    packages/naas/ and fail. See #494.
+    """
+
+    def test_k8s_api_deployment_is_absolute(self):
+        assert K8S_API_DEPLOYMENT.is_absolute(), (
+            "K8S_API_DEPLOYMENT must be absolute so the sed step works regardless of cwd. See #494."
+        )
+
+    def test_k8s_worker_deployment_is_absolute(self):
+        assert K8S_WORKER_DEPLOYMENT.is_absolute(), (
+            "K8S_WORKER_DEPLOYMENT must be absolute so the sed step works regardless of cwd. See #494."
+        )
+
+    def test_k8s_paths_anchored_at_repo_root(self):
+        """Sanity: the manifests live where we expect under the repo root."""
+        assert K8S_API_DEPLOYMENT == REPO_ROOT / "k8s" / "api" / "deployment.yaml"
+        assert K8S_WORKER_DEPLOYMENT == REPO_ROOT / "k8s" / "worker" / "deployment.yaml"

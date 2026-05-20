@@ -370,12 +370,11 @@ def release_bump(c, version, dry_run=False, no_push=False, message=""):
     # ----- 6. Final-release specific steps -----
     if is_final:
         for manifest in (K8S_API_DEPLOYMENT, K8S_WORKER_DEPLOYMENT):
+            # Use the absolute path so the command works regardless of cwd
+            # (the documented invocation runs invoke from packages/naas/).
             run(
                 "k8s",
-                (
-                    f"sed -i 's|ghcr.io/lykinsbd/naas:.*|ghcr.io/lykinsbd/naas:{version}|g' "
-                    f"{manifest.relative_to(REPO_ROOT)}"
-                ),
+                (f"sed -i 's|ghcr.io/lykinsbd/naas:.*|ghcr.io/lykinsbd/naas:{version}|g' {manifest}"),
             )
         # towncrier needs to run from the directory holding pyproject.toml
         # with its [tool.towncrier] config (packages/naas/).
