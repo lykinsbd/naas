@@ -6,7 +6,7 @@
 [![Code Quality](https://github.com/lykinsbd/naas/actions/workflows/lint.yml/badge.svg)](https://github.com/lykinsbd/naas/actions/workflows/lint.yml)
 [![Docker Build](https://github.com/lykinsbd/naas/actions/workflows/build.yml/badge.svg)](https://github.com/lykinsbd/naas/actions/workflows/build.yml)
 [![codecov](https://codecov.io/gh/lykinsbd/naas/branch/develop/graph/badge.svg)](https://codecov.io/gh/lykinsbd/naas)
-[![Documentation Status](https://readthedocs.org/projects/naas/badge/?version=latest)](https://naas.readthedocs.io/en/latest/?badge=latest)
+[![Documentation Status](https://readthedocs.org/projects/naas/badge/?version=stable)](https://naas.readthedocs.io/en/stable/?badge=stable)
 
 NAAS provides a production-ready REST API for [Netmiko](https://github.com/ktbyers/netmiko), enabling network automation through HTTP instead of SSH. Run commands on network devices, manage configurations, and integrate with existing tools—all through a simple API.
 
@@ -25,7 +25,7 @@ curl -k -X POST https://localhost:8443/v1/send_command \
   -d '{"host": "192.168.1.1", "platform": "cisco_ios", "commands": ["show version"]}'
 ```
 
-📖 **[Full documentation](https://naas.readthedocs.io/)** | 🚀 **[Installation guide](https://naas.readthedocs.io/en/latest/installation/)** | 📚 **[API reference](https://naas.readthedocs.io/en/latest/api-reference/)**
+📖 **[Full documentation](https://naas.readthedocs.io/)** | 🚀 **[Installation guide](https://naas.readthedocs.io/en/stable/installation/)** | 📚 **[API reference](https://naas.readthedocs.io/en/stable/api-reference/)**
 
 ## Why NAAS?
 
@@ -59,15 +59,15 @@ curl -k -X POST https://localhost:8443/v1/send_command \
 
 ## Documentation
 
-- **[Installation](https://naas.readthedocs.io/en/latest/installation/)** - Docker Compose and Kubernetes
-- **[API Usage](https://naas.readthedocs.io/en/latest/api-usage/)** - Examples and guides
-- **[API Reference](https://naas.readthedocs.io/en/latest/api-reference/)** - Interactive Swagger docs
-- **[Contributing](https://naas.readthedocs.io/en/latest/contributing/)** - Development setup
-- **[Changelog](https://naas.readthedocs.io/en/latest/changelog/)** - Release notes
+- **[Installation](https://naas.readthedocs.io/en/stable/installation/)** - Docker Compose and Kubernetes
+- **[API Usage](https://naas.readthedocs.io/en/stable/api-usage/)** - Examples and guides
+- **[API Reference](https://naas.readthedocs.io/en/stable/api-reference/)** - Interactive Swagger docs
+- **[Contributing](https://naas.readthedocs.io/en/stable/contributing/)** - Development setup
+- **[Changelog](https://naas.readthedocs.io/en/stable/changelog/)** - Release notes
 
 ## Contributing
 
-Contributions welcome! See the [Contributing Guide](https://naas.readthedocs.io/en/latest/contributing/) for development setup, workflow, and guidelines.
+Contributions welcome! See the [Contributing Guide](https://naas.readthedocs.io/en/stable/contributing/) for development setup, workflow, and guidelines.
 
 ## Support
 
