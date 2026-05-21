@@ -67,8 +67,8 @@ Chosen option: **Option 3 — release branch is the truth during a release; CI n
       → creates tag vX.Y.0
       → git push --atomic origin release/X.Y vX.Y.0
 7.  release.yml fires on the tag push → creates GitHub release with body extracted from CHANGELOG.md
-8.  Tag push triggers sync-release.yml → opens main → develop sync PR + develop bump PR
-9.  Open release/X.Y → main PR, merge with merge-commit (preserves the tag SHAs in main's history)
+8.  Open release/X.Y → main PR, merge with merge-commit (preserves the tag SHAs in main's history)
+9.  Merging that PR triggers sync-release.yml → auto-opens main → develop sync PR + develop bump PR
 10. Merge the auto-created sync and bump PRs
 ```
 
@@ -83,8 +83,8 @@ The new minor release is two human PR merges: `release/X.Y → main`, then `main
 4.  git checkout release/X.Y && git pull
 5.  inv release-bump X.Y.Z
 6.  release.yml fires → final release on release/X.Y
-7.  sync-release.yml opens main → develop PR
-8.  Open release/X.Y → main PR, merge with merge-commit
+7.  Open release/X.Y → main PR, merge with merge-commit
+8.  Merging that PR triggers sync-release.yml → opens main → develop PR
 ```
 
 ### Tag location and merge strategy
