@@ -69,6 +69,7 @@ nav:
       - Python Client & CLI: client.md
       - MCP Server: mcp-server.md
       - Structured Output: structured-output.md
+      - Platform Autodetect: platform-autodetect.md
       - Context Routing: contexts.md
       - Error Codes: error-codes.md
   - Operations:

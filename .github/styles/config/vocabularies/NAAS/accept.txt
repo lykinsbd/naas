@@ -44,6 +44,9 @@ async
 unversioned
 backpressure
 multipart
+autodetect
+Autodetect
+onboarding
 
 # Network terms
 IP
