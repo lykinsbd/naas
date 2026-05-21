@@ -40,6 +40,10 @@ K/V
 WSGI
 healthcheck
 enqueueing
+async
+unversioned
+backpressure
+multipart
 
 # Network terms
 IP

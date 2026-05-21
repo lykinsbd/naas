@@ -2,6 +2,9 @@
 
 Detailed examples for common NAAS API operations.
 
+!!! warning "API v1 sunset: 2027-01-01"
+    The `/v1/*` routes and legacy unversioned aliases (`/send_command`, `/send_config`, `/healthcheck`) are deprecated and **will be removed in NAAS v3.0**. All examples below use `/v2/` routes. If you have existing integrations on `/v1/`, see [Upgrading to v2.0](upgrading.md) for the migration guide.
+
 !!! warning "Breaking change in v1.3"
     The `delay_factor` parameter was replaced with `read_timeout` (float, seconds).
     Migrate by converting: `delay_factor=2` → `read_timeout=60.0` (approximate).
@@ -34,11 +37,11 @@ The original auth method. Credentials are passed through to the network device.
 
 ```bash
 # Using curl with -u flag
-curl -k -u "username:password" https://localhost:8443/healthcheck
+curl -k -u "username:password" https://localhost:8443/v2/healthcheck
 
 # Using Authorization header
 curl -k -H "Authorization: Basic $(echo -n 'username:password' | base64)" \
-  https://localhost:8443/healthcheck
+  https://localhost:8443/v2/healthcheck
 ```
 
 **Important**: Always use HTTPS. Credentials are transmitted to the network device.
@@ -742,7 +745,7 @@ AUTH = HTTPBasicAuth("admin", "password")
 
 # Send command
 response = requests.post(
-    f"{NAAS_URL}/send_command",
+    f"{NAAS_URL}/v2/send-command",
     auth=AUTH,
     verify=False,
     json={
@@ -758,7 +761,7 @@ print(f"Job ID: {job_id}")
 # Poll for results
 while True:
     result = requests.get(
-        f"{NAAS_URL}/send_command/{job_id}",
+        f"{NAAS_URL}/v2/send-command/{job_id}",
         auth=AUTH,
         verify=False
     ).json()

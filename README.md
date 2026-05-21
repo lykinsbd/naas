@@ -19,13 +19,17 @@ cd naas
 docker compose up -d
 
 # Send a command
-curl -k -X POST https://localhost:8443/v1/send_command \
+curl -k -X POST https://localhost:8443/v2/send-command \
   -u "username:password" \
   -H "Content-Type: application/json" \
   -d '{"host": "192.168.1.1", "platform": "cisco_ios", "commands": ["show version"]}'
 ```
 
 📖 **[Full documentation](https://naas.readthedocs.io/)** | 🚀 **[Installation guide](https://naas.readthedocs.io/en/stable/installation/)** | 📚 **[API reference](https://naas.readthedocs.io/en/stable/api-reference/)**
+
+> **⚠️ Deprecation notice — `/v1/` and unversioned routes**
+>
+> The `/v1/*` routes and legacy unversioned aliases (`/send_command`, `/send_config`, `/healthcheck`) are deprecated and **will be removed in NAAS v3.0** (sunset date: **2027-01-01**). All new integrations should use `/v2/` routes with hyphenated paths (`/v2/send-command` etc.). See the [migration guide](https://naas.readthedocs.io/en/stable/upgrading/) for details.
 
 ## Why NAAS?
 
@@ -37,19 +41,24 @@ curl -k -X POST https://localhost:8443/v1/send_command \
 
 ## Key Features
 
-### v1.3 (Latest)
+### v2 (Current)
 
-- ✨ **TextFSM structured output** - Parse command output into typed data structures
-- 🔍 **Platform autodetect** - Automatic device type detection via SSHDetect
-- ⚡ **Connection pooling** - Persistent SSH connections for better performance
-- 📊 **Prometheus metrics** - Monitor performance and health at `/metrics`
-- 🛑 **Job cancellation** - Cancel running jobs via DELETE endpoint
-- 📝 **Audit events** - Structured logging for compliance and troubleshooting
+- 🔐 **API key authentication (JWT)** - Token-based access with role-based access control (admin/operator/viewer)
+- 🎯 **Context authorization** - Scope API keys to specific routing contexts
+- 🔒 **Credential encryption at rest** - Device credentials encrypted in Redis
+- 📡 **SSE job streaming** - Server-sent events for real-time job updates
+- 🪝 **Webhook HMAC + retry** - Signed payloads with exponential-backoff redelivery
+- 📊 **OpenTelemetry tracing** - Distributed tracing for production observability
+- 🤖 **MCP server** - AI-assistant integration via Model Context Protocol
 
 ### Core Features
 
+- ✨ TextFSM structured output, platform autodetect, connection pooling
+- 📊 Prometheus metrics at `/metrics`
+- 🛑 Job cancellation and replay
+- 📝 Structured audit logging
 - ✅ RESTful API with async job processing
-- 🔒 HTTPS with TLS and HTTP Basic Auth
+- 🔒 HTTPS with TLS
 - 🐳 Docker Compose and Kubernetes deployment
 - 📊 Redis-backed job queue (RQ)
 - 🚀 Horizontal scaling support
