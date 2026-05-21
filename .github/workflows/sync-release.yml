@@ -1,9 +1,29 @@
 name: Sync Release to Develop
 
+# Runs after a release-branch PR (release/X.Y → main) is merged.
+# Two jobs:
+#   1. sync-to-develop: open a PR to bring main → develop with the
+#      newly-released commits.
+#   2. bump-develop: open a PR to bump develop's version to the next
+#      minor's alpha — only for X.Y.0 releases, NOT for patch releases
+#      (X.Y.Z, Z > 0). Patch releases don't change the develop minor
+#      stream and don't need a develop bump.
+#
+# Why pull_request:closed instead of push:tags? Per ADR 0011, the tag is
+# pushed to release/X.Y by `inv release-bump` BEFORE the release/X.Y → main
+# PR is opened. If we triggered on tag push, main wouldn't yet have the
+# release commits and `gh pr create --head main --base develop` would
+# fail with "No commits between develop and main". Triggering on the
+# release-branch → main merge guarantees main is up to date.
+#
+# Note: there is no longer a sync-to-release-branch job. Under the new
+# release model (ADR 0011), release/X.Y is the source of truth during
+# a release and the merge of release/X.Y → main is a merge-commit, so
+# the tag SHA is reachable from main without any further sync work.
 on:
-  push:
-    tags:
-      - 'v*.*.*'
+  pull_request:
+    types: [closed]
+    branches: [main]
 
 permissions:
   contents: write
@@ -12,78 +32,88 @@ permissions:
 jobs:
   sync-to-develop:
     runs-on: ubuntu-latest
-    # Only run for final releases (not pre-releases like v1.3.0b1, v1.3.0rc1)
-    if: "!contains(github.ref_name, 'b') && !contains(github.ref_name, 'rc')"
+    # Only run when a release/X.Y branch is merged into main.
+    if: |
+      github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.head.ref, 'release/')
+    outputs:
+      version: ${{ steps.parse.outputs.version }}
+      is_xy0: ${{ steps.parse.outputs.is_xy0 }}
     steps:
       - uses: actions/checkout@v6
         with:
           ref: main
           fetch-depth: 0
+
+      - name: Parse release version from merge commit
+        id: parse
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Find the highest final-release tag reachable from the merge commit.
+          # The release commit on release/X.Y has a tag pointing at it, and
+          # that commit becomes reachable from main once the PR is merged.
+          MERGE_SHA="${{ github.event.pull_request.merge_commit_sha }}"
+
+          # NOTE: `git tag --sort=-version:refname` is NOT reliable here —
+          # it sorts vX.Y.Z*b1* ABOVE vX.Y.Z (treats prerelease suffixes
+          # as ordering above the final). Filter out prereleases first,
+          # then sort properly.
+          TAG=$(git tag --list 'v*' --merged "$MERGE_SHA" \
+            | grep -vE '^v[0-9]+\.[0-9]+\.[0-9]+(b|rc)[0-9]+$' \
+            | sort -V \
+            | tail -n 1)
+
+          if [ -z "$TAG" ]; then
+            echo "❌ No final-release tag found reachable from merge commit $MERGE_SHA"
+            exit 1
+          fi
+
+          VERSION="${TAG#v}"
+          echo "Found released version: $VERSION (tag: $TAG)"
+
+          # Detect X.Y.0 (only X.Y.0 finals trigger bump-develop).
+          IS_XY0=false
+          if [[ "$VERSION" == *.0 ]]; then
+            IS_XY0=true
+          fi
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "is_xy0=$IS_XY0" >> "$GITHUB_OUTPUT"
 
       - name: Create PR to develop
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${{ steps.parse.outputs.version }}"
 
-          # Check if PR already exists
+          # Skip if a main → develop sync PR is already open.
           EXISTING_PR=$(gh pr list --base develop --head main --json number --jq '.[0].number')
-
           if [ -n "$EXISTING_PR" ]; then
             echo "PR #$EXISTING_PR already exists, skipping"
             exit 0
           fi
 
-          # Create PR
+          # Verify main has commits ahead of develop before trying to PR
+          AHEAD=$(gh api repos/${{ github.repository }}/compare/develop...main --jq '.ahead_by')
+          if [ "$AHEAD" -eq 0 ]; then
+            echo "✅ main has no commits ahead of develop, nothing to sync"
+            exit 0
+          fi
+
           gh pr create \
             --base develop \
             --head main \
             --title "chore: sync v${VERSION} release back to develop" \
-            --body "Automated PR to sync release v${VERSION} from main back to develop. After merging, manually bump develop to the next alpha version."
-
-  sync-to-release-branch:
-    runs-on: ubuntu-latest
-    # Only run for patch releases (v1.3.1, v1.3.2, etc.) - not initial releases (v1.3.0)
-    if: "!contains(github.ref_name, 'b') && !contains(github.ref_name, 'rc') && contains(github.ref_name, '.')"
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: main
-          fetch-depth: 0
-
-      - name: Sync to release branch
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          # Extract major.minor (e.g., 1.3 from 1.3.1)
-          MAJOR_MINOR=$(echo "$VERSION" | cut -d. -f1,2)
-          RELEASE_BRANCH="release/${MAJOR_MINOR}"
-
-          # Check if release branch exists
-          if ! git ls-remote --heads origin "$RELEASE_BRANCH" | grep -q "$RELEASE_BRANCH"; then
-            echo "Release branch $RELEASE_BRANCH does not exist, skipping"
-            exit 0
-          fi
-
-          # Fetch release branch
-          git fetch origin "$RELEASE_BRANCH"
-
-          # Check if main is ahead of release branch (has the tag commit)
-          if git merge-base --is-ancestor "origin/$RELEASE_BRANCH" main; then
-            # Fast-forward merge is possible
-            git checkout "$RELEASE_BRANCH"
-            git merge --ff-only main
-            git push origin "$RELEASE_BRANCH"
-            echo "✅ Fast-forwarded $RELEASE_BRANCH to include v${VERSION} release commit"
-          else
-            echo "⚠️  Cannot fast-forward $RELEASE_BRANCH - manual merge required"
-            exit 1
-          fi
+            --body "Automated PR to sync release v${VERSION} from main back to develop."
 
   bump-develop:
     runs-on: ubuntu-latest
     needs: sync-to-develop
+    # Only run for new minor releases (X.Y.0). Patch releases (X.Y.Z, Z > 0)
+    # don't change the develop minor stream — develop is already at the
+    # next minor's alpha and shouldn't be re-bumped.
+    if: needs.sync-to-develop.outputs.is_xy0 == 'true'
     steps:
       - uses: actions/checkout@v6
         with:
@@ -97,17 +127,21 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Extract current version from tag
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${{ needs.sync-to-develop.outputs.version }}"
 
-          # Calculate next minor version
-          MAJOR=$(echo $VERSION | cut -d. -f1)
-          MINOR=$(echo $VERSION | cut -d. -f2)
+          # Calculate next minor: 1.3.0 → 1.4.0a1
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
+          MINOR=$(echo "$VERSION" | cut -d. -f2)
           NEXT_MINOR=$((MINOR + 1))
           NEXT_VERSION="${MAJOR}.${NEXT_MINOR}.0a1"
           BRANCH="chore/bump-develop-v${NEXT_VERSION}"
 
-          # Create branch, bump version, and open PR
+          # Skip if branch already exists (workflow re-run safety)
+          if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
+            echo "Branch $BRANCH already exists, skipping"
+            exit 0
+          fi
+
           git checkout -b "$BRANCH"
           sed -i "s/^version = \".*\"/version = \"${NEXT_VERSION}\"/" packages/naas/pyproject.toml
           uv lock

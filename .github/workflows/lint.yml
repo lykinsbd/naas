@@ -46,6 +46,15 @@ jobs:
             exit 0
           fi
 
+          # Skip check for release-branch PRs into main. The release commit
+          # on release/X.Y runs `towncrier build --yes` which consumes all
+          # fragments and deletes them, so by the time the release/X.Y → main
+          # PR is opened, packages/naas/changes/ is intentionally empty.
+          if [[ "${{ github.base_ref }}" == "main" && "${{ github.head_ref }}" =~ ^release/[0-9]+\.[0-9]+$ ]]; then
+            echo "✅ Skipping changelog check for release-branch PR into main (fragments already consumed by towncrier build)"
+            exit 0
+          fi
+
           # Check if any changelog fragment exists (issue number or + prefix)
           if ! ls packages/naas/changes/*.*.md 1> /dev/null 2>&1; then
             echo "❌ Error: No changelog fragment found"

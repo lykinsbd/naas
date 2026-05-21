@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- towncrier release notes start -->
 
+# NAAS 2.2.0 (2026-05-20)
+
+## 🔒 Security
+
+- Bump authlib from 1.6.11 to 1.6.12 to address GHSA-9ggr-2464-2j32: open redirect on InvalidScopeError in OpenIDImplicitGrant and OpenIDHybridGrant.
+- Bump idna from 3.11 to 3.15 to address GHSA-jjg7-2v4v-x38h: specially-crafted inputs to idna.encode() could bypass the CVE-2024-3651 fix.
+- Bump python-multipart from 0.0.26 to 0.0.27 to address GHSA-9mvj-f7w8-pvh2: denial of service via unbounded multipart part headers.
+- Bump urllib3 from 2.6.3 to 2.7.0 to address two high-severity CVEs (GHSA-mf9v-mfxr-j63j and GHSA-pq67-6m6q-mj2v): decompression-bomb safeguard bypasses in the streaming API and sensitive headers being forwarded across origins in proxied low-level redirects.
+
+## 🐛 Bug Fixes
+
+- Fix release-bump invoke task k8s manifest pinning step failing when invoked from packages/naas/ (the documented invocation pattern). The step used a relative path that resolved incorrectly when cwd wasn't the repo root; now uses absolute paths. ([#494](https://github.com/lykinsbd/naas/issues/494))
+
+## 📚 Documentation
+
+- Backfill missing CHANGELOG.md entries for v1.3.0 and v1.4.0 from the corresponding GitHub Releases. Drops the orphaned reference to #322 (which never actually shipped in v1.4.0). ([#477](https://github.com/lykinsbd/naas/issues/477))
+- Add ADR 0011 documenting the release process: release/X.Y is the source of truth during a release, CI never commits back to branches, and release ceremony reduces to one invoke task. ([#479](https://github.com/lykinsbd/naas/issues/479))
+- Update README badge and user-facing documentation links from naas.readthedocs.io/en/latest/ to /en/stable/. The /en/stable/ URL points at the last released version's docs (canonical pattern for OSS Python projects); /en/latest/ tracks the default branch and will start serving in-development docs after the default-branch switch in #489. Internal contributor links (e.g. CONTRIBUTING.md → development guide) keep using /en/develop/. ([#489](https://github.com/lykinsbd/naas/issues/489))
+- Rewrite the Release Process section in development.md to match the new release-branch-as-truth model (ADR 0011): single inv release-bump command, merge-commit for release PRs, no CI commit-back. Update CONTRIBUTING.md merge-strategy note. Update naas-dev agent prompt with the new ceremony, merge-strategy guidance, inv release-bump usage, and corrected note about internal fragment visibility.
+
+## 🔧 Internal Changes
+
+- Fix release workflow not stopping when the tag already exists. The 'Stop if tag exists' step was a no-op because exit 0 succeeds the step without affecting downstream jobs. Now the should_release job output correctly evaluates to false when the tag exists, preventing duplicate-tag failures and stale changelog rebuilds. ([#468](https://github.com/lykinsbd/naas/issues/468))
+- Pin DavidAnson/markdownlint-cli2-action to v23.2.0 to prevent silent rule changes from breaking CI. The action's bundled markdownlint engine can introduce new lint rules in minor releases, as happened with MD060 in v23.1.0 which broke the v2.1.0 release PR. ([#472](https://github.com/lykinsbd/naas/issues/472))
+- Render the docs site changelog page from the repo-root CHANGELOG.md via mkdocs-include-markdown-plugin transclusion, eliminating the duplicated copy at docs/changelog.md and the corresponding cp step in the release workflow. ([#478](https://github.com/lykinsbd/naas/issues/478))
+- Add inv release-bump VERSION invoke task that performs the entire release ceremony in one command: bump pyproject.toml + uv lock + (final only) towncrier build + k8s manifest pinning + commit + annotated tag + atomic push. See ADR 0011 for design.
+- Bump develop to v2.2.0a1 after v2.1.0 release.
+- Migrate release pipeline to tag-driven model: release.yml triggers on tag push only and never commits back; finalize-release.yml deleted; sync-release.yml drops the sync-to-release-branch job (no longer needed with merge-commit on release PRs) and skips develop bump for patch releases. Implements ADR 0011.
+- Sync v2.1.0 release commits from main into develop after final release.
+
 # NAAS 2.1.0 (2026-05-18)
 
 ## ✨ Features
@@ -119,9 +149,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # NAAS 1.4.0 (2026-04-03)
 
+## ✨ Features
+
+- Add CONNECTION_POOL_EXCLUDE environment variable to exclude specific device IPs or platforms from connection pooling. ([#187](https://github.com/lykinsbd/naas/issues/187))
+- Add TTP structured output support to /v1/send_command_structured endpoint via ttp_template parameter. Mutually exclusive with textfsm_template. ([#246](https://github.com/lykinsbd/naas/issues/246))
+- Add host field accepting IP addresses and hostnames. Deprecate ip field (still works, will be removed in v2.0). ([#270](https://github.com/lykinsbd/naas/issues/270))
+- Enqueue response now includes queue_position, enqueued_at, and timeout fields. ([#271](https://github.com/lykinsbd/naas/issues/271))
+- Add webhook_url field to all job submission endpoints. When set, NAAS POSTs a job completion notification (job_id, status, timestamps — never results or credentials) to the URL when the job finishes. ([#275](https://github.com/lykinsbd/naas/issues/275))
+- Add optional tags field (dict[str,str]) to all enqueue requests. Tags stored in job metadata, returned in job results and list_jobs. Filter jobs by tag with ?tag=key:value. ([#276](https://github.com/lykinsbd/naas/issues/276))
+- Add MAX_QUEUE_DEPTH config to limit queue depth and return 503 when exceeded. ([#279](https://github.com/lykinsbd/naas/issues/279))
+- Add X-Idempotency-Key header support. Repeat requests with the same key return the original job_id instead of enqueuing a new job. ([#280](https://github.com/lykinsbd/naas/issues/280))
+- Add dead letter queue endpoints: GET /v1/jobs/failed lists failed jobs (credentials never exposed), POST /v1/jobs/{job_id}/replay re-enqueues with caller's credentials. Includes FAILED_JOB_MAX_RETAIN config and naas_failed_jobs_total Prometheus gauge. ([#281](https://github.com/lykinsbd/naas/issues/281))
+- Add job reaper background thread that detects orphaned jobs from dead workers and moves them to FailedJobRegistry. Uses distributed Redis lock to ensure only one reaper runs per cycle. ([#282](https://github.com/lykinsbd/naas/issues/282))
+- Add global Redis error handler returning 503 with Retry-After header instead of unhandled 500. ([#283](https://github.com/lykinsbd/naas/issues/283))
+- Add server-side job deduplication. Duplicate in-flight jobs (same host+platform+commands+user) return the existing job_id with deduplicated=true. Dedup keys cleared automatically via RQ callbacks on job completion/failure. ([#285](https://github.com/lykinsbd/naas/issues/285))
+- Add context-aware job routing for multi-VRF and multi-segment environments. Workers declare contexts via WORKER_CONTEXTS; callers specify context in requests. Includes GET /v1/contexts endpoint and comprehensive documentation. ([#290](https://github.com/lykinsbd/naas/issues/290))
+- Add conn_timeout field to all job submission endpoints to control TCP connection timeout (default 10s). Useful for fast failure detection on unreachable hosts or tuning for high-latency links. ([#304](https://github.com/lykinsbd/naas/issues/304))
+
 ## 🐛 Bug Fixes
 
-- Fix release automation overwriting ruff target-version in pyproject.toml. ([#322](https://github.com/lykinsbd/naas/issues/322))
+- Fix Dockerfile hardcoded python3.11 path to use ARG PYTHON_VERSION, enabling base image upgrades. ([#261](https://github.com/lykinsbd/naas/issues/261))
+
+## 📚 Documentation
+
+- Add Postman collection and OpenAPI spec as release artifacts. Document API client import instructions for Postman, Insomnia, and Bruno. ([#92](https://github.com/lykinsbd/naas/issues/92))
+- Establish ADR process using MADR format. Add docs/adr/ directory with template and first ADR for Python client library integration strategy. ([#265](https://github.com/lykinsbd/naas/issues/265))
+- Add user documentation for job tags and queue backpressure. ([#316](https://github.com/lykinsbd/naas/issues/316))
+- Fix MD060 table column style violations across documentation files.
+
+## 🧪 Testing & CI/CD
+
+- Add Python 3.12, 3.13, and 3.14 to CI test matrix. Bump Docker default base image to python:3.14-slim. ([#263](https://github.com/lykinsbd/naas/issues/263))
+- Expand integration tests to cover v1.4 features: host field, deprecated ip field, enqueue response metadata, structured output (TextFSM/TTP), and context routing with multiple workers. ([#293](https://github.com/lykinsbd/naas/issues/293))
+- Add Docker BuildKit GHA layer caching to integration test builds, reducing rebuild time on cache hits. ([#302](https://github.com/lykinsbd/naas/issues/302))
+- Run integration tests on Python 3.14 only — the Docker container always uses 3.14 regardless of matrix version, so multi-version integration testing added no coverage value. ([#303](https://github.com/lykinsbd/naas/issues/303))
+- Reduce k8s CI test time by patching GUNICORN_WORKERS=2 on the API deployment and reducing rollout timeouts from 180s to 90s. ([#308](https://github.com/lykinsbd/naas/issues/308))
+
+## 🔧 Internal Changes
+
+- Remove black dependency, superseded by ruff format. ([#258](https://github.com/lykinsbd/naas/issues/258))
+- Bump dependencies via Dependabot: types-paramiko, GitHub Actions, requests 2.33.0, cryptography 46.0.6, pygments 2.20.0, and 12 minor/patch updates.
+- Use RELEASE_TOKEN in finalize-release workflow to trigger CI checks on auto-created PRs
 
 # NAAS 1.3.1 (2026-03-06)
 
@@ -132,7 +200,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add response schema documentation to HealthCheck.get() docstring. ([#203](https://github.com/lykinsbd/naas/issues/203))
 - Add v1.2 and v1.3 release notes and fix v1.0.0 changelog entry.
 
-# NAAS 1.3.0rc2 (2026-03-04)
+# NAAS 1.3.0 (2026-03-05)
 
 ## 💥 Breaking Changes
 

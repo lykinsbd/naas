@@ -942,4 +942,4 @@ Import `naas-vX.Y.Z.openapi.json` — any OpenAPI 3.x compatible client works.
 
 - [Troubleshooting Guide](troubleshooting.md) - Common issues
 - [Security Best Practices](security.md) - Secure your deployment
-- [Full API Reference](https://naas.readthedocs.io/en/latest/api-reference/) - Complete API documentation
+- [Full API Reference](https://naas.readthedocs.io/en/stable/api-reference/) - Complete API documentation

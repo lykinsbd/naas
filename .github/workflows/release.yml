@@ -1,90 +1,52 @@
 name: Release
 
+# Tag-driven: this workflow only runs when a release tag is pushed.
+# Tags are created by `inv release-bump VERSION` on a release/X.Y branch
+# (see ADR 0011). CI never creates tags or commits to branches.
 on:
   push:
-    branches:
-      - main
-      - 'release/**'
-    paths:
-      - 'packages/naas/pyproject.toml'
+    tags:
+      - 'v*'
 
 permissions:
   contents: write
 
 jobs:
-  check-version:
+  release:
     runs-on: ubuntu-latest
     outputs:
-      should_release: ${{ steps.version.outputs.should_release }}
-      version: ${{ steps.version.outputs.version }}
-      is_prerelease: ${{ steps.version.outputs.is_prerelease }}
+      version: ${{ steps.parse.outputs.version }}
+      is_prerelease: ${{ steps.parse.outputs.is_prerelease }}
     steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
-      - name: Extract version and determine release type
-        id: version
+      - name: Parse and validate tag
+        id: parse
         run: |
-          VERSION=$(grep '^version = ' packages/naas/pyproject.toml | sed 's/version = "\(.*\)"/\1/')
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-          BRANCH="${GITHUB_REF#refs/heads/}"
-
-          # Check version type
-          if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            # Full release version (1.0.0)
-            if [[ "$BRANCH" == "main" ]]; then
-              echo "should_release=true" >> $GITHUB_OUTPUT
-              echo "is_prerelease=false" >> $GITHUB_OUTPUT
-              echo "✅ Full release version on main: $VERSION"
-            else
-              echo "should_release=false" >> $GITHUB_OUTPUT
-              echo "⏭️  Full release version not on main branch, skipping"
-            fi
-          elif [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(b|rc)[0-9]+$ ]]; then
-            # Beta or RC version (1.0.0b1, 1.0.0rc1)
-            if [[ "$BRANCH" =~ ^release/ ]]; then
-              echo "should_release=true" >> $GITHUB_OUTPUT
-              echo "is_prerelease=true" >> $GITHUB_OUTPUT
-              echo "✅ Pre-release version on release branch: $VERSION"
-            else
-              echo "should_release=false" >> $GITHUB_OUTPUT
-              echo "⏭️  Beta/RC version not on release branch, skipping"
-            fi
-          else
-            # Alpha or other (1.0.0a1)
-            echo "should_release=false" >> $GITHUB_OUTPUT
-            echo "⏭️  Alpha version, skipping release: $VERSION"
+          TAG="${GITHUB_REF_NAME}"
+          # Tag must look like vX.Y.Z, vX.Y.ZbN, or vX.Y.ZrcN.
+          # Alphas (vX.Y.ZaN) are explicitly rejected — those live only on
+          # develop and never get released.
+          if [[ ! "$TAG" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)((b|rc)([0-9]+))?$ ]]; then
+            echo "::error::Tag '$TAG' is not a valid release version. Allowed shapes: vX.Y.Z, vX.Y.ZbN, vX.Y.ZrcN."
+            exit 1
           fi
 
-      - name: Check if tag exists
-        id: tag_check
-        if: steps.version.outputs.should_release == 'true'
-        run: |
-          if git rev-parse "v${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-            echo "⏭️  Tag v${{ steps.version.outputs.version }} already exists"
+          VERSION="${TAG#v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+          # Pre-release if the tag has a b/rc suffix.
+          if [[ -n "${BASH_REMATCH[2]}" ]]; then
+            echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
+            echo "✅ Pre-release tag: $TAG (version $VERSION)"
           else
-            echo "exists=false" >> $GITHUB_OUTPUT
-            echo "✅ Tag v${{ steps.version.outputs.version }} does not exist"
+            echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
+            echo "✅ Final release tag: $TAG (version $VERSION)"
           fi
 
-      - name: Stop if tag exists
-        if: steps.version.outputs.should_release == 'true' && steps.tag_check.outputs.exists == 'true'
-        run: |
-          echo "Tag already exists, skipping release"
-          exit 0
-
-  release:
-    needs: check-version
-    if: needs.check-version.outputs.should_release == 'true'
-    runs-on: ubuntu-latest
-    steps:
       - uses: actions/checkout@v6
         with:
+          # Check out the tagged commit. fetch-depth: 0 so towncrier can
+          # render unconsumed fragments for prerelease bodies.
           fetch-depth: 0
-          token: ${{ secrets.RELEASE_TOKEN }}
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -97,59 +59,40 @@ jobs:
       - name: Install dependencies
         run: uv sync --package naas --extra dev
 
-      - name: Build changelog
+      - name: Build release notes
+        id: notes
         run: |
-          if [[ "${{ needs.check-version.outputs.is_prerelease }}" == "true" ]]; then
-            # Pre-release: build changelog but keep fragments
-            uv run towncrier build --version ${{ needs.check-version.outputs.version }} --keep --dir packages/naas
-            # Clean up old pre-releases but keep current one
-            python3 .github/scripts/cleanup_changelog.py ${{ needs.check-version.outputs.version }} CHANGELOG.md
+          VERSION="${{ steps.parse.outputs.version }}"
+          IS_PRERELEASE="${{ steps.parse.outputs.is_prerelease }}"
+
+          if [[ "$IS_PRERELEASE" == "false" ]]; then
+            # Final release: extract the just-added section from CHANGELOG.md.
+            # `inv release-bump` ran towncrier locally before tagging, so
+            # CHANGELOG.md already has the X.Y.Z section.
+            awk -v ver="$VERSION" '
+              $0 ~ "^# NAAS " ver " " { found=1 }
+              found && /^# / && $0 !~ "^# NAAS " ver " " { exit }
+              found { print }
+            ' CHANGELOG.md > .release-notes.md
+            if [ ! -s .release-notes.md ]; then
+              echo "::error::Could not find a # NAAS $VERSION section in CHANGELOG.md."
+              echo "::error::Did `inv release-bump` run towncrier before tagging?"
+              exit 1
+            fi
           else
-            # Final release: build changelog and delete fragments
-            uv run towncrier build --version ${{ needs.check-version.outputs.version }} --yes --dir packages/naas
-            # Clean up all pre-release entries for this version
-            python3 .github/scripts/cleanup_changelog.py ${{ needs.check-version.outputs.version }} CHANGELOG.md
-          fi
+            # Pre-release: render unconsumed fragments in-memory via
+            # `towncrier build --draft`. No file changes.
+            uv run towncrier build --draft --version "$VERSION" --dir packages/naas \
+              > .release-notes.md
+            if [ ! -s .release-notes.md ]; then
+              echo "::error::towncrier --draft produced no output for $VERSION."
+              echo "::error::Are there any fragments in packages/naas/changes/?"
+              exit 1
+            fi
 
-      - name: Commit changelog
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          uv lock
-          # Pin k8s manifest image tags to the release version
-          sed -i "s|ghcr.io/lykinsbd/naas:.*|ghcr.io/lykinsbd/naas:${{ needs.check-version.outputs.version }}|g" \
-            k8s/api/deployment.yaml k8s/worker/deployment.yaml
-          # Sync changelog to docs for Read the Docs
-          cp CHANGELOG.md docs/changelog.md
-          git add CHANGELOG.md docs/changelog.md uv.lock k8s/api/deployment.yaml k8s/worker/deployment.yaml
-          if [[ "${{ needs.check-version.outputs.is_prerelease }}" == "false" ]]; then
-            # Only commit fragment deletions on final release
-            git add packages/naas/changes/
-          fi
-          git commit -m "docs: update changelog for v${{ needs.check-version.outputs.version }}" || echo "No changes to commit"
-          git push
-
-      - name: Create and push tag
-        run: |
-          git tag -a "v${{ needs.check-version.outputs.version }}" -m "Release v${{ needs.check-version.outputs.version }}"
-          git push origin "v${{ needs.check-version.outputs.version }}"
-
-      - name: Extract changelog excerpt
-        run: |
-          VERSION="${{ needs.check-version.outputs.version }}"
-          # Extract only the current version's section — stop at the next top-level heading
-          awk "/^# NAAS ${VERSION}/{found=1} found && /^# / && !/^# NAAS ${VERSION}/{exit} found{print}" CHANGELOG.md > .changelog-excerpt.md
-          if [ ! -s .changelog-excerpt.md ]; then
-            echo "ERROR: Could not extract changelog for version ${VERSION}"
-            exit 1
-          fi
-
-          # Add pre-release warning for beta/rc
-          if [[ "${{ needs.check-version.outputs.is_prerelease }}" == "true" ]]; then
-            VERSION="${{ needs.check-version.outputs.version }}"
+            # Prepend the standard prerelease warning banner.
             if [[ "$VERSION" =~ rc[0-9]+$ ]]; then
-              # Release Candidate
-              cat > .changelog-final.md << 'EOF'
+              cat > .release-notes-final.md <<'BANNER'
           # 🚀 Release Candidate
 
           **This is a release candidate for testing and validation.**
@@ -160,10 +103,9 @@ jobs:
 
           ---
 
-          EOF
+          BANNER
             else
-              # Beta
-              cat > .changelog-final.md << 'EOF'
+              cat > .release-notes-final.md <<'BANNER'
           # ⚠️ BETA SOFTWARE ⚠️
 
           **This is beta software and should not be used in production.**
@@ -172,10 +114,10 @@ jobs:
 
           ---
 
-          EOF
+          BANNER
             fi
-            cat .changelog-excerpt.md >> .changelog-final.md
-            mv .changelog-final.md .changelog-excerpt.md
+            cat .release-notes.md >> .release-notes-final.md
+            mv .release-notes-final.md .release-notes.md
           fi
 
       - name: Setup Node.js
@@ -183,23 +125,23 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Generate API client collections
+      - name: Generate API client artifacts
         run: |
-          VERSION="${{ needs.check-version.outputs.version }}"
-          # Generate Postman collection from OpenAPI spec
+          VERSION="${{ steps.parse.outputs.version }}"
+          # Generate Postman collection from the OpenAPI spec at the tagged SHA.
           npx --yes openapi-to-postmanv2 \
             -s docs/swagger/openapi.json \
             -o "naas-v${VERSION}.postman_collection.json"
-          # Copy OpenAPI spec with versioned filename
+          # Copy the OpenAPI spec with a versioned filename.
           cp docs/swagger/openapi.json "naas-v${VERSION}.openapi.json"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: v${{ needs.check-version.outputs.version }}
-          body_path: .changelog-excerpt.md
+          tag_name: ${{ github.ref_name }}
+          body_path: .release-notes.md
           draft: false
-          prerelease: ${{ needs.check-version.outputs.is_prerelease }}
+          prerelease: ${{ steps.parse.outputs.is_prerelease }}
           files: |
-            naas-v${{ needs.check-version.outputs.version }}.postman_collection.json
-            naas-v${{ needs.check-version.outputs.version }}.openapi.json
+            naas-v${{ steps.parse.outputs.version }}.postman_collection.json
+            naas-v${{ steps.parse.outputs.version }}.openapi.json
