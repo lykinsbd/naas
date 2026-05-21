@@ -1,0 +1,123 @@
+name: Bump Develop After Release Sync
+
+# Runs after the main → develop release-sync PR merges. Opens a PR to
+# bump develop's version to the next minor's alpha (X.Y.0 → (X.Y+1).0a1).
+#
+# Why a separate workflow from sync-release.yml? Two-step ordering avoids
+# #501: if we ran bump-develop in the same workflow as sync-to-develop
+# (triggered by release-branch → main merge), bump-develop would branch
+# from develop BEFORE the sync PR opens, so develop's version is still
+# X.Y.0a1 (not yet X.Y.0). The bump's "old" value gets out of sync with
+# the actual base after the sync PR merges, causing a conflict.
+#
+# By waiting for the sync PR itself to merge, develop is in its final
+# post-release state (version = X.Y.0, fragments consumed) when we
+# branch off it.
+#
+# Only fires for X.Y.0 finals — patch releases (X.Y.Z, Z > 0) don't
+# advance the develop minor stream.
+on:
+  pull_request:
+    types: [closed]
+    branches: [develop]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bump-develop:
+    runs-on: ubuntu-latest
+    # Only run when a main → develop sync PR (from sync-release.yml) merges.
+    # Recognized by: head.ref == 'main' AND title starts with the convention.
+    if: |
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.head.ref == 'main' &&
+      startsWith(github.event.pull_request.title, 'chore: sync v')
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: develop
+          fetch-depth: 0
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Determine released version and target bump
+        id: parse
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Find the highest final-release tag reachable from develop now
+          # that the sync has merged in.
+          TAG=$(git tag --list 'v*' --merged HEAD \
+            | grep -vE '^v[0-9]+\.[0-9]+\.[0-9]+(b|rc)[0-9]+$' \
+            | sort -V \
+            | tail -n 1)
+
+          if [ -z "$TAG" ]; then
+            echo "❌ No final-release tag reachable from develop"
+            exit 1
+          fi
+
+          VERSION="${TAG#v}"
+          echo "Most recent final release reachable from develop: v$VERSION"
+
+          # Only bump for X.Y.0 finals.
+          if [[ "$VERSION" != *.0 ]]; then
+            echo "✅ v$VERSION is a patch release; develop minor stream unchanged. Skipping bump."
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Calculate next minor: 1.3.0 → 1.4.0a1
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
+          MINOR=$(echo "$VERSION" | cut -d. -f2)
+          NEXT_MINOR=$((MINOR + 1))
+          NEXT_VERSION="${MAJOR}.${NEXT_MINOR}.0a1"
+
+          # Verify develop is currently at the X.Y.0 final (i.e. the sync
+          # actually completed the version update). If develop's pyproject
+          # already shows NEXT_VERSION or some other value, skip — somebody
+          # already bumped it.
+          CURRENT_VERSION=$(grep -E '^version = ' packages/naas/pyproject.toml | head -1 | sed 's/^version = "\(.*\)"$/\1/')
+          if [[ "$CURRENT_VERSION" != "$VERSION" ]]; then
+            echo "✅ develop pyproject.toml is at $CURRENT_VERSION, expected $VERSION. Skipping bump (already done?)."
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "next_version=$NEXT_VERSION" >> "$GITHUB_OUTPUT"
+          echo "should_run=true" >> "$GITHUB_OUTPUT"
+
+      - name: Open bump PR
+        if: steps.parse.outputs.should_run == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ steps.parse.outputs.version }}"
+          NEXT_VERSION="${{ steps.parse.outputs.next_version }}"
+          BRANCH="chore/bump-develop-v${NEXT_VERSION}"
+
+          # Skip if branch already exists (workflow re-run safety)
+          if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
+            echo "Branch $BRANCH already exists, skipping"
+            exit 0
+          fi
+
+          git checkout -b "$BRANCH"
+          sed -i "s/^version = \".*\"/version = \"${NEXT_VERSION}\"/" packages/naas/pyproject.toml
+          uv lock
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add packages/naas/pyproject.toml uv.lock
+          git commit -m "chore: bump develop to v${NEXT_VERSION}"
+          git push -u origin "$BRANCH"
+
+          gh pr create \
+            --base develop \
+            --head "$BRANCH" \
+            --title "chore: bump develop to v${NEXT_VERSION}" \
+            --body "Automated version bump after v${VERSION} release."

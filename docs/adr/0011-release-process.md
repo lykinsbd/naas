@@ -87,6 +87,29 @@ The new minor release is two human PR merges: `release/X.Y → main`, then `main
 8.  Merging that PR triggers sync-release.yml → opens main → develop PR
 ```
 
+### Fixing bugs found during an in-progress release
+
+If a bug is discovered between cutting `release/X.Y` and shipping `X.Y.0` final (commonly during beta/RC testing), the fix should be authored **on `release/X.Y` first**, then forward-ported to develop:
+
+```text
+1. git checkout release/X.Y && git pull
+2. git checkout -b fix/issue-description
+3. Fix + add changelog fragment + PR to release/X.Y + merge
+4. git checkout develop && git pull
+5. git cherry-pick <merged-fix-sha>  (or PR if develop requires it)
+```
+
+This is the **inverse** of the usual fix-on-develop-first flow. Doing it this way is necessary because of how changelog fragments interact with the `main → develop` sync merge:
+
+* If the fragment is added on develop AND on release/X.Y independently (the develop-first-then-cherry-pick path), git treats it as "same file added on both branches"
+* The release commit on release/X.Y consumes and deletes the fragment via towncrier
+* When `main → develop` syncs after the release ships, the 3-way merge sees "added on develop, deleted on main" and defaults to keeping the file
+* The fragment becomes an orphan on develop and would produce a duplicate entry in the next release's changelog
+
+Authoring on `release/X.Y` first means the fragment exists on only one branch line, which the eventual sync merge handles cleanly.
+
+See `docs/development.md` § "Fixing bugs during an in-progress release" for the practical workflow.
+
 ### Tag location and merge strategy
 
 * Tags are created at the SHA on `release/X.Y` by the `inv release-bump` task, immediately before push

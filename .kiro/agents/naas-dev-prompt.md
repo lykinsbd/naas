@@ -439,6 +439,7 @@ The task validates the working tree, branch, and version before any side effect,
 
 - Release branches are NEVER deleted (long-lived; protected by repo ruleset)
 - Hotfixes go to release/X.Y first (rebase/squash merge), then release/X.Y → main (merge commit), then sync-release.yml auto-PRs main → develop
+- **Bugs found mid-release** (between cutting release/X.Y and shipping X.Y.0): author the fix on `release/X.Y` FIRST, then forward-port to develop via cherry-pick. Authoring on develop first and cherry-picking to release/X.Y creates orphan changelog fragments after the sync (#503).
 - Use `inv release-bump VERSION` for ALL release version bumps; never hand-edit `pyproject.toml` or `CHANGELOG.md` during a release
 - Documentation-only changes can go directly to main if urgent
 - All fragment types are visible in the user-facing changelog (`showcontent = true` for every type, including `internal`); use `internal` for project-mechanics changes that aren't customer features
