@@ -83,6 +83,33 @@ class TestHealthCheck:
         assert data["status"] == "degraded"
         assert data["components"]["redis"]["status"] == "unhealthy"
 
+    def test_unversioned_healthcheck_not_deprecated(self, client):
+        """`/healthcheck` is a permanent operational endpoint per ADR 0012.
+
+        It must not emit deprecation headers — k8s probes, Docker HEALTHCHECK,
+        and other infrastructure tooling rely on it indefinitely.
+        """
+        response = client.get("/healthcheck")
+        assert response.status_code == 200
+        assert "X-API-Deprecated" not in response.headers
+        assert "Deprecation" not in response.headers
+        assert "Sunset" not in response.headers
+
+    def test_v1_healthcheck_deprecated(self, client):
+        """`/v1/healthcheck` IS deprecated alongside other /v1/ routes (ADR 0007)."""
+        response = client.get("/v1/healthcheck")
+        assert response.status_code == 200
+        assert response.headers["X-API-Deprecated"] == "true"
+        assert response.headers["Deprecation"] == "true"
+        assert "Sunset" in response.headers
+
+    def test_v2_healthcheck_not_deprecated(self, client):
+        """`/v2/healthcheck` is the current versioned form, not deprecated."""
+        response = client.get("/v2/healthcheck")
+        assert response.status_code == 200
+        assert response.headers["X-API-Version"] == "v2"
+        assert "X-API-Deprecated" not in response.headers
+
 
 class TestRedisErrorHandler:
     """Tests for global Redis error handler."""

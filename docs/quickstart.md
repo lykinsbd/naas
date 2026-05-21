@@ -3,7 +3,9 @@
 Get NAAS up and running in 5 minutes using Docker Compose.
 
 !!! warning "Use `/v2/` for new integrations"
-    The `/v1/*` and legacy unversioned routes (used in some older examples) are deprecated and **will be removed in NAAS v3.0** (sunset: 2027-01-01). All examples below use `/v2/` routes. If you're migrating an existing integration, see [Upgrading to v2.0](upgrading.md).
+    The `/v1/*` and legacy unversioned data-plane routes (`/send_command`, `/send_config`) are deprecated and **will be removed in NAAS v3.0** (sunset: 2027-01-01). All examples below use `/v2/` routes. If you're migrating an existing integration, see [Upgrading to v2.0](upgrading.md).
+
+    The `/healthcheck` endpoint (unversioned) is **not** deprecated — it remains as a permanent operational endpoint for infrastructure probes.
 
 !!! tip "Prefer Kubernetes?"
     If you already have a cluster, skip this and go to the [Helm chart deployment](kubernetes.md).

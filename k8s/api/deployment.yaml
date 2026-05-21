@@ -58,6 +58,8 @@ spec:
             limits:
               memory: "768Mi"
               cpu: "500m"
+          # Health probes use unversioned /healthcheck as a permanent
+          # operational endpoint — see docs/adr/0012-unversioned-health-endpoint.md
           livenessProbe:
             httpGet:
               path: /healthcheck

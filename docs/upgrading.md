@@ -13,6 +13,13 @@ Sunset: 2027-01-01
 Link: </v2/>; rel="successor-version"
 ```
 
+!!! note "`/healthcheck` is exempt"
+    The unversioned `/healthcheck` endpoint is **not** deprecated. It is a
+    permanent operational endpoint for k8s probes, Docker `HEALTHCHECK`, and
+    similar infrastructure tooling. Only the explicitly versioned form
+    `/v1/healthcheck` is deprecated. See
+    [ADR 0012](adr/0012-unversioned-health-endpoint.md) for the rationale.
+
 ## Route Changes
 
 | v1 (deprecated) | v2 (new) |
