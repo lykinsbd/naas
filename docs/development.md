@@ -268,7 +268,7 @@ gh pr create --base main --head release/1.3 --title "Release v1.3.0"
 
 #### 7. Sync back to develop (automated)
 
-When the tag was pushed in step 5, `sync-release.yml` already opened:
+When the release/1.3 → main PR merged in step 6, `sync-release.yml` automatically opened:
 
 - A PR `main → develop` (carries the v1.3.0 release commits into develop).
 - A PR `chore: bump develop to v1.4.0a1` (only for X.Y.0 releases, not patches).
@@ -304,7 +304,7 @@ git pull
 uv run invoke release-bump 1.3.1
 ```
 
-This appends a v1.3.1 section to `CHANGELOG.md`, tags `v1.3.1`, and pushes. Then PR `release/1.3 → main` (merge-commit). `sync-release.yml` opens a `main → develop` PR; merge that. The develop bump job is skipped for patch releases.
+This appends a v1.3.1 section to `CHANGELOG.md`, tags `v1.3.1`, and pushes. Then PR `release/1.3 → main` (merge-commit). When that PR merges, `sync-release.yml` opens a `main → develop` PR; merge that. The develop bump job is skipped for patch releases.
 
 ### Common mistakes to avoid
 
@@ -330,7 +330,7 @@ This appends a v1.3.1 section to `CHANGELOG.md`, tags `v1.3.1`, and pushes. Then
 CI's only release job is to create the GitHub Release artifact after a tag is pushed:
 
 - `release.yml` (triggered by `push: tags: 'v*'`) validates the tag, extracts the changelog excerpt for finals (or renders unconsumed fragments via `towncrier build --draft` for prereleases), generates the Postman + OpenAPI release artifacts, and creates the GitHub Release.
-- `sync-release.yml` (triggered by `push: tags: 'v*.*.*'`, finals only) opens the `main → develop` sync PR and the develop-bump PR.
+- `sync-release.yml` (triggered when a `release/X.Y → main` PR merges, finals only) opens the `main → develop` sync PR and the develop-bump PR.
 
 CI does NOT bump versions, write to `CHANGELOG.md`, push tags, or commit to branches. All of that is the human's responsibility, done in one shot via `inv release-bump`.
 
