@@ -306,6 +306,33 @@ uv run invoke release-bump 1.3.1
 
 This appends a v1.3.1 section to `CHANGELOG.md`, tags `v1.3.1`, and pushes. Then PR `release/1.3 → main` (merge-commit). When that PR merges, `sync-release.yml` opens a `main → develop` PR; merge that. The develop bump job is skipped for patch releases.
 
+### Fixing bugs during an in-progress release
+
+If you discover a bug between cutting `release/X.Y` and shipping `X.Y.0` final (e.g. between beta and final), where to author the fix matters:
+
+**Author on `release/X.Y` first**, then forward-port to develop. Reverse the usual fix-on-develop-first flow.
+
+```bash
+# Branch from release/X.Y
+git checkout release/X.Y && git pull
+git checkout -b fix/issue-description
+
+# Fix + fragment, PR to release/X.Y, merge with rebase or squash
+gh pr create --base release/X.Y --head fix/issue-description
+# (after merge)
+
+# Forward-port the merged fix commit to develop
+git checkout develop && git pull
+git cherry-pick <merged-fix-sha>
+git push origin develop  # or PR if develop requires it
+```
+
+**Why**: changelog fragments are file additions. If the same fragment is added on both develop and release/X.Y independently (which happens if you fix on develop first and cherry-pick to release/X.Y), the fragment ends up "added on both branches with the same content but different file modes" from git's perspective. After the release commit consumes the fragment on release/X.Y (deletes it), the eventual `main → develop` sync-merge can resurrect the fragment on develop because it sees an "added on develop, deleted on main" situation that defaults to keep. The orphan then needs manual cleanup before the next release.
+
+Authoring on `release/X.Y` first eliminates this: the fragment exists ONLY on release/X.Y (and what merges forward to main, then to develop). Develop never independently adds it. The 3-way merge sees a clean addition with no conflict.
+
+This pattern is described in ADR 0011 § "Fixing bugs found during a release" and was added after #503.
+
 ### Common mistakes to avoid
 
 | ❌ Don't | ✅ Do |
