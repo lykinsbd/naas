@@ -143,6 +143,13 @@ api.add_resource(ApiKeyRotate, "/v2/api-keys/<string:key_id>/rotate", endpoint="
 # Legacy unversioned routes (deprecated aliases — kept for backward compatibility)
 _DEPRECATED_PREFIXES = ("/v1/", "/send_command", "/send_config", "/healthcheck")
 
+# Sunset date for /v1/ and unversioned routes (RFC 8594 Sunset header).
+# This is a public commitment to API clients communicated since v2.0.
+# DO NOT change this value without explicit team decision and a corresponding
+# entry in the changelog. The actual removal is tracked by the v3.0 milestone.
+# See: docs/upgrading.md, docs/adr/0007-api-versioning-strategy.md
+_DEPRECATION_SUNSET_DATE = "2027-01-01"
+
 
 @app.after_request
 def add_version_headers(response):
@@ -154,7 +161,7 @@ def add_version_headers(response):
     if request.path.startswith(_DEPRECATED_PREFIXES):
         response.headers["X-API-Deprecated"] = "true"
         response.headers["Deprecation"] = "true"
-        response.headers["Sunset"] = "2027-01-01"
+        response.headers["Sunset"] = _DEPRECATION_SUNSET_DATE
         response.headers["Link"] = '</v2/>; rel="successor-version"'
     # Rate limit headers
     if hasattr(g, "rate_limit_limit"):

@@ -2,6 +2,9 @@
 
 Get NAAS up and running in 5 minutes using Docker Compose.
 
+!!! warning "Use `/v2/` for new integrations"
+    The `/v1/*` and legacy unversioned routes (used in some older examples) are deprecated and **will be removed in NAAS v3.0** (sunset: 2027-01-01). All examples below use `/v2/` routes. If you're migrating an existing integration, see [Upgrading to v2.0](upgrading.md).
+
 !!! tip "Prefer Kubernetes?"
     If you already have a cluster, skip this and go to the [Helm chart deployment](kubernetes.md).
 
@@ -16,7 +19,7 @@ Get NAAS up and running in 5 minutes using Docker Compose.
 git clone https://github.com/lykinsbd/naas.git
 cd naas
 docker compose up -d
-curl -k https://localhost:8443/healthcheck
+curl -k https://localhost:8443/v2/healthcheck
 ```
 
 Expected response (version will match your release):
