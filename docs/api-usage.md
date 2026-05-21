@@ -3,7 +3,9 @@
 Detailed examples for common NAAS API operations.
 
 !!! warning "API v1 sunset: 2027-01-01"
-    The `/v1/*` routes and legacy unversioned aliases (`/send_command`, `/send_config`, `/healthcheck`) are deprecated and **will be removed in NAAS v3.0**. All examples below use `/v2/` routes. If you have existing integrations on `/v1/`, see [Upgrading to v2.0](upgrading.md) for the migration guide.
+    The `/v1/*` routes and legacy unversioned aliases (`/send_command`, `/send_config`) are deprecated and **will be removed in NAAS v3.0**. All examples below use `/v2/` routes. If you have existing integrations on `/v1/`, see [Upgrading to v2.0](upgrading.md) for the migration guide.
+
+    The `/healthcheck` endpoint (unversioned) is **not** deprecated — it remains as a permanent operational endpoint.
 
 !!! warning "Breaking change in v1.3"
     The `delay_factor` parameter was replaced with `read_timeout` (float, seconds).

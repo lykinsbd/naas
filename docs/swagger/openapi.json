@@ -2450,6 +2450,37 @@
         "tags": []
       }
     },
+    "/v2/healthcheck": {
+      "get": {
+        "description": "Returns:     dict: Health status with the following structure:         {             \"status\": str,  # \"healthy\", \"degraded\", or \"no_workers\"             \"version\": str,  # NAAS version             \"uptime_seconds\": int,  # Seconds since API start             \"components\": {                 \"redis\": {\"status\": str},  # \"healthy\" or \"unhealthy\"                 \"queue\": {\"status\": str, \"depth\": int},  # Queue status and job count                 \"workers\": {                     \"status\": str,  # \"healthy\" or \"no_workers\"                     \"count\": int,  # Number of worker pods/hosts                     \"active_jobs\": int  # Jobs currently processing                 }             }         }",
+        "operationId": "get__v2_healthcheck",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthCheckResponse.c5eb086"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError.6a07bef"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "Return detailed health status including component checks.",
+        "tags": []
+      }
+    },
     "/v2/jobs": {
       "get": {
         "description": "",

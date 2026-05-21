@@ -120,6 +120,7 @@ api.add_resource(ApiKey, "/v1/api-keys/<string:key_id>")
 api.add_resource(ApiKeyRotate, "/v1/api-keys/<string:key_id>/rotate")
 
 # v2 routes (hyphenated, RBAC/context auth enforced)
+api.add_resource(HealthCheck, "/v2/healthcheck", endpoint="healthcheck_v2")
 api.add_resource(SendCommand, "/v2/send-command", endpoint="send_command_v2")
 api.add_resource(SendCommandStructured, "/v2/send-command-structured", endpoint="send_command_structured_v2")
 api.add_resource(SendConfig, "/v2/send-config", endpoint="send_config_v2")
@@ -140,8 +141,12 @@ api.add_resource(ApiKeys, "/v2/api-keys", endpoint="api_keys_v2")
 api.add_resource(ApiKey, "/v2/api-keys/<string:key_id>", endpoint="api_key_v2")
 api.add_resource(ApiKeyRotate, "/v2/api-keys/<string:key_id>/rotate", endpoint="api_key_rotate_v2")
 
-# Legacy unversioned routes (deprecated aliases — kept for backward compatibility)
-_DEPRECATED_PREFIXES = ("/v1/", "/send_command", "/send_config", "/healthcheck")
+# Legacy unversioned routes (deprecated aliases — kept for backward compatibility).
+# Note: "/healthcheck" is intentionally NOT in this list. It is a permanent
+# operational endpoint consumed by k8s probes, Docker HEALTHCHECK, etc., and is
+# not part of the API versioning contract. See docs/adr/0012-unversioned-health-endpoint.md.
+# "/v1/healthcheck" IS deprecated, via the "/v1/" prefix below, alongside other v1 routes.
+_DEPRECATED_PREFIXES = ("/v1/", "/send_command", "/send_config")
 
 # Sunset date for /v1/ and unversioned routes (RFC 8594 Sunset header).
 # This is a public commitment to API clients communicated since v2.0.

@@ -58,6 +58,8 @@ spec:
                   optional: true
           resources:
             {{- toYaml .Values.api.resources | nindent 12 }}
+          # Health probes use unversioned /healthcheck as a permanent
+          # operational endpoint — see docs/adr/0012-unversioned-health-endpoint.md
           livenessProbe:
             httpGet:
               path: /healthcheck

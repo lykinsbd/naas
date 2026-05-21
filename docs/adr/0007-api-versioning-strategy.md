@@ -27,6 +27,11 @@ Use **path-based API versioning** where the URL prefix (`/v1/`, `/v2/`) represen
 
 Version-aware behavior is implemented via a `is_v2_request()` helper checked in decorators, not by duplicating resource classes.
 
+> **Exception:** `/healthcheck` (unversioned) is a permanent operational
+> endpoint and not subject to the deprecation policy described here. See
+> [ADR 0012](0012-unversioned-health-endpoint.md). The versioned forms
+> `/v1/healthcheck` and `/v2/healthcheck` follow the standard policy.
+
 ## Consequences
 
 ### Positive

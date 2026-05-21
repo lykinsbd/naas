@@ -44,3 +44,4 @@ Do **not** write an ADR for:
 | [0009](0009-command-authorization-deferred-to-aaa.md) | Command authorization deferred to AAA | Accepted |
 | [0010](0010-mcp-server-thin-client-over-rest-api.md) | MCP server as thin client over REST API | Accepted |
 | [0011](0011-release-process.md) | Release branch as the source of truth during a release | Accepted |
+| [0012](0012-unversioned-health-endpoint.md) | `/healthcheck` as a permanent unversioned operational endpoint | Accepted |

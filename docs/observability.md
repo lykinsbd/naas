@@ -84,7 +84,7 @@ If omitted, NAAS generates one automatically.
 
 ## Health Check
 
-`GET /healthcheck` performs a live Redis ping and reports component status:
+`GET /healthcheck` performs a live Redis ping and reports component status. This is the permanent operational endpoint used by k8s probes, Docker `HEALTHCHECK`, and similar infrastructure tooling — it is not subject to API versioning. The versioned form `/v2/healthcheck` is also available for clients that prefer an explicit version. See [ADR 0012](adr/0012-unversioned-health-endpoint.md).
 
 ```json
 {

@@ -27,9 +27,11 @@ curl -k -X POST https://localhost:8443/v2/send-command \
 
 📖 **[Full documentation](https://naas.readthedocs.io/)** | 🚀 **[Installation guide](https://naas.readthedocs.io/en/stable/installation/)** | 📚 **[API reference](https://naas.readthedocs.io/en/stable/api-reference/)**
 
-> **⚠️ Deprecation notice — `/v1/` and unversioned routes**
+> **⚠️ Deprecation notice — `/v1/` and unversioned data-plane routes**
 >
-> The `/v1/*` routes and legacy unversioned aliases (`/send_command`, `/send_config`, `/healthcheck`) are deprecated and **will be removed in NAAS v3.0** (sunset date: **2027-01-01**). All new integrations should use `/v2/` routes with hyphenated paths (`/v2/send-command` etc.). See the [migration guide](https://naas.readthedocs.io/en/stable/upgrading/) for details.
+> The `/v1/*` routes and legacy unversioned aliases (`/send_command`, `/send_config`) are deprecated and **will be removed in NAAS v3.0** (sunset date: **2027-01-01**). All new integrations should use `/v2/` routes with hyphenated paths (`/v2/send-command` etc.). See the [migration guide](https://naas.readthedocs.io/en/stable/upgrading/) for details.
+>
+> The unversioned `/healthcheck` endpoint is **not** deprecated — it remains as a permanent operational endpoint for k8s probes, Docker `HEALTHCHECK`, and similar infrastructure tooling.
 
 ## Why NAAS?
 

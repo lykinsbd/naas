@@ -3,7 +3,9 @@
 NAAS is a REST API wrapper for [Netmiko](https://github.com/ktbyers/netmiko) that runs commands and pushes configurations to network devices over SSH. You submit jobs via HTTP; workers execute them asynchronously and store results in Redis.
 
 !!! warning "API v1 sunset: 2027-01-01"
-    The `/v1/*` routes and legacy unversioned aliases (`/send_command`, `/send_config`, `/healthcheck`) are deprecated and **will be removed in NAAS v3.0** (sunset date: **2027-01-01**). All new integrations should use `/v2/` routes. See [Upgrading to v2.0](upgrading.md) for the migration guide.
+    The `/v1/*` routes and legacy unversioned aliases (`/send_command`, `/send_config`) are deprecated and **will be removed in NAAS v3.0** (sunset date: **2027-01-01**). All new integrations should use `/v2/` routes. See [Upgrading to v2.0](upgrading.md) for the migration guide.
+
+    The unversioned `/healthcheck` endpoint is **not** deprecated — it is a permanent operational endpoint per [ADR 0012](adr/0012-unversioned-health-endpoint.md).
 
 ## What does it do?
 
