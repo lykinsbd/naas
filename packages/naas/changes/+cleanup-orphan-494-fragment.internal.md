@@ -1,0 +1,1 @@
+Clean up orphan changelog fragment 494.bugfix.md left on develop after the v2.2.0 release sync. The fragment was correctly consumed by the v2.2.0 release commit on release/2.2, but a 3-way merge (main → develop) brought it back because it existed independently on both branches. This commit removes the orphan; #503 tracks the underlying workflow gap.
