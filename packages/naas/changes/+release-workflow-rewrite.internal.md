@@ -1,1 +1,0 @@
-Migrate release pipeline to tag-driven model: release.yml triggers on tag push only and never commits back; finalize-release.yml deleted; sync-release.yml drops the sync-to-release-branch job (no longer needed with merge-commit on release PRs) and skips develop bump for patch releases. Implements ADR 0011.

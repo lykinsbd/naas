@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- towncrier release notes start -->
 
+# NAAS 2.2.0 (2026-05-20)
+
+## 🔒 Security
+
+- Bump authlib from 1.6.11 to 1.6.12 to address GHSA-9ggr-2464-2j32: open redirect on InvalidScopeError in OpenIDImplicitGrant and OpenIDHybridGrant.
+- Bump idna from 3.11 to 3.15 to address GHSA-jjg7-2v4v-x38h: specially-crafted inputs to idna.encode() could bypass the CVE-2024-3651 fix.
+- Bump python-multipart from 0.0.26 to 0.0.27 to address GHSA-9mvj-f7w8-pvh2: denial of service via unbounded multipart part headers.
+- Bump urllib3 from 2.6.3 to 2.7.0 to address two high-severity CVEs (GHSA-mf9v-mfxr-j63j and GHSA-pq67-6m6q-mj2v): decompression-bomb safeguard bypasses in the streaming API and sensitive headers being forwarded across origins in proxied low-level redirects.
+
+## 🐛 Bug Fixes
+
+- Fix release-bump invoke task k8s manifest pinning step failing when invoked from packages/naas/ (the documented invocation pattern). The step used a relative path that resolved incorrectly when cwd wasn't the repo root; now uses absolute paths. ([#494](https://github.com/lykinsbd/naas/issues/494))
+
+## 📚 Documentation
+
+- Backfill missing CHANGELOG.md entries for v1.3.0 and v1.4.0 from the corresponding GitHub Releases. Drops the orphaned reference to #322 (which never actually shipped in v1.4.0). ([#477](https://github.com/lykinsbd/naas/issues/477))
+- Add ADR 0011 documenting the release process: release/X.Y is the source of truth during a release, CI never commits back to branches, and release ceremony reduces to one invoke task. ([#479](https://github.com/lykinsbd/naas/issues/479))
+- Update README badge and user-facing documentation links from naas.readthedocs.io/en/latest/ to /en/stable/. The /en/stable/ URL points at the last released version's docs (canonical pattern for OSS Python projects); /en/latest/ tracks the default branch and will start serving in-development docs after the default-branch switch in #489. Internal contributor links (e.g. CONTRIBUTING.md → development guide) keep using /en/develop/. ([#489](https://github.com/lykinsbd/naas/issues/489))
+- Rewrite the Release Process section in development.md to match the new release-branch-as-truth model (ADR 0011): single inv release-bump command, merge-commit for release PRs, no CI commit-back. Update CONTRIBUTING.md merge-strategy note. Update naas-dev agent prompt with the new ceremony, merge-strategy guidance, inv release-bump usage, and corrected note about internal fragment visibility.
+
+## 🔧 Internal Changes
+
+- Fix release workflow not stopping when the tag already exists. The 'Stop if tag exists' step was a no-op because exit 0 succeeds the step without affecting downstream jobs. Now the should_release job output correctly evaluates to false when the tag exists, preventing duplicate-tag failures and stale changelog rebuilds. ([#468](https://github.com/lykinsbd/naas/issues/468))
+- Pin DavidAnson/markdownlint-cli2-action to v23.2.0 to prevent silent rule changes from breaking CI. The action's bundled markdownlint engine can introduce new lint rules in minor releases, as happened with MD060 in v23.1.0 which broke the v2.1.0 release PR. ([#472](https://github.com/lykinsbd/naas/issues/472))
+- Render the docs site changelog page from the repo-root CHANGELOG.md via mkdocs-include-markdown-plugin transclusion, eliminating the duplicated copy at docs/changelog.md and the corresponding cp step in the release workflow. ([#478](https://github.com/lykinsbd/naas/issues/478))
+- Add inv release-bump VERSION invoke task that performs the entire release ceremony in one command: bump pyproject.toml + uv lock + (final only) towncrier build + k8s manifest pinning + commit + annotated tag + atomic push. See ADR 0011 for design.
+- Bump develop to v2.2.0a1 after v2.1.0 release.
+- Migrate release pipeline to tag-driven model: release.yml triggers on tag push only and never commits back; finalize-release.yml deleted; sync-release.yml drops the sync-to-release-branch job (no longer needed with merge-commit on release PRs) and skips develop bump for patch releases. Implements ADR 0011.
+- Sync v2.1.0 release commits from main into develop after final release.
+
 # NAAS 2.1.0 (2026-05-18)
 
 ## ✨ Features
