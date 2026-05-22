@@ -28,6 +28,15 @@ uv run invoke export-spec   # Regenerate docs/swagger/openapi.json
 uv run invoke clean         # Remove generated files
 ```
 
+### Tool prerequisites
+
+The Python tools above (invoke, ruff, mypy, pytest, towncrier) come from `uv sync --extra dev`. Documentation tooling has two parts:
+
+- **mkdocs and plugins**: included in the `docs` dependency group; bare `uv sync` (which includes `dev`, which includes `docs`) installs them automatically.
+- **Vale prose linter**: a Go binary, not a Python package. The repo ships a `.mise.toml` that pins the Vale version. Install [mise](https://mise.jdx.dev/) and run `mise install` to fetch it. CI uses the same pinned version via `errata-ai/vale-action@v2`.
+
+If you'd rather not install mise, install Vale yourself at the version listed in `.mise.toml` (Homebrew, asdf, aqua, or the GitHub release tarball all work). Vale isn't required for most contributions — CI runs prose-lint regardless.
+
 ## Branching Strategy
 
 NAAS uses a Git Flow-inspired model with long-lived release branches.

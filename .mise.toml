@@ -1,0 +1,12 @@
+# Tool versions for the NAAS project. See https://mise.jdx.dev/.
+#
+# Run `mise install` to install all tools listed below. Mise will resolve them
+# from its registry (vale comes from aqua:errata-ai/vale by default).
+#
+# Add new tools sparingly. Pin to a specific minor.patch version so contributors
+# and CI agree.
+
+[tools]
+# Vale prose linter — used by `invoke docs_prose` and `invoke docs_check`.
+# Keep this in sync with `.github/workflows/docs.yml` (vale-action `version:` input).
+vale = "3.12.0"
