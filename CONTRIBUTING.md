@@ -10,21 +10,40 @@ Thank you for your interest in contributing to NAAS!
    curl -LsSf https://astral.sh/uv/install.sh | sh
    ```
 
-2. Clone and set up:
+2. Install [mise](https://mise.jdx.dev/) for non-Python tools (currently just Vale, used by `invoke docs_check`):
+
+   ```bash
+   curl https://mise.run | sh
+   ```
+
+   Mise picks up `.mise.toml` in the repo root and installs everything pinned there. If you'd rather not use mise, see "Alternative tool install" below.
+
+3. Clone and set up:
 
    ```bash
    git clone https://github.com/lykinsbd/naas.git
    cd naas
    uv sync --extra dev
+   mise install   # installs Vale at the pinned version
    pre-commit install
    ```
 
-3. Run checks and tests:
+4. Run checks and tests:
 
    ```bash
    uv run invoke check
    uv run invoke test
    ```
+
+### Alternative tool install
+
+If you don't want to use mise, install Vale yourself at the version pinned in `.mise.toml`:
+
+- **macOS**: `brew install vale`
+- **Linux**: download the matching release from [Vale's GitHub releases](https://github.com/errata-ai/vale/releases)
+- **Other tool managers**: asdf and aqua both support Vale
+
+Skipping Vale is fine for most contributions; CI will run prose-lint regardless. You only need it locally if you want `invoke docs_prose` or `invoke docs_check` to run.
 
 ## Submitting a pull request
 
