@@ -35,7 +35,7 @@ jobs:
       github.event.pull_request.head.ref == 'main' &&
       startsWith(github.event.pull_request.title, 'chore: sync v')
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: develop
           fetch-depth: 0

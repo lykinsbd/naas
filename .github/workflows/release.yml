@@ -42,7 +42,7 @@ jobs:
             echo "✅ Final release tag: $TAG (version $VERSION)"
           fi
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           # Check out the tagged commit. fetch-depth: 0 so towncrier can
           # render unconsumed fragments for prerelease bodies.

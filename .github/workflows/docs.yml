@@ -28,7 +28,7 @@ jobs:
   markdown-lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Run markdownlint
         # Pinned to a specific minor version (rather than the @v23 major-floating
@@ -46,7 +46,7 @@ jobs:
   prose-lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: errata-ai/vale-action@v2
         with:
@@ -57,7 +57,7 @@ jobs:
   prose-lint-changelog:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: errata-ai/vale-action@v2
         with:
@@ -70,7 +70,7 @@ jobs:
   link-check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Check links in markdown files
         uses: gaurav-nelson/github-action-markdown-link-check@v1
@@ -82,7 +82,7 @@ jobs:
   check-openapi-spec:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7
@@ -99,7 +99,7 @@ jobs:
   check-client-models:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7
