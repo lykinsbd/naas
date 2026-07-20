@@ -22,6 +22,9 @@ def test_default_config():
     assert cfg["timeout"] == 30.0
     assert cfg["job_poll_interval"] == 2.0
     assert cfg["job_timeout"] == 300.0
+    assert cfg["transport"] == "stdio"
+    assert cfg["jwt_secret"] == ""
+    assert cfg["redis_url"] == ""
 
 
 def test_config_from_env():
@@ -83,6 +86,9 @@ async def test_app_lifespan_creates_and_closes_client():
                 "timeout": 10.0,
                 "job_poll_interval": 1.0,
                 "job_timeout": 60.0,
+                "transport": "stdio",
+                "jwt_secret": "",
+                "redis_url": "",
             },
         ),
     ):
@@ -98,13 +104,20 @@ async def test_app_lifespan_creates_and_closes_client():
             assert ctx["client"] is mock_instance
             assert ctx["job_poll_interval"] == 1.0
             assert ctx["job_timeout"] == 60.0
+            assert ctx["transport"] == "stdio"
 
         mock_instance.close.assert_called_once()
 
 
 def test_main_imports_and_calls_run():
-    """Test that main() calls mcp.run()."""
-    with patch("naas_mcp.server.mcp") as mock_mcp:
+    """Test that main() calls mcp.run() in stdio mode."""
+    import sys
+
+    with (
+        patch("naas_mcp.server.mcp") as mock_mcp,
+        patch.object(sys, "argv", ["naas-mcp"]),
+        patch.dict(os.environ, {"NAAS_MCP_TRANSPORT": "stdio"}, clear=False),
+    ):
         from naas_mcp import main
 
         main()

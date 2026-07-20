@@ -3,12 +3,34 @@
 from typing import Any
 
 from fastmcp import Context
+from fastmcp.server.dependencies import get_access_token
 from naas_client import AsyncNaasClient
 
 from naas_mcp.server import mcp
 
 
 def _client(ctx: Context) -> AsyncNaasClient:
+    """Get a naas-client instance, with per-request auth for HTTP transport.
+
+    In stdio mode: returns the shared lifespan client (single API key from env).
+    In HTTP mode: creates a per-request client using the caller's Bearer token,
+    so each MCP user's API calls are attributed to their own API key with proper
+    RBAC and context authorization enforced by the NAAS API.
+    """
+    transport = ctx.lifespan_context.get("transport", "stdio")
+    if transport == "stdio":
+        return ctx.lifespan_context["client"]  # type: ignore[return-value]
+
+    # HTTP mode: get the caller's token and create a per-request client
+    access_token = get_access_token()
+    if access_token is not None and access_token.token:
+        return AsyncNaasClient(
+            base_url=ctx.lifespan_context["api_url"],  # type: ignore[arg-type]
+            api_key=access_token.token,
+            timeout=ctx.lifespan_context["timeout"],  # type: ignore[arg-type]
+        )
+
+    # Fallback to shared client (shouldn't happen if auth is configured)
     return ctx.lifespan_context["client"]  # type: ignore[return-value]
 
 

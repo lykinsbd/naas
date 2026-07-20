@@ -1907,6 +1907,8 @@ source = { editable = "packages/naas-mcp" }
 dependencies = [
     { name = "fastmcp" },
     { name = "naas-client" },
+    { name = "pyjwt" },
+    { name = "redis" },
 ]
 
 [package.optional-dependencies]
@@ -1923,9 +1925,11 @@ requires-dist = [
     { name = "fastmcp", specifier = ">=2.0" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.15" },
     { name = "naas-client", editable = "packages/naas-client" },
+    { name = "pyjwt", specifier = ">=2.8.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=9.0" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.25" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=6.0" },
+    { name = "redis", specifier = ">=5.0.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.11" },
 ]
 provides-extras = ["dev"]
