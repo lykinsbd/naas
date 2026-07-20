@@ -68,6 +68,7 @@ nav:
       - API: api-usage.md
       - Python Client & CLI: client.md
       - MCP Server: mcp-server.md
+      - MCP Remote (HTTP): mcp-remote.md
       - Structured Output: structured-output.md
       - Platform Autodetect: platform-autodetect.md
       - Context Routing: contexts.md
