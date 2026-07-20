@@ -180,20 +180,19 @@ def admin_token() -> str:
 
 async def test_missing_bearer_token_rejected(mcp_server: FastMCP):
     """Requests without a Bearer token should be rejected with 401."""
-    async with _managed_asgi_app(mcp_server) as app:
-        async with httpx.AsyncClient(
-            transport=httpx.ASGITransport(app=app),
-            base_url="http://testserver",
-        ) as client:
-            resp = await client.post(
-                MCP_PATH,
-                json={"jsonrpc": "2.0", "method": "initialize", "id": 1, "params": {}},
-                headers={
-                    "Content-Type": "application/json",
-                    "Accept": "application/json, text/event-stream",
-                },
-            )
-            assert resp.status_code == 401, f"Expected 401, got {resp.status_code}: {resp.text}"
+    async with _managed_asgi_app(mcp_server) as app, httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app),
+        base_url="http://testserver",
+    ) as client:
+        resp = await client.post(
+            MCP_PATH,
+            json={"jsonrpc": "2.0", "method": "initialize", "id": 1, "params": {}},
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "application/json, text/event-stream",
+            },
+        )
+        assert resp.status_code == 401, f"Expected 401, got {resp.status_code}: {resp.text}"
 
 
 async def test_invalid_bearer_token_rejected(mcp_server: FastMCP):
@@ -203,50 +202,48 @@ async def test_invalid_bearer_token_rejected(mcp_server: FastMCP):
         "wrong-secret-key-not-the-real-one!!",
         algorithm="HS256",
     )
-    async with _managed_asgi_app(mcp_server) as app:
-        async with httpx.AsyncClient(
-            transport=httpx.ASGITransport(app=app),
-            base_url="http://testserver",
-        ) as client:
-            resp = await client.post(
-                MCP_PATH,
-                json={"jsonrpc": "2.0", "method": "initialize", "id": 1, "params": {}},
-                headers={
-                    "Content-Type": "application/json",
-                    "Accept": "application/json, text/event-stream",
-                    "Authorization": f"Bearer {bad_token}",
-                },
-            )
-            assert resp.status_code == 401, f"Expected 401, got {resp.status_code}: {resp.text}"
+    async with _managed_asgi_app(mcp_server) as app, httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app),
+        base_url="http://testserver",
+    ) as client:
+        resp = await client.post(
+            MCP_PATH,
+            json={"jsonrpc": "2.0", "method": "initialize", "id": 1, "params": {}},
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "application/json, text/event-stream",
+                "Authorization": f"Bearer {bad_token}",
+            },
+        )
+        assert resp.status_code == 401, f"Expected 401, got {resp.status_code}: {resp.text}"
 
 
 async def test_valid_bearer_token_accepted(mcp_server: FastMCP, valid_token: str):
     """Requests with a valid Bearer token should be accepted (HTTP 200)."""
-    async with _managed_asgi_app(mcp_server) as app:
-        async with httpx.AsyncClient(
-            transport=httpx.ASGITransport(app=app),
-            base_url="http://testserver",
-        ) as client:
-            resp = await client.post(
-                MCP_PATH,
-                json={
-                    "jsonrpc": "2.0",
-                    "method": "initialize",
-                    "id": 1,
-                    "params": {
-                        "protocolVersion": "2025-03-26",
-                        "capabilities": {},
-                        "clientInfo": {"name": "test-client", "version": "1.0.0"},
-                    },
+    async with _managed_asgi_app(mcp_server) as app, httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app),
+        base_url="http://testserver",
+    ) as client:
+        resp = await client.post(
+            MCP_PATH,
+            json={
+                "jsonrpc": "2.0",
+                "method": "initialize",
+                "id": 1,
+                "params": {
+                    "protocolVersion": "2025-03-26",
+                    "capabilities": {},
+                    "clientInfo": {"name": "test-client", "version": "1.0.0"},
                 },
-                headers={
-                    "Content-Type": "application/json",
-                    "Accept": "application/json, text/event-stream",
-                    "Authorization": f"Bearer {valid_token}",
-                },
-            )
-            # Server should accept the connection — 200 with SSE or JSON response
-            assert resp.status_code == 200, f"Expected 200, got {resp.status_code}: {resp.text}"
+            },
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "application/json, text/event-stream",
+                "Authorization": f"Bearer {valid_token}",
+            },
+        )
+        # Server should accept the connection — 200 with SSE or JSON response
+        assert resp.status_code == 200, f"Expected 200, got {resp.status_code}: {resp.text}"
 
 
 # ---------------------------------------------------------------------------
@@ -305,7 +302,7 @@ async def test_mcp_client_invalid_token_fails(mcp_server: FastMCP):
             httpx_client_factory=httpx_factory,
         )
 
-        with pytest.raises(Exception):
+        with pytest.raises(Exception):  # noqa: B017  -- FastMCP raises varied exceptions for auth failures
             async with Client(transport=transport) as client:
                 await client.list_tools()
 
@@ -326,7 +323,7 @@ async def test_mcp_client_no_token_fails(mcp_server: FastMCP):
             httpx_client_factory=httpx_factory,
         )
 
-        with pytest.raises(Exception):
+        with pytest.raises(Exception):  # noqa: B017  -- FastMCP raises varied exceptions for auth failures
             async with Client(transport=transport) as client:
                 await client.list_tools()
 

@@ -7,9 +7,11 @@ an auth check callable compatible with FastMCP's AuthMiddleware.
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 
-from fastmcp.server.auth import AccessToken
-from fastmcp.server.middleware.authorization import AuthContext
+if TYPE_CHECKING:
+    from fastmcp.server.auth import AccessToken
+    from fastmcp.server.middleware.authorization import AuthContext
 
 logger = logging.getLogger(__name__)
 

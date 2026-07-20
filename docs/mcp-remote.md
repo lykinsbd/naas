@@ -56,7 +56,7 @@ export NAAS_JWT_SECRET=your-jwt-secret
 
 The remote MCP server listens at:
 
-```
+```text
 http://<host>:8081/mcp
 ```
 
@@ -87,25 +87,23 @@ Any MCP client supporting streamable-http transport can connect by providing:
 
 ## Environment variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `NAAS_MCP_TRANSPORT` | `stdio` | Transport mode: `stdio` or `streamable-http` |
-| `NAAS_MCP_PORT` | `8081` | HTTP listen port (streamable-http only) |
-| `NAAS_MCP_HOST` | `0.0.0.0` | HTTP bind address |
-| `NAAS_MCP_API_URL` | `http://localhost:8080` | NAAS API base URL |
-| `NAAS_JWT_SECRET` | — | JWT secret for validating Bearer tokens |
-| `NAAS_MCP_REDIS_URL` | — | Redis URL for session/state (optional) |
-| `NAAS_MCP_LOG_LEVEL` | `info` | Logging level |
+| Variable                | Default                | Description                                      |
+| ----------------------- | ---------------------- | ------------------------------------------------ |
+| `NAAS_MCP_TRANSPORT`   | `stdio`                | Transport mode: `stdio` or `streamable-http`     |
+| `NAAS_MCP_PORT`        | `8081`                 | HTTP listen port (streamable-http only)          |
+| `NAAS_MCP_API_URL`     | `http://localhost:8080` | NAAS API base URL                               |
+| `NAAS_JWT_SECRET`      | —                      | JWT secret for validating Bearer tokens          |
+| `NAAS_MCP_REDIS_URL`   | —                      | Redis URL for revocation checks (optional)       |
 
-## Authentication & RBAC
+## Authentication and RBAC
 
 The MCP server validates Bearer tokens using the same `NAAS_JWT_SECRET` as the NAAS API. Token roles map to MCP tool access:
 
-| Role | Access |
-|------|--------|
-| `admin` | All tools (send-command, send-config, manage jobs) |
-| `operator` | send-command, send-config, list/cancel own jobs |
-| `viewer` | Read-only tools (show jobs, device info) |
+| Role       | Access                                              |
+| ---------- | --------------------------------------------------- |
+| `admin`    | All tools (send-command, send-config, manage jobs)  |
+| `operator` | send-command, send-config, list/cancel own jobs     |
+| `viewer`   | Read-only tools (show jobs, device info)            |
 
 No separate credentials needed — if you have a NAAS API key, it works for MCP too.
 
@@ -125,11 +123,3 @@ docker compose -f docker-compose.mcp.yml up -d
 # 3. Configure your AI client with the returned api_key as Bearer token
 # 4. The AI assistant can now run network commands through NAAS
 ```
-
-## Health check
-
-```bash
-curl http://localhost:8081/health
-```
-
-Returns `200 OK` when the server is ready.

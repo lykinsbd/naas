@@ -8,7 +8,6 @@ to work for both direct NAAS API access and MCP access.
 from __future__ import annotations
 
 import logging
-import time
 
 import jwt
 from fastmcp.server.auth import AccessToken, TokenVerifier

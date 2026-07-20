@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import time
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import jwt
 import pytest
 
 from naas_mcp.auth import NaasAuthProvider
-from naas_mcp.rbac import ROLE_RANK, require_naas_role
+from naas_mcp.rbac import require_naas_role
 
 JWT_SECRET = "test-secret-for-unit-tests"
 
