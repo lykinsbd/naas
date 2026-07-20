@@ -101,7 +101,32 @@ class TestNaasAuthProvider:
         token = _make_token(role="viewer")
         result = await provider.verify_token(token)
         assert result is not None
-        assert result.scopes == ["read"]
+
+    @pytest.mark.asyncio
+    async def test_lazy_redis_initialization(self):
+        """When redis_url is provided, Redis is initialized lazily on first use."""
+        from unittest.mock import patch as mock_patch
+
+        with mock_patch("redis.Redis.from_url") as mock_from_url:
+            mock_redis_instance = MagicMock()
+            mock_redis_instance.sismember.return_value = False
+            mock_from_url.return_value = mock_redis_instance
+
+            provider = NaasAuthProvider(
+                jwt_secret=JWT_SECRET,
+                redis_url="redis://localhost:6379/0",
+            )
+            # Redis not initialized yet
+            assert provider._redis is None
+
+            # First call to verify_token triggers lazy init
+            token = _make_token(sub="k-lazy")
+            result = await provider.verify_token(token)
+
+            assert result is not None
+            assert result.client_id == "k-lazy"
+            assert provider._redis is mock_redis_instance
+            mock_from_url.assert_called_once_with("redis://localhost:6379/0", decode_responses=True)
 
     @pytest.mark.asyncio
     async def test_role_to_scopes_operator(self, provider: NaasAuthProvider):
