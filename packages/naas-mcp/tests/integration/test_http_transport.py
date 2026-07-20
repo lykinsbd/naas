@@ -142,9 +142,7 @@ async def _managed_asgi_app(mcp_server: FastMCP):
         if msg["type"] == "lifespan.startup.complete":
             startup_complete.set()
 
-    lifespan_task = asyncio.create_task(
-        app({"type": "lifespan", "asgi": {"version": "3.0"}}, receive, send)
-    )
+    lifespan_task = asyncio.create_task(app({"type": "lifespan", "asgi": {"version": "3.0"}}, receive, send))
     # Wait for lifespan startup to complete
     await asyncio.sleep(0.1)
 
@@ -180,10 +178,13 @@ def admin_token() -> str:
 
 async def test_missing_bearer_token_rejected(mcp_server: FastMCP):
     """Requests without a Bearer token should be rejected with 401."""
-    async with _managed_asgi_app(mcp_server) as app, httpx.AsyncClient(
-        transport=httpx.ASGITransport(app=app),
-        base_url="http://testserver",
-    ) as client:
+    async with (
+        _managed_asgi_app(mcp_server) as app,
+        httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app),
+            base_url="http://testserver",
+        ) as client,
+    ):
         resp = await client.post(
             MCP_PATH,
             json={"jsonrpc": "2.0", "method": "initialize", "id": 1, "params": {}},
@@ -202,10 +203,13 @@ async def test_invalid_bearer_token_rejected(mcp_server: FastMCP):
         "wrong-secret-key-not-the-real-one!!",
         algorithm="HS256",
     )
-    async with _managed_asgi_app(mcp_server) as app, httpx.AsyncClient(
-        transport=httpx.ASGITransport(app=app),
-        base_url="http://testserver",
-    ) as client:
+    async with (
+        _managed_asgi_app(mcp_server) as app,
+        httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app),
+            base_url="http://testserver",
+        ) as client,
+    ):
         resp = await client.post(
             MCP_PATH,
             json={"jsonrpc": "2.0", "method": "initialize", "id": 1, "params": {}},
@@ -220,10 +224,13 @@ async def test_invalid_bearer_token_rejected(mcp_server: FastMCP):
 
 async def test_valid_bearer_token_accepted(mcp_server: FastMCP, valid_token: str):
     """Requests with a valid Bearer token should be accepted (HTTP 200)."""
-    async with _managed_asgi_app(mcp_server) as app, httpx.AsyncClient(
-        transport=httpx.ASGITransport(app=app),
-        base_url="http://testserver",
-    ) as client:
+    async with (
+        _managed_asgi_app(mcp_server) as app,
+        httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app),
+            base_url="http://testserver",
+        ) as client,
+    ):
         resp = await client.post(
             MCP_PATH,
             json={
