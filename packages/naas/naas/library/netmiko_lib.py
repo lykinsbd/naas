@@ -219,7 +219,7 @@ def _netmiko_send_command_impl(
                 if ttp_template is not None:
                     kwargs["ttp_template"] = ttp_template
             with span("naas.netmiko.send_command", attributes={"net.peer.name": ip, "naas.command": command}):
-                net_output[command] = net_connect.send_command(command, **kwargs)
+                net_output[command] = net_connect.send_command(command, **kwargs)  # type: ignore[arg-type]
 
         if use_pool:
             pool.release(ip, port, credentials.username, credentials.password, device_type, net_connect)
