@@ -19,6 +19,8 @@ classifiers = [
 dependencies = [
     "fastmcp>=2.0",
     "naas-client>=1.0.0a1",
+    "pyjwt>=2.8.0",
+    "redis>=5.0.0",
 ]
 
 [project.optional-dependencies]

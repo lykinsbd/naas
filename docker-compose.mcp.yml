@@ -1,0 +1,15 @@
+services:
+  naas-mcp:
+    build:
+      context: .
+      dockerfile: packages/naas-mcp/Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      NAAS_MCP_TRANSPORT: streamable-http
+      NAAS_MCP_PORT: "8081"
+      NAAS_MCP_API_URL: http://naas-api:8080
+      NAAS_JWT_SECRET: ${NAAS_JWT_SECRET}
+      NAAS_MCP_REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - redis

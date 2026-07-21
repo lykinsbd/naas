@@ -691,7 +691,7 @@ Or check [ntc-templates](https://github.com/networktocode/ntc-templates/tree/mas
 
 **Cause:** Template doesn't match actual device output format.
 
-**Solution:** Test template with [TextFSM online tool](https://textfsm.nornir.tech/) or supply corrected custom template.
+**Solution:** Test template with the [TextFSM documentation](https://github.com/google/textfsm) or supply corrected custom template.
 
 ## Platform Autodetect Issues
 

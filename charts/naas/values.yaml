@@ -67,6 +67,7 @@ secrets:
   # -- Values for the created Secret (ignored if existingSecret is set)
   redisPassword: ""
   encryptionKey: ""
+  jwtSecret: ""  # Required when mcp.enabled is true
   # -- Optional TLS (omit for self-signed)
   tlsCert: ""
   tlsKey: ""
@@ -90,6 +91,30 @@ redis:
   external:
     host: ""
     port: "6379"
+
+# -- MCP server configuration (optional, for remote/shared MCP deployments)
+mcp:
+  enabled: false
+  image:
+    repository: ghcr.io/lykinsbd/naas-mcp
+    tag: ""  # Defaults to Chart.appVersion
+    pullPolicy: IfNotPresent
+  replicas: 1
+  port: 8081
+  # -- URL of the NAAS API server (internal cluster DNS)
+  apiUrl: "https://naas-api:443"
+  # -- Redis URL for token revocation checks (same Redis as API)
+  redisUrl: "redis://naas-redis:6379/0"
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "50m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+  service:
+    type: ClusterIP
+    port: 8081
 
 # -- Ingress configuration
 ingress:
