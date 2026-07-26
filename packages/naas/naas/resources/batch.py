@@ -319,6 +319,11 @@ class BatchStatus(Resource):
     @spec.validate(resp=Response(HTTP_200=BatchStatusResponse))
     def get(self, batch_id: str):
         """Get the status of a batch and all its constituent jobs."""
+        from naas.library.auth import Credentials
+        from naas.library.validation import Validate
+
+        Validate.has_auth()
+
         redis = current_app.config["redis"]
 
         # Fetch batch metadata
@@ -326,8 +331,19 @@ class BatchStatus(Resource):
         if batch_data is None:
             raise NotFound(f"Batch '{batch_id}' not found or has expired")
 
+        # Build credentials for ownership check
+        auth = request.authorization
+        if auth and auth.username and auth.password:
+            creds = Credentials(username=auth.username, password=auth.password)
+            salted = creds.salted_hash()
+        elif hasattr(g, "jwt_claims"):
+            # JWT auth: use the sub claim as a pseudo-hash for ownership
+            salted = g.jwt_claims.get("sub", "")
+        else:
+            raise Forbidden("Cannot verify batch ownership")
+
         # Validate ownership
-        if not validate_batch_ownership(batch_data, g.credentials.salted_hash()):
+        if not validate_batch_ownership(batch_data, salted):
             raise Forbidden("You do not have access to this batch")
 
         # Query status of each job
