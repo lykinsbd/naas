@@ -72,6 +72,7 @@ nav:
       - Structured Output: structured-output.md
       - Platform Autodetect: platform-autodetect.md
       - Context Routing: contexts.md
+      - Batch Operations: batch-operations.md
       - Error Codes: error-codes.md
   - Operations:
       - Security: security.md

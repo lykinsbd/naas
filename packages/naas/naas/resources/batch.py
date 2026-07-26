@@ -9,7 +9,8 @@ from __future__ import annotations
 
 from flask import current_app, g, request
 from flask_restful import Resource
-from rq.job import Callback, Job as RQJob
+from rq.job import Callback
+from rq.job import Job as RQJob
 from spectree import Response
 from werkzeug.exceptions import Forbidden, NotFound, TooManyRequests, UnprocessableEntity
 
@@ -20,6 +21,9 @@ from naas.config import (
     JOB_TTL_FAILED,
     JOB_TTL_SUCCESS,
     MAX_QUEUE_DEPTH,
+    RATE_LIMIT_ENABLED,
+    RATE_LIMIT_PER_CALLER,
+    RATE_LIMIT_WINDOW,
 )
 from naas.library.audit import emit_audit_event
 from naas.library.auth import job_locker, require_role
@@ -29,8 +33,7 @@ from naas.library.context import get_queue_for_context
 from naas.library.decorators import valid_post
 from naas.library.netmiko_lib import netmiko_send_command, netmiko_send_config
 from naas.library.otel import inject_traceparent
-from naas.library.rate_limit import _check_limit, _get_caller_id, _is_exempt
-from naas.config import RATE_LIMIT_ENABLED, RATE_LIMIT_PER_CALLER, RATE_LIMIT_WINDOW
+from naas.library.rate_limit import _get_caller_id, _is_exempt
 from naas.models import (
     BatchSendCommandRequest,
     BatchSendConfigRequest,
@@ -340,7 +343,7 @@ class BatchStatus(Resource):
 
             try:
                 rq_job = RQJob.fetch(job_id, connection=redis)
-                status = rq_job.get_status()
+                status = str(rq_job.get_status())
             except Exception:
                 status = "unknown"
 

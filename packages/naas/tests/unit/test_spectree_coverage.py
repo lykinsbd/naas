@@ -6,6 +6,7 @@ Prevents new endpoints from being added without OpenAPI documentation.
 import inspect
 
 from naas.resources.api_keys import ApiKey, ApiKeyRotate, ApiKeys
+from naas.resources.batch import BatchSendCommand, BatchSendConfig, BatchStatus
 from naas.resources.cancel_job import CancelJob
 from naas.resources.contexts import Contexts
 from naas.resources.failed_jobs import FailedJobs, ReplayJob
@@ -23,6 +24,9 @@ _RESOURCE_METHODS: list[tuple[type, list[str]]] = [
     (SendCommand, ["post"]),
     (SendCommandStructured, ["post"]),
     (SendConfig, ["post"]),
+    (BatchSendCommand, ["post"]),
+    (BatchSendConfig, ["post"]),
+    (BatchStatus, ["get"]),
     (GetResults, ["get"]),
     (ListJobs, ["get"]),
     (FailedJobs, ["get"]),

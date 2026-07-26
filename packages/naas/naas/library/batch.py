@@ -87,4 +87,4 @@ def validate_batch_ownership(batch_data: dict, salted_hash: str) -> bool:
     Returns:
         True if the caller is the batch submitter.
     """
-    return batch_data.get("hash", "") == salted_hash
+    return batch_data.get("hash", "") == salted_hash  # type: ignore[no-any-return]
