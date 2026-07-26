@@ -461,3 +461,140 @@ class ApiKeyListResponse(BaseModel):
     """Response model for GET /v2/api-keys."""
 
     keys: list[ApiKeyListItem] = Field(..., description="Active API keys")
+
+
+# --- Batch / Bulk Operations Models ---
+
+
+class BatchDeviceEntry(BaseModel):
+    """A single device in a batch request.
+
+    At minimum requires host and platform. Optional fields override
+    the batch-level defaults for credentials and port.
+    """
+
+    model_config = {"strict": True}
+
+    host: str = Field(..., description="Device IP address or hostname")
+    platform: str = Field(..., description="Netmiko device type")
+    port: int | None = Field(default=None, ge=1, le=65535, description="SSH port override")
+    username: str | None = Field(default=None, description="Device username override")
+    password: str | None = Field(default=None, description="Device password override")
+    enable: str | None = Field(default=None, description="Enable password override")
+    context: str | None = Field(default=None, description="Routing context override for this device")
+
+    @field_validator("host")
+    @classmethod
+    def validate_host(cls, v: str) -> str:
+        """Validate host is a valid IP address or hostname."""
+        try:
+            ip_address(v)
+            return v
+        except Exception:
+            pass
+        if len(v) <= 253 and _HOSTNAME_RE.match(v):
+            return v
+        raise ValueError(f"'{v}' is not a valid IP address or hostname")
+
+    @field_validator("platform")
+    @classmethod
+    def platform_is_valid(cls, v: str) -> str:
+        """Ensure platform is a valid Netmiko device type."""
+        if v not in netmiko_platforms:
+            raise ValueError(f"Invalid platform '{v}'. Must be a valid Netmiko device type.")
+        return v
+
+
+class BatchSendCommandRequest(BaseModel):
+    """Request model for POST /v2/send-command/batch.
+
+    Submits the same commands to multiple devices. Each device can override
+    credentials and routing context. Returns a batch ID for tracking.
+    """
+
+    model_config = {"strict": True}
+
+    devices: list[BatchDeviceEntry] = Field(
+        ..., min_length=1, description="List of target devices"
+    )
+    commands: list[str] = Field(
+        ..., min_length=1, description="Commands to execute on each device"
+    )
+    username: str | None = Field(default=None, description="Default username for all devices")
+    password: str | None = Field(default=None, description="Default password for all devices")
+    enable: str | None = Field(default=None, description="Default enable password for all devices")
+    port: int = Field(default=22, ge=1, le=65535, description="Default SSH port for all devices")
+    context: str = Field(default="default", description="Default routing context for all devices")
+    expect_string: str | None = Field(
+        default=None, description="Regex pattern to match in device output (applied to all devices)"
+    )
+    tags: dict[str, str] | None = Field(default=None, description="Metadata tags applied to all jobs in the batch")
+
+    @field_validator("commands")
+    @classmethod
+    def commands_not_empty(cls, v: list[str]) -> list[str]:
+        """Ensure commands list contains non-empty strings."""
+        if not all(cmd.strip() for cmd in v):
+            raise ValueError("commands must contain non-empty strings")
+        return v
+
+
+class BatchSendConfigRequest(BaseModel):
+    """Request model for POST /v2/send-config/batch.
+
+    Pushes the same configuration commands to multiple devices. Each device
+    can override credentials and routing context. commit/save_config apply
+    uniformly to all devices.
+    """
+
+    model_config = {"strict": True}
+
+    devices: list[BatchDeviceEntry] = Field(
+        ..., min_length=1, description="List of target devices"
+    )
+    commands: list[str] = Field(
+        ..., min_length=1, description="Configuration commands to apply on each device"
+    )
+    username: str | None = Field(default=None, description="Default username for all devices")
+    password: str | None = Field(default=None, description="Default password for all devices")
+    enable: str | None = Field(default=None, description="Default enable password for all devices")
+    port: int = Field(default=22, ge=1, le=65535, description="Default SSH port for all devices")
+    context: str = Field(default="default", description="Default routing context for all devices")
+    commit: bool = Field(default=False, description="Commit configuration on platforms that support it")
+    save_config: bool = Field(default=False, description="Save running config to startup after applying")
+    tags: dict[str, str] | None = Field(default=None, description="Metadata tags applied to all jobs in the batch")
+
+    @field_validator("commands")
+    @classmethod
+    def commands_not_empty(cls, v: list[str]) -> list[str]:
+        """Ensure commands list contains non-empty strings."""
+        if not all(cmd.strip() for cmd in v):
+            raise ValueError("commands must contain non-empty strings")
+        return v
+
+
+class BatchSubmitResponse(BaseModel):
+    """Response for successful batch submission (202 Accepted)."""
+
+    batch_id: str = Field(..., description="Unique batch identifier")
+    job_ids: list[str] = Field(..., description="Individual job IDs created for each device")
+    total: int = Field(..., description="Number of jobs created")
+
+
+class BatchJobStatus(BaseModel):
+    """Status of a single job within a batch."""
+
+    job_id: str = Field(..., description="Unique job identifier")
+    host: str = Field(..., description="Target device host")
+    status: str = Field(..., description="Job status (queued, started, finished, failed)")
+
+
+class BatchStatusResponse(BaseModel):
+    """Response for GET /v2/batches/{batch_id}."""
+
+    batch_id: str = Field(..., description="Unique batch identifier")
+    total: int = Field(..., description="Total number of jobs in batch")
+    completed: int = Field(..., description="Number of finished jobs")
+    pending: int = Field(..., description="Number of queued or started jobs")
+    failed: int = Field(..., description="Number of failed jobs")
+    jobs: list[BatchJobStatus] = Field(..., description="Per-job status breakdown")

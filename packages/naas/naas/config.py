@@ -56,6 +56,10 @@ WORKER_CONTEXTS: list[str] = [c.strip() for c in os.environ.get("WORKER_CONTEXTS
 # Queue depth limit (0 = disabled)
 MAX_QUEUE_DEPTH: int = int(os.environ.get("MAX_QUEUE_DEPTH", 0))
 
+# Batch / bulk operations limits
+BATCH_MAX_DEVICES: int = int(os.environ.get("BATCH_MAX_DEVICES", 100))
+BATCH_MAX_COMMANDS: int = int(os.environ.get("BATCH_MAX_COMMANDS", 50))
+
 # Idempotency key TTL in seconds (24h default)
 IDEMPOTENCY_TTL: int = int(os.environ.get("IDEMPOTENCY_TTL", 86400))
 
