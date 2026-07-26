@@ -16,6 +16,8 @@ from naas_client.models import (
     ApiKeyCreateResponse,
     ApiKeyListItem,
     ApiKeyListResponse,
+    BatchStatusResponse,
+    BatchSubmitResponse,
     ContextsResponse,
     FailedJobsResponse,
     HealthCheckResponse,
@@ -115,7 +117,7 @@ class NaasClient:
 
     # -- Batch operations ----------------------------------------------------
 
-    def send_command_batch(self, **kwargs: Any) -> "BatchSubmitResponse":
+    def send_command_batch(self, **kwargs: Any) -> BatchSubmitResponse:
         """Submit a batch of send-command jobs to multiple devices.
 
         Args:
@@ -128,12 +130,11 @@ class NaasClient:
         Returns:
             BatchSubmitResponse with batch_id, job_ids, and total.
         """
-        from naas_client.models import BatchSubmitResponse
 
         resp = self._request("POST", "/v2/send-command/batch", json=kwargs)
         return BatchSubmitResponse.model_validate(resp.json())
 
-    def send_config_batch(self, **kwargs: Any) -> "BatchSubmitResponse":
+    def send_config_batch(self, **kwargs: Any) -> BatchSubmitResponse:
         """Submit a batch of send-config jobs to multiple devices.
 
         Args:
@@ -147,12 +148,11 @@ class NaasClient:
         Returns:
             BatchSubmitResponse with batch_id, job_ids, and total.
         """
-        from naas_client.models import BatchSubmitResponse
 
         resp = self._request("POST", "/v2/send-config/batch", json=kwargs)
         return BatchSubmitResponse.model_validate(resp.json())
 
-    def get_batch(self, batch_id: str) -> "BatchStatusResponse":
+    def get_batch(self, batch_id: str) -> BatchStatusResponse:
         """Get the status of a batch and all its constituent jobs.
 
         Args:
@@ -161,7 +161,6 @@ class NaasClient:
         Returns:
             BatchStatusResponse with total, completed, pending, failed counts and per-job status.
         """
-        from naas_client.models import BatchStatusResponse
 
         resp = self._request("GET", f"/v2/batches/{batch_id}")
         return BatchStatusResponse.model_validate(resp.json())

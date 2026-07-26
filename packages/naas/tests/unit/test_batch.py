@@ -2,13 +2,8 @@
 
 from __future__ import annotations
 
-import json
-import time
 from base64 import b64encode
 from unittest.mock import MagicMock, patch
-
-import pytest
-from fakeredis import FakeStrictRedis
 
 from naas.library.batch import (
     BATCH_KEY_PREFIX,
@@ -17,7 +12,6 @@ from naas.library.batch import (
     store_batch,
     validate_batch_ownership,
 )
-
 
 # --- Batch storage layer tests ---
 
