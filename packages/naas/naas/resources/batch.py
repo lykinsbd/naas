@@ -320,9 +320,6 @@ class BatchStatus(Resource):
     def get(self, batch_id: str):
         """Get the status of a batch and all its constituent jobs."""
         from naas.library.auth import Credentials
-        from naas.library.validation import Validate
-
-        Validate.has_auth()
 
         redis = current_app.config["redis"]
 
@@ -358,7 +355,9 @@ class BatchStatus(Resource):
 
             try:
                 rq_job = RQJob.fetch(job_id, connection=redis)
-                status = str(rq_job.get_status())
+                status = rq_job.get_status()
+                # RQ returns a JobStatus enum — convert to plain string
+                status = status.value if hasattr(status, "value") else str(status)
             except Exception:
                 status = "unknown"
 
