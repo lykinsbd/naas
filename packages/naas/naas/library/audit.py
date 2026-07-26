@@ -20,6 +20,7 @@ _EVENT_SCHEMAS = {
     "device.locked_out": {"host", "failure_count"},
     "circuit.opened": {"host"},
     "circuit.closed": {"host"},
+    "batch.submitted": {"batch_id", "device_count", "operation"},
 }
 
 

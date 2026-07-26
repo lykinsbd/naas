@@ -61,6 +61,7 @@ def _check_batch_rate_limit(device_count: int) -> None:
     if device_count > remaining:
         g.rate_limit_limit = RATE_LIMIT_PER_CALLER
         g.rate_limit_remaining = remaining
+        g.rate_limit_reset = int(now + RATE_LIMIT_WINDOW)
         raise TooManyRequests(
             f"Rate limit insufficient: batch requires {device_count} units "
             f"but only {remaining} remaining in window"
@@ -77,6 +78,7 @@ def _check_batch_rate_limit(device_count: int) -> None:
 
     g.rate_limit_limit = RATE_LIMIT_PER_CALLER
     g.rate_limit_remaining = max(0, remaining - device_count)
+    g.rate_limit_reset = int(now + RATE_LIMIT_WINDOW)
 
 
 def _check_batch_queue_depth(contexts: list[str]) -> None:
