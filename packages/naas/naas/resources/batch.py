@@ -150,36 +150,49 @@ def _enqueue_batch_jobs(
         # Get queue for this device's context
         q = get_queue_for_context(context, redis)
 
-        # Build worker kwargs
-        kwargs = {
+        # Build per-device credentials (use encryption if available)
+        from naas.library.auth import Credentials
+
+        device_creds = Credentials(username=username, password=password, enable=enable)
+
+        # Encrypt if encryption is enabled
+        from naas.config import CREDENTIAL_ENCRYPTION_ENABLED
+
+        if CREDENTIAL_ENCRYPTION_ENABLED:
+            from naas.library.encryption import encrypt_credentials
+
+            device_creds_for_worker = encrypt_credentials(device_creds)
+        else:
+            device_creds_for_worker = device_creds
+
+        # Build enqueue kwargs matching netmiko_send_command/netmiko_send_config signature
+        enqueue_kwargs: dict[str, object] = {
             "ip": host,
             "port": port,
             "device_type": platform,
+            "credentials": device_creds_for_worker,
             "commands": commands,
-            "credentials": credentials.__class__(username=username, password=password, enable=enable),
-            "request_id": None,  # Will be set below
+            "request_id": None,  # Will be set to job.id after enqueue
         }
         if extra_kwargs:
-            kwargs.update(extra_kwargs)
+            enqueue_kwargs.update(extra_kwargs)
 
         # Inject OTel traceparent if available
-        inject_traceparent(kwargs)
+        meta = inject_traceparent({})
 
         # Enqueue the job
         job = q.enqueue(
             worker_fn,
-            kwargs=kwargs,
+            **enqueue_kwargs,
             job_timeout=JOB_TIMEOUT,
             result_ttl=JOB_TTL_SUCCESS,
             failure_ttl=JOB_TTL_FAILED,
             on_success=Callback(on_job_complete),
             on_failure=Callback(on_job_failure),
+            meta=meta,
         )
 
-        # Set request_id to job.id for tracing
-        kwargs["request_id"] = job.id
-
-        # Store batch_id in job meta for correlation
+        # Store batch_id and host in job meta for correlation
         job.meta["batch_id"] = batch_id
         job.meta["host"] = host
         job.save_meta()
@@ -236,8 +249,12 @@ class BatchSendCommand(Resource):
             extra_kwargs={"expect_string": data.expect_string} if data.expect_string else None,
         )
 
-        # Store batch metadata
-        store_batch(redis, batch_id, jobs, g.credentials.salted_hash())
+        # Store batch metadata — use identity appropriate for auth method
+        if g.auth_method == "bearer":
+            owner_hash = g.jwt_claims.get("sub", "")
+        else:
+            owner_hash = g.credentials.salted_hash()
+        store_batch(redis, batch_id, jobs, owner_hash)
 
         emit_audit_event(
             "batch.submitted",
@@ -299,8 +316,12 @@ class BatchSendConfig(Resource):
             extra_kwargs=extra_kwargs or None,
         )
 
-        # Store batch metadata
-        store_batch(redis, batch_id, jobs, g.credentials.salted_hash())
+        # Store batch metadata — use identity appropriate for auth method
+        if g.auth_method == "bearer":
+            owner_hash = g.jwt_claims.get("sub", "")
+        else:
+            owner_hash = g.credentials.salted_hash()
+        store_batch(redis, batch_id, jobs, owner_hash)
 
         emit_audit_event(
             "batch.submitted",
