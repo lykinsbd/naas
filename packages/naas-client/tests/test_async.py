@@ -333,6 +333,7 @@ class TestAsyncContextManager:
 
     # -- Batch operations tests --
 
+    @pytest.mark.asyncio
     async def test_send_command_batch(self, httpx_mock: HTTPXMock) -> None:
         batch_resp = {"batch_id": "batch-abc123", "job_ids": ["j1", "j2"], "total": 2}
         httpx_mock.add_response(status_code=202, json=batch_resp)
@@ -344,6 +345,7 @@ class TestAsyncContextManager:
         assert result.batch_id == "batch-abc123"
         assert result.total == 2
 
+    @pytest.mark.asyncio
     async def test_send_config_batch(self, httpx_mock: HTTPXMock) -> None:
         batch_resp = {"batch_id": "batch-def456", "job_ids": ["j1"], "total": 1}
         httpx_mock.add_response(status_code=202, json=batch_resp)
@@ -354,6 +356,7 @@ class TestAsyncContextManager:
             )
         assert result.batch_id == "batch-def456"
 
+    @pytest.mark.asyncio
     async def test_get_batch(self, httpx_mock: HTTPXMock) -> None:
         status_resp = {
             "batch_id": "batch-abc123",
