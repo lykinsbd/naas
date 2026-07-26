@@ -355,9 +355,8 @@ class BatchStatus(Resource):
 
             try:
                 rq_job = RQJob.fetch(job_id, connection=redis)
-                status = rq_job.get_status()
-                # RQ returns a JobStatus enum — convert to plain string
-                status = status.value if hasattr(status, "value") else str(status)
+                raw_status = rq_job.get_status()
+                status: str = raw_status.value if hasattr(raw_status, "value") else str(raw_status)
             except Exception:
                 status = "unknown"
 
