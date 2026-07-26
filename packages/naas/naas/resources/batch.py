@@ -66,8 +66,7 @@ def _check_batch_rate_limit(device_count: int) -> None:
         g.rate_limit_remaining = remaining
         g.rate_limit_reset = int(now + RATE_LIMIT_WINDOW)
         raise TooManyRequests(
-            f"Rate limit insufficient: batch requires {device_count} units "
-            f"but only {remaining} remaining in window"
+            f"Rate limit insufficient: batch requires {device_count} units but only {remaining} remaining in window"
         )
 
     # Consume N units

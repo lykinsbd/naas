@@ -514,12 +514,8 @@ class BatchSendCommandRequest(BaseModel):
 
     model_config = {"strict": True}
 
-    devices: list[BatchDeviceEntry] = Field(
-        ..., min_length=1, description="List of target devices"
-    )
-    commands: list[str] = Field(
-        ..., min_length=1, description="Commands to execute on each device"
-    )
+    devices: list[BatchDeviceEntry] = Field(..., min_length=1, description="List of target devices")
+    commands: list[str] = Field(..., min_length=1, description="Commands to execute on each device")
     username: str | None = Field(default=None, description="Default username for all devices")
     password: str | None = Field(default=None, description="Default password for all devices")
     enable: str | None = Field(default=None, description="Default enable password for all devices")
@@ -549,12 +545,8 @@ class BatchSendConfigRequest(BaseModel):
 
     model_config = {"strict": True}
 
-    devices: list[BatchDeviceEntry] = Field(
-        ..., min_length=1, description="List of target devices"
-    )
-    commands: list[str] = Field(
-        ..., min_length=1, description="Configuration commands to apply on each device"
-    )
+    devices: list[BatchDeviceEntry] = Field(..., min_length=1, description="List of target devices")
+    commands: list[str] = Field(..., min_length=1, description="Configuration commands to apply on each device")
     username: str | None = Field(default=None, description="Default username for all devices")
     password: str | None = Field(default=None, description="Default password for all devices")
     enable: str | None = Field(default=None, description="Default enable password for all devices")

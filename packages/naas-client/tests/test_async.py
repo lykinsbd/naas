@@ -330,3 +330,44 @@ class TestAsyncContextManager:
     def test_trailing_slash_stripped(self) -> None:
         c = AsyncNaasClient("https://naas.test/", username="x", password="x")
         assert c._base_url == "https://naas.test"
+
+    # -- Batch operations tests --
+
+    async def test_send_command_batch(self, httpx_mock: HTTPXMock) -> None:
+        batch_resp = {"batch_id": "batch-abc123", "job_ids": ["j1", "j2"], "total": 2}
+        httpx_mock.add_response(status_code=202, json=batch_resp)
+        async with AsyncNaasClient(BASE, username="x", password="x") as c:
+            result = await c.send_command_batch(
+                devices=[{"host": "10.0.0.1", "platform": "cisco_ios"}],
+                commands=["show version"],
+            )
+        assert result.batch_id == "batch-abc123"
+        assert result.total == 2
+
+    async def test_send_config_batch(self, httpx_mock: HTTPXMock) -> None:
+        batch_resp = {"batch_id": "batch-def456", "job_ids": ["j1"], "total": 1}
+        httpx_mock.add_response(status_code=202, json=batch_resp)
+        async with AsyncNaasClient(BASE, username="x", password="x") as c:
+            result = await c.send_config_batch(
+                devices=[{"host": "10.0.0.1", "platform": "cisco_ios"}],
+                commands=["interface Gi0/1"],
+            )
+        assert result.batch_id == "batch-def456"
+
+    async def test_get_batch(self, httpx_mock: HTTPXMock) -> None:
+        status_resp = {
+            "batch_id": "batch-abc123",
+            "total": 2,
+            "completed": 2,
+            "pending": 0,
+            "failed": 0,
+            "jobs": [
+                {"job_id": "j1", "host": "10.0.0.1", "status": "finished"},
+                {"job_id": "j2", "host": "10.0.0.2", "status": "finished"},
+            ],
+        }
+        httpx_mock.add_response(status_code=200, json=status_resp)
+        async with AsyncNaasClient(BASE, username="x", password="x") as c:
+            result = await c.get_batch("batch-abc123")
+        assert result.batch_id == "batch-abc123"
+        assert result.completed == 2
