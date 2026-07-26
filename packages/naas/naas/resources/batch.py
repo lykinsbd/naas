@@ -158,12 +158,11 @@ def _enqueue_batch_jobs(
         # Encrypt if encryption is enabled
         from naas.config import CREDENTIAL_ENCRYPTION_ENABLED
 
+        device_creds_for_worker: object = device_creds
         if CREDENTIAL_ENCRYPTION_ENABLED:
             from naas.library.encryption import encrypt_credentials
 
             device_creds_for_worker = encrypt_credentials(device_creds)
-        else:
-            device_creds_for_worker = device_creds
 
         # Build enqueue kwargs matching netmiko_send_command/netmiko_send_config signature
         enqueue_kwargs: dict[str, object] = {
