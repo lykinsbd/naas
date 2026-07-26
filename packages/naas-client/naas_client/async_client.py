@@ -104,6 +104,29 @@ class AsyncNaasClient:
         sub = JobSubmission.model_validate(resp.json())
         return AsyncJob(self, sub.job_id, "config")
 
+    # -- Batch operations ----------------------------------------------------
+
+    async def send_command_batch(self, **kwargs: Any) -> "BatchSubmitResponse":
+        """Submit a batch of send-command jobs to multiple devices."""
+        from naas_client.models import BatchSubmitResponse
+
+        resp = await self._request("POST", "/v2/send-command/batch", json=kwargs)
+        return BatchSubmitResponse.model_validate(resp.json())
+
+    async def send_config_batch(self, **kwargs: Any) -> "BatchSubmitResponse":
+        """Submit a batch of send-config jobs to multiple devices."""
+        from naas_client.models import BatchSubmitResponse
+
+        resp = await self._request("POST", "/v2/send-config/batch", json=kwargs)
+        return BatchSubmitResponse.model_validate(resp.json())
+
+    async def get_batch(self, batch_id: str) -> "BatchStatusResponse":
+        """Get the status of a batch and all its constituent jobs."""
+        from naas_client.models import BatchStatusResponse
+
+        resp = await self._request("GET", f"/v2/batches/{batch_id}")
+        return BatchStatusResponse.model_validate(resp.json())
+
     async def get_command_result(self, job_id: str) -> JobResult:
         resp = await self._request("GET", f"/v2/send-command/{job_id}")
         return JobResult.model_validate(resp.json())

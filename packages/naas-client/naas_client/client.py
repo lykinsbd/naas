@@ -113,6 +113,59 @@ class NaasClient:
         sub = JobSubmission.model_validate(resp.json())
         return Job(self, sub.job_id, "config")
 
+    # -- Batch operations ----------------------------------------------------
+
+    def send_command_batch(self, **kwargs: Any) -> "BatchSubmitResponse":
+        """Submit a batch of send-command jobs to multiple devices.
+
+        Args:
+            devices: List of device dicts (host, platform, optional overrides).
+            commands: Commands to execute on each device.
+            username/password/enable/port/context: Defaults for all devices.
+            expect_string: Optional regex for output matching.
+            tags: Optional metadata tags.
+
+        Returns:
+            BatchSubmitResponse with batch_id, job_ids, and total.
+        """
+        from naas_client.models import BatchSubmitResponse
+
+        resp = self._request("POST", "/v2/send-command/batch", json=kwargs)
+        return BatchSubmitResponse.model_validate(resp.json())
+
+    def send_config_batch(self, **kwargs: Any) -> "BatchSubmitResponse":
+        """Submit a batch of send-config jobs to multiple devices.
+
+        Args:
+            devices: List of device dicts (host, platform, optional overrides).
+            commands: Configuration commands to apply on each device.
+            username/password/enable/port/context: Defaults for all devices.
+            commit: Commit configuration on platforms that support it.
+            save_config: Save running config to startup.
+            tags: Optional metadata tags.
+
+        Returns:
+            BatchSubmitResponse with batch_id, job_ids, and total.
+        """
+        from naas_client.models import BatchSubmitResponse
+
+        resp = self._request("POST", "/v2/send-config/batch", json=kwargs)
+        return BatchSubmitResponse.model_validate(resp.json())
+
+    def get_batch(self, batch_id: str) -> "BatchStatusResponse":
+        """Get the status of a batch and all its constituent jobs.
+
+        Args:
+            batch_id: The batch identifier returned from send_command_batch/send_config_batch.
+
+        Returns:
+            BatchStatusResponse with total, completed, pending, failed counts and per-job status.
+        """
+        from naas_client.models import BatchStatusResponse
+
+        resp = self._request("GET", f"/v2/batches/{batch_id}")
+        return BatchStatusResponse.model_validate(resp.json())
+
     def get_command_result(self, job_id: str) -> JobResult:
         """Poll a send-command job result."""
         resp = self._request("GET", f"/v2/send-command/{job_id}")

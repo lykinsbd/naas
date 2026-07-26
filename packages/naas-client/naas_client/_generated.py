@@ -35,6 +35,90 @@ class ApiKeyListItem(BaseModel):
     role: str = Field(..., description='Assigned role', title='Role')
 
 
+class Port(RootModel[int]):
+    root: int = Field(
+        None, description='SSH port override', ge=1, le=65535, title='Port'
+    )
+
+
+class BatchDeviceEntry(BaseModel):
+    context: str | None = Field(
+        None, description='Routing context override for this device', title='Context'
+    )
+    enable: str | None = Field(
+        None, description='Enable password override', title='Enable'
+    )
+    host: str = Field(..., description='Device IP address or hostname', title='Host')
+    password: str | None = Field(
+        None, description='Device password override', title='Password'
+    )
+    platform: str = Field(..., description='Netmiko device type', title='Platform')
+    port: Port | None = Field(None, description='SSH port override', title='Port')
+    username: str | None = Field(
+        None, description='Device username override', title='Username'
+    )
+
+
+class BatchSendConfigRequest(BaseModel):
+    commands: list[str] = Field(
+        ...,
+        description='Configuration commands to apply on each device',
+        min_length=1,
+        title='Commands',
+    )
+    commit: bool | None = Field(
+        False,
+        description='Commit configuration on platforms that support it',
+        title='Commit',
+    )
+    context: str | None = Field(
+        'default',
+        description='Default routing context for all devices',
+        title='Context',
+    )
+    devices: list[BatchDeviceEntry] = Field(
+        ..., description='List of target devices', min_length=1, title='Devices'
+    )
+    enable: str | None = Field(
+        None, description='Default enable password for all devices', title='Enable'
+    )
+    password: str | None = Field(
+        None, description='Default password for all devices', title='Password'
+    )
+    port: int | None = Field(
+        22, description='Default SSH port for all devices', ge=1, le=65535, title='Port'
+    )
+    save_config: bool | None = Field(
+        False,
+        description='Save running config to startup after applying',
+        title='Save Config',
+    )
+    tags: dict[str, str] | None = Field(
+        None, description='Metadata tags applied to all jobs in the batch', title='Tags'
+    )
+    username: str | None = Field(
+        None, description='Default username for all devices', title='Username'
+    )
+
+
+class BatchJobStatus(BaseModel):
+    host: str = Field(..., description='Target device host', title='Host')
+    job_id: str = Field(..., description='Unique job identifier', title='Job Id')
+    status: str = Field(
+        ...,
+        description='Job status (queued, started, finished, failed)',
+        title='Status',
+    )
+
+
+class BatchSubmitResponse(BaseModel):
+    batch_id: str = Field(..., description='Unique batch identifier', title='Batch Id')
+    job_ids: list[str] = Field(
+        ..., description='Individual job IDs created for each device', title='Job Ids'
+    )
+    total: int = Field(..., description='Number of jobs created', title='Total')
+
+
 class ContextInfo(BaseModel):
     name: str = Field(..., description='Context name', title='Name')
     queue_depth: int = Field(
@@ -428,6 +512,58 @@ class ValidationErrorElement(BaseModel):
 
 class ApiKeyListResponse(BaseModel):
     keys: list[ApiKeyListItem] = Field(..., description='Active API keys', title='Keys')
+
+
+class BatchSendCommandRequest(BaseModel):
+    commands: list[str] = Field(
+        ...,
+        description='Commands to execute on each device',
+        min_length=1,
+        title='Commands',
+    )
+    context: str | None = Field(
+        'default',
+        description='Default routing context for all devices',
+        title='Context',
+    )
+    devices: list[BatchDeviceEntry] = Field(
+        ..., description='List of target devices', min_length=1, title='Devices'
+    )
+    enable: str | None = Field(
+        None, description='Default enable password for all devices', title='Enable'
+    )
+    expect_string: str | None = Field(
+        None,
+        description='Regex pattern to match in device output (applied to all devices)',
+        title='Expect String',
+    )
+    password: str | None = Field(
+        None, description='Default password for all devices', title='Password'
+    )
+    port: int | None = Field(
+        22, description='Default SSH port for all devices', ge=1, le=65535, title='Port'
+    )
+    tags: dict[str, str] | None = Field(
+        None, description='Metadata tags applied to all jobs in the batch', title='Tags'
+    )
+    username: str | None = Field(
+        None, description='Default username for all devices', title='Username'
+    )
+
+
+class BatchStatusResponse(BaseModel):
+    batch_id: str = Field(..., description='Unique batch identifier', title='Batch Id')
+    completed: int = Field(
+        ..., description='Number of finished jobs', title='Completed'
+    )
+    failed: int = Field(..., description='Number of failed jobs', title='Failed')
+    jobs: list[BatchJobStatus] = Field(
+        ..., description='Per-job status breakdown', title='Jobs'
+    )
+    pending: int = Field(
+        ..., description='Number of queued or started jobs', title='Pending'
+    )
+    total: int = Field(..., description='Total number of jobs in batch', title='Total')
 
 
 class ContextsResponse(BaseModel):
