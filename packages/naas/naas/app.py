@@ -29,6 +29,7 @@ from naas.resources.failed_jobs import FailedJobs, ReplayJob
 from naas.resources.get_results import GetResults
 from naas.resources.healthcheck import HealthCheck
 from naas.resources.list_jobs import ListJobs
+from naas.resources.batch import BatchSendCommand, BatchSendConfig, BatchStatus
 from naas.resources.send_command import SendCommand
 from naas.resources.send_command_structured import SendCommandStructured
 from naas.resources.send_config import SendConfig
@@ -140,6 +141,9 @@ api.add_resource(Contexts, "/v2/contexts", endpoint="contexts_v2")
 api.add_resource(ApiKeys, "/v2/api-keys", endpoint="api_keys_v2")
 api.add_resource(ApiKey, "/v2/api-keys/<string:key_id>", endpoint="api_key_v2")
 api.add_resource(ApiKeyRotate, "/v2/api-keys/<string:key_id>/rotate", endpoint="api_key_rotate_v2")
+api.add_resource(BatchSendCommand, "/v2/send-command/batch", endpoint="batch_send_command_v2")
+api.add_resource(BatchSendConfig, "/v2/send-config/batch", endpoint="batch_send_config_v2")
+api.add_resource(BatchStatus, "/v2/batches/<string:batch_id>", endpoint="batch_status_v2")
 
 # Legacy unversioned routes (deprecated aliases — kept for backward compatibility).
 # Note: "/healthcheck" is intentionally NOT in this list. It is a permanent
