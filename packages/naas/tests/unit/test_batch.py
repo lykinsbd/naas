@@ -347,3 +347,147 @@ class TestBatchRateLimit:
                 )
 
         assert resp.status_code == 429
+
+
+class TestBatchCoverage:
+    """Additional tests to achieve 100% coverage on batch.py."""
+
+    def _auth_headers(self):
+        creds = b64encode(b"admin:pass").decode()
+        return {"Authorization": f"Basic {creds}", "Content-Type": "application/json"}
+
+    def test_rate_limit_success_path_consumes_quota(self, client, app, monkeypatch):
+        """When rate limit passes, quota is consumed (N units)."""
+        monkeypatch.setattr("naas.resources.batch.RATE_LIMIT_ENABLED", True)
+        monkeypatch.setattr("naas.resources.batch.RATE_LIMIT_PER_CALLER", 100)
+        monkeypatch.setattr("naas.resources.batch._is_exempt", lambda: False)
+
+        with app.app_context():
+            with patch("naas.resources.batch.get_queue_for_context", return_value=app.config["q"]):
+                resp = client.post(
+                    "/v2/send-command/batch",
+                    headers=self._auth_headers(),
+                    json={
+                        "devices": [{"host": "10.0.0.1", "platform": "cisco_ios"}],
+                        "commands": ["show version"],
+                    },
+                )
+
+        assert resp.status_code == 202
+
+    def test_queue_depth_check_rejects_when_full(self, client, app, monkeypatch):
+        """Queue depth check rejects batch when queue is full."""
+        monkeypatch.setattr("naas.resources.batch.MAX_QUEUE_DEPTH", 1)
+
+        # Make the queue appear full by patching the Queue class used inside _check_batch_queue_depth
+        mock_queue = MagicMock()
+        mock_queue.__len__ = MagicMock(return_value=5)
+
+        with app.app_context():
+            with patch("rq.Queue", return_value=mock_queue):
+                # Need to bypass the conftest mock for get_queue_for_context
+                # since _check_batch_queue_depth uses Queue directly
+                resp = client.post(
+                    "/v2/send-command/batch",
+                    headers=self._auth_headers(),
+                    json={
+                        "devices": [{"host": "10.0.0.1", "platform": "cisco_ios"}],
+                        "commands": ["show version"],
+                    },
+                )
+
+        assert resp.status_code == 503
+
+    def test_send_config_batch_exceeds_max_devices(self, client, app):
+        """send-config/batch also enforces max devices limit."""
+        with app.app_context():
+            devices = [{"host": f"10.0.0.{i}", "platform": "cisco_ios"} for i in range(101)]
+            resp = client.post(
+                "/v2/send-config/batch",
+                headers=self._auth_headers(),
+                json={"devices": devices, "commands": ["interface Gi0/1"]},
+            )
+
+        assert resp.status_code == 422
+
+    def test_send_config_batch_exceeds_max_commands(self, client, app):
+        """send-config/batch also enforces max commands limit."""
+        with app.app_context():
+            commands = [f"interface Gi0/{i}" for i in range(51)]
+            resp = client.post(
+                "/v2/send-config/batch",
+                headers=self._auth_headers(),
+                json={
+                    "devices": [{"host": "10.0.0.1", "platform": "cisco_ios"}],
+                    "commands": commands,
+                },
+            )
+
+        assert resp.status_code == 422
+
+    def test_batch_status_shows_job_states(self, client, app):
+        """Batch status correctly counts finished/failed/pending jobs."""
+        with app.app_context():
+            with patch("naas.resources.batch.get_queue_for_context", return_value=app.config["q"]):
+                # Submit a batch
+                submit_resp = client.post(
+                    "/v2/send-command/batch",
+                    headers=self._auth_headers(),
+                    json={
+                        "devices": [
+                            {"host": "10.0.0.1", "platform": "cisco_ios"},
+                            {"host": "10.0.0.2", "platform": "cisco_ios"},
+                            {"host": "10.0.0.3", "platform": "cisco_ios"},
+                        ],
+                        "commands": ["show version"],
+                    },
+                )
+                batch_id = submit_resp.get_json()["batch_id"]
+
+                # Mock jobs with different statuses based on call order
+                call_count = {"n": 0}
+                statuses = ["finished", "failed", "queued"]
+
+                def mock_fetch(job_id, connection):
+                    job = MagicMock()
+                    idx = call_count["n"] % len(statuses)
+                    call_count["n"] += 1
+                    job.get_status.return_value = MagicMock(value=statuses[idx])
+                    return job
+
+                with patch("naas.resources.batch.RQJob.fetch", side_effect=mock_fetch):
+                    status_resp = client.get(
+                        f"/v2/batches/{batch_id}",
+                        headers=self._auth_headers(),
+                    )
+
+        assert status_resp.status_code == 200
+        data = status_resp.get_json()
+        assert data["completed"] == 1
+        assert data["failed"] == 1
+        assert data["pending"] == 1
+
+    def test_batch_status_handles_fetch_exception(self, client, app):
+        """Job fetch exception results in 'unknown' status."""
+        with app.app_context():
+            with patch("naas.resources.batch.get_queue_for_context", return_value=app.config["q"]):
+                submit_resp = client.post(
+                    "/v2/send-command/batch",
+                    headers=self._auth_headers(),
+                    json={
+                        "devices": [{"host": "10.0.0.1", "platform": "cisco_ios"}],
+                        "commands": ["show version"],
+                    },
+                )
+                batch_id = submit_resp.get_json()["batch_id"]
+
+                with patch("naas.resources.batch.RQJob.fetch", side_effect=Exception("Redis down")):
+                    status_resp = client.get(
+                        f"/v2/batches/{batch_id}",
+                        headers=self._auth_headers(),
+                    )
+
+        assert status_resp.status_code == 200
+        data = status_resp.get_json()
+        assert data["jobs"][0]["status"] == "unknown"
+        assert data["pending"] == 1
