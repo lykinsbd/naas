@@ -2333,7 +2333,7 @@ provides-extras = ["dev", "otel", "vault", "aws"]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "types-paramiko", specifier = ">=4.0.0.20250822" },
+    { name = "types-paramiko", specifier = ">=5.0.0.20260724" },
     { name = "types-requests", specifier = ">=2.32.4.20260107" },
 ]
 
@@ -3899,14 +3899,14 @@ wheels = [
 
 [[package]]
 name = "types-paramiko"
-version = "4.0.0.20260322"
+version = "5.0.0.20260724"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cryptography" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/93/cc/b83f1c085cc2c4d85f4ba2f799d1b18840b768d7b1a7dfb7d5cc5470fbc9/types_paramiko-4.0.0.20260322.tar.gz", hash = "sha256:dfcb13d8cf52499a198ced552b78fa685369a376b143abfb90cd49f465e383a0", size = 29040, upload-time = "2026-03-22T04:08:47.815Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/66/c2/445549ed6f0944352f2b91d88d16bbdc3993a4d6dbbedb81c557b3cad85a/types_paramiko-5.0.0.20260724.tar.gz", hash = "sha256:37e7f3f2196cf187c89649ad836621c675bc318369d80fa78051507a4ae770c9", size = 28548, upload-time = "2026-07-24T04:59:59.889Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d3/92/10415430e8035fe0155582757d9829784202bb198ed84fe9afa5e59d5263/types_paramiko-4.0.0.20260322-py3-none-any.whl", hash = "sha256:c585bcf81b5d2fc722279763d50eca8095777ee949af8706900e9f8411af979b", size = 38809, upload-time = "2026-03-22T04:08:46.622Z" },
+    { url = "https://files.pythonhosted.org/packages/4c/16/fca52784f979821e2205ff514322d0e83452536acc4807a79ddb2085bbb2/types_paramiko-5.0.0.20260724-py3-none-any.whl", hash = "sha256:40c7083803a5a28ab7a8d2fe4cd9b7746d0a03538598582ce68f60967a2ad272", size = 37125, upload-time = "2026-07-24T04:59:58.955Z" },
 ]
 
 [[package]]

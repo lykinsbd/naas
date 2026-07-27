@@ -164,6 +164,6 @@ showcontent = true
 
 [dependency-groups]
 dev = [
-    "types-paramiko>=4.0.0.20250822",
+    "types-paramiko>=5.0.0.20260724",
     "types-requests>=2.32.4.20260107",
 ]
