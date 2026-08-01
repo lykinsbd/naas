@@ -107,6 +107,508 @@
         "title": "ApiKeyListItem",
         "type": "object"
       },
+      "BatchSendCommandRequest.c5eb086": {
+        "description": "Request model for POST /v2/send-command/batch.\n\nSubmits the same commands to multiple devices. Each device can override\ncredentials and routing context. Returns a batch ID for tracking.",
+        "properties": {
+          "commands": {
+            "description": "Commands to execute on each device",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Commands",
+            "type": "array"
+          },
+          "context": {
+            "default": "default",
+            "description": "Default routing context for all devices",
+            "title": "Context",
+            "type": "string"
+          },
+          "devices": {
+            "description": "List of target devices",
+            "items": {
+              "$ref": "#/components/schemas/BatchSendCommandRequest.c5eb086.BatchDeviceEntry"
+            },
+            "minItems": 1,
+            "title": "Devices",
+            "type": "array"
+          },
+          "enable": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Default enable password for all devices",
+            "title": "Enable"
+          },
+          "expect_string": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Regex pattern to match in device output (applied to all devices)",
+            "title": "Expect String"
+          },
+          "password": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Default password for all devices",
+            "title": "Password"
+          },
+          "port": {
+            "default": 22,
+            "description": "Default SSH port for all devices",
+            "maximum": 65535,
+            "minimum": 1,
+            "title": "Port",
+            "type": "integer"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Metadata tags applied to all jobs in the batch",
+            "title": "Tags"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Default username for all devices",
+            "title": "Username"
+          }
+        },
+        "required": [
+          "devices",
+          "commands"
+        ],
+        "title": "BatchSendCommandRequest",
+        "type": "object"
+      },
+      "BatchSendCommandRequest.c5eb086.BatchDeviceEntry": {
+        "description": "A single device in a batch request.\n\nAt minimum requires host and platform. Optional fields override\nthe batch-level defaults for credentials and port.",
+        "properties": {
+          "context": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Routing context override for this device",
+            "title": "Context"
+          },
+          "enable": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Enable password override",
+            "title": "Enable"
+          },
+          "host": {
+            "description": "Device IP address or hostname",
+            "title": "Host",
+            "type": "string"
+          },
+          "password": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Device password override",
+            "title": "Password"
+          },
+          "platform": {
+            "description": "Netmiko device type",
+            "title": "Platform",
+            "type": "string"
+          },
+          "port": {
+            "anyOf": [
+              {
+                "maximum": 65535,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "SSH port override",
+            "title": "Port"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Device username override",
+            "title": "Username"
+          }
+        },
+        "required": [
+          "host",
+          "platform"
+        ],
+        "title": "BatchDeviceEntry",
+        "type": "object"
+      },
+      "BatchSendConfigRequest.c5eb086": {
+        "description": "Request model for POST /v2/send-config/batch.\n\nPushes the same configuration commands to multiple devices. Each device\ncan override credentials and routing context. commit/save_config apply\nuniformly to all devices.",
+        "properties": {
+          "commands": {
+            "description": "Configuration commands to apply on each device",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Commands",
+            "type": "array"
+          },
+          "commit": {
+            "default": false,
+            "description": "Commit configuration on platforms that support it",
+            "title": "Commit",
+            "type": "boolean"
+          },
+          "context": {
+            "default": "default",
+            "description": "Default routing context for all devices",
+            "title": "Context",
+            "type": "string"
+          },
+          "devices": {
+            "description": "List of target devices",
+            "items": {
+              "$ref": "#/components/schemas/BatchSendConfigRequest.c5eb086.BatchDeviceEntry"
+            },
+            "minItems": 1,
+            "title": "Devices",
+            "type": "array"
+          },
+          "enable": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Default enable password for all devices",
+            "title": "Enable"
+          },
+          "password": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Default password for all devices",
+            "title": "Password"
+          },
+          "port": {
+            "default": 22,
+            "description": "Default SSH port for all devices",
+            "maximum": 65535,
+            "minimum": 1,
+            "title": "Port",
+            "type": "integer"
+          },
+          "save_config": {
+            "default": false,
+            "description": "Save running config to startup after applying",
+            "title": "Save Config",
+            "type": "boolean"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Metadata tags applied to all jobs in the batch",
+            "title": "Tags"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Default username for all devices",
+            "title": "Username"
+          }
+        },
+        "required": [
+          "devices",
+          "commands"
+        ],
+        "title": "BatchSendConfigRequest",
+        "type": "object"
+      },
+      "BatchSendConfigRequest.c5eb086.BatchDeviceEntry": {
+        "description": "A single device in a batch request.\n\nAt minimum requires host and platform. Optional fields override\nthe batch-level defaults for credentials and port.",
+        "properties": {
+          "context": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Routing context override for this device",
+            "title": "Context"
+          },
+          "enable": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Enable password override",
+            "title": "Enable"
+          },
+          "host": {
+            "description": "Device IP address or hostname",
+            "title": "Host",
+            "type": "string"
+          },
+          "password": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Device password override",
+            "title": "Password"
+          },
+          "platform": {
+            "description": "Netmiko device type",
+            "title": "Platform",
+            "type": "string"
+          },
+          "port": {
+            "anyOf": [
+              {
+                "maximum": 65535,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "SSH port override",
+            "title": "Port"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Device username override",
+            "title": "Username"
+          }
+        },
+        "required": [
+          "host",
+          "platform"
+        ],
+        "title": "BatchDeviceEntry",
+        "type": "object"
+      },
+      "BatchStatusResponse.c5eb086": {
+        "description": "Response for GET /v2/batches/{batch_id}.",
+        "properties": {
+          "batch_id": {
+            "description": "Unique batch identifier",
+            "title": "Batch Id",
+            "type": "string"
+          },
+          "completed": {
+            "description": "Number of finished jobs",
+            "title": "Completed",
+            "type": "integer"
+          },
+          "failed": {
+            "description": "Number of failed jobs",
+            "title": "Failed",
+            "type": "integer"
+          },
+          "jobs": {
+            "description": "Per-job status breakdown",
+            "items": {
+              "$ref": "#/components/schemas/BatchStatusResponse.c5eb086.BatchJobStatus"
+            },
+            "title": "Jobs",
+            "type": "array"
+          },
+          "pending": {
+            "description": "Number of queued or started jobs",
+            "title": "Pending",
+            "type": "integer"
+          },
+          "total": {
+            "description": "Total number of jobs in batch",
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "batch_id",
+          "total",
+          "completed",
+          "pending",
+          "failed",
+          "jobs"
+        ],
+        "title": "BatchStatusResponse",
+        "type": "object"
+      },
+      "BatchStatusResponse.c5eb086.BatchJobStatus": {
+        "description": "Status of a single job within a batch.",
+        "properties": {
+          "host": {
+            "description": "Target device host",
+            "title": "Host",
+            "type": "string"
+          },
+          "job_id": {
+            "description": "Unique job identifier",
+            "title": "Job Id",
+            "type": "string"
+          },
+          "status": {
+            "description": "Job status (queued, started, finished, failed)",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id",
+          "host",
+          "status"
+        ],
+        "title": "BatchJobStatus",
+        "type": "object"
+      },
+      "BatchSubmitResponse.c5eb086": {
+        "description": "Response for successful batch submission (202 Accepted).",
+        "properties": {
+          "batch_id": {
+            "description": "Unique batch identifier",
+            "title": "Batch Id",
+            "type": "string"
+          },
+          "job_ids": {
+            "description": "Individual job IDs created for each device",
+            "items": {
+              "type": "string"
+            },
+            "title": "Job Ids",
+            "type": "array"
+          },
+          "total": {
+            "description": "Number of jobs created",
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "batch_id",
+          "job_ids",
+          "total"
+        ],
+        "title": "BatchSubmitResponse",
+        "type": "object"
+      },
       "ContextsResponse.c5eb086": {
         "description": "Response model for GET /v1/contexts.",
         "properties": {
@@ -2419,6 +2921,47 @@
         "tags": []
       }
     },
+    "/v2/batches/{batch_id}": {
+      "get": {
+        "description": "",
+        "operationId": "get__v2_batches_{batch_id}",
+        "parameters": [
+          {
+            "description": "",
+            "in": "path",
+            "name": "batch_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchStatusResponse.c5eb086"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError.6a07bef"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "Get the status of a batch and all its constituent jobs.",
+        "tags": []
+      }
+    },
     "/v2/contexts": {
       "get": {
         "description": ":return: ContextsResponse with per-context status",
@@ -2846,6 +3389,47 @@
         "tags": []
       }
     },
+    "/v2/send-command/batch": {
+      "post": {
+        "description": "",
+        "operationId": "post__v2_send-command_batch",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchSendCommandRequest.c5eb086"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchSubmitResponse.c5eb086"
+                }
+              }
+            },
+            "description": "Accepted"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError.6a07bef"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "Submit a batch of send-command jobs to multiple devices.",
+        "tags": []
+      }
+    },
     "/v2/send-command/{job_id}": {
       "get": {
         "description": "",
@@ -2933,6 +3517,47 @@
           }
         },
         "summary": "Will enqueue an attempt to use netmiko's send_config_set() method to run commands/put configuration on a device.",
+        "tags": []
+      }
+    },
+    "/v2/send-config/batch": {
+      "post": {
+        "description": "",
+        "operationId": "post__v2_send-config_batch",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchSendConfigRequest.c5eb086"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchSubmitResponse.c5eb086"
+                }
+              }
+            },
+            "description": "Accepted"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError.6a07bef"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "Submit a batch of send-config jobs to multiple devices.",
         "tags": []
       }
     },
