@@ -860,22 +860,21 @@ wheels = [
 
 [[package]]
 name = "datamodel-code-generator"
-version = "0.56.0"
+version = "0.64.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "argcomplete" },
-    { name = "black" },
+    { name = "black", marker = "sys_platform != 'emscripten'" },
     { name = "genson" },
     { name = "inflect" },
-    { name = "isort" },
+    { name = "isort", marker = "sys_platform != 'emscripten'" },
     { name = "jinja2" },
     { name = "pydantic" },
     { name = "pyyaml" },
-    { name = "tomli", marker = "python_full_version < '3.12'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/03/7d/7fc2bb3d8946ca45851da3f23497a2c6e252e92558ccbd89d609cf1e13d4/datamodel_code_generator-0.56.0.tar.gz", hash = "sha256:e7c003fb5421b890aabe12f66ae65b57198b04cfe1da7c40810798020835b3a8", size = 837708, upload-time = "2026-04-04T09:46:19.636Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/9c/d2/86c94a2836ed42231653a7ddaefa0a5bc23418167a876bba7376c96b3a35/datamodel_code_generator-0.64.0.tar.gz", hash = "sha256:9c592900a00b20e416494273c22435f5a9aef6ea8c7b9190747522a60497a1cb", size = 1316440, upload-time = "2026-06-14T17:24:50.528Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ed/3a/7f169ffc7a2d69a4f9158b1ac083f685b7f4a1a8a1db5d1e4abbb4e741b7/datamodel_code_generator-0.56.0-py3-none-any.whl", hash = "sha256:a0559683fbe90cdf2ce9b6637e3adae3e3a8056a8d0516df581d486e2834ead2", size = 256545, upload-time = "2026-04-04T09:46:17.582Z" },
+    { url = "https://files.pythonhosted.org/packages/23/94/71338e2f0146ac10747a5537b3a1e45256e66b7c229869eb0ee787111b41/datamodel_code_generator-0.64.0-py3-none-any.whl", hash = "sha256:b7cd8bd41a312aa997aec6150670bad781847c5b674f17e4d70e78208a0fb990", size = 374698, upload-time = "2026-06-14T17:24:48.809Z" },
 ]
 
 [[package]]
@@ -2311,7 +2310,7 @@ requires-dist = [
     { name = "opentelemetry-instrumentation-flask", marker = "extra == 'otel'", specifier = ">=0.41b0" },
     { name = "opentelemetry-sdk", marker = "extra == 'otel'", specifier = ">=1.20.0" },
     { name = "opentelemetry-test-utils", marker = "extra == 'dev'", specifier = ">=0.62b0" },
-    { name = "paramiko", specifier = ">=2.7.1" },
+    { name = "paramiko", specifier = ">=5.0.0" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.0.0" },
     { name = "prometheus-flask-exporter", specifier = ">=0.23.2" },
     { name = "pybreaker", specifier = ">=1.4.1" },
@@ -2388,11 +2387,11 @@ requires-dist = [
 provides-extras = ["cli", "dev"]
 
 [package.metadata.requires-dev]
-dev = [{ name = "datamodel-code-generator", specifier = ">=0.56.0" }]
+dev = [{ name = "datamodel-code-generator", specifier = ">=0.64.0" }]
 
 [[package]]
 name = "netmiko"
-version = "4.7.0"
+version = "4.6.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "ntc-templates" },
@@ -2404,9 +2403,9 @@ dependencies = [
     { name = "scp" },
     { name = "textfsm" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/87/f7/28dc70a15f496635a9353726e7015d4819ed648a06f57f4b362176a57d51/netmiko-4.7.0.tar.gz", hash = "sha256:94cf7bfe5daed1d058444ce1637e10177df22f903683a53d1fbee47553488c65", size = 185674, upload-time = "2026-05-12T18:26:14.39Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/df/0a/4d557ffd4070a47f87c3e07abd28f9fcbdbf799f2a62940168236b4a8d31/netmiko-4.6.0.tar.gz", hash = "sha256:9701bb2c1a15eb2e8074cb2e28ca007c69b9fa52961b83b98c757ead6b80deef", size = 169274, upload-time = "2025-06-26T19:13:17.303Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d8/6d/7464ecd76316b40b875fd8a8e3128871dc8d24183cfb42b8f76527d8662d/netmiko-4.7.0-py3-none-any.whl", hash = "sha256:406684e45b3822e17efa0f8e376644995693ff40a750c297ccce0c58e873f29d", size = 294307, upload-time = "2026-05-12T18:26:12.73Z" },
+    { url = "https://files.pythonhosted.org/packages/32/5b/9db3cf51785ef0a50f0976704e0776e7136a83cbdf9ed84065184f1fe3e2/netmiko-4.6.0-py3-none-any.whl", hash = "sha256:0c9b7309005d2c8a010b275f3494628cadb1658a8841632131c848074b7cdadb", size = 262873, upload-time = "2025-06-26T19:13:15.764Z" },
 ]
 
 [[package]]
@@ -2614,7 +2613,7 @@ wheels = [
 
 [[package]]
 name = "paramiko"
-version = "4.0.0"
+version = "5.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bcrypt" },
@@ -2622,9 +2621,9 @@ dependencies = [
     { name = "invoke" },
     { name = "pynacl" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/1f/e7/81fdcbc7f190cdb058cffc9431587eb289833bdd633e2002455ca9bb13d4/paramiko-4.0.0.tar.gz", hash = "sha256:6a25f07b380cc9c9a88d2b920ad37167ac4667f8d9886ccebd8f90f654b5d69f", size = 1630743, upload-time = "2025-08-04T01:02:03.711Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/62/93/dcc25d52f49022ae6175d15e6bd751f1acc99b98bc61fc55e5155a7be2e7/paramiko-5.0.0.tar.gz", hash = "sha256:36763b5b95c2a0dcfdf1abc48e48156ee425b21efe2f0e787c2dd5a95c0e5e79", size = 1548586, upload-time = "2026-05-09T18:28:52.256Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a9/90/a744336f5af32c433bd09af7854599682a383b37cfd78f7de263de6ad6cb/paramiko-4.0.0-py3-none-any.whl", hash = "sha256:0e20e00ac666503bf0b4eda3b6d833465a2b7aff2e2b3d79a8bba5ef144ee3b9", size = 223932, upload-time = "2025-08-04T01:02:02.029Z" },
+    { url = "https://files.pythonhosted.org/packages/82/5b/eadf6d45de38d30ab603f49393b6cd2cbe7e233af8cf90197e32782b68a9/paramiko-5.0.0-py3-none-any.whl", hash = "sha256:b7044611c30140d9a75261653210e2002977b71a0497ff3ba0d98d7edbf62f7c", size = 208919, upload-time = "2026-05-09T18:28:50.295Z" },
 ]
 
 [[package]]
@@ -2999,15 +2998,15 @@ crypto = [
 
 [[package]]
 name = "pymdown-extensions"
-version = "10.21.3"
+version = "11.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "markdown" },
     { name = "pyyaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/9e/26/d1015444da4d952a1ca487a236b522eb979766f0295a0bd0c5fc089989a9/pymdown_extensions-10.21.3.tar.gz", hash = "sha256:72cfcf55f07aea0d4af2c4f11dd4e52466ddfb1bb819673146398e0bd3a77354", size = 854140, upload-time = "2026-05-13T12:57:32.267Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/47/67/f1e79672a5f91985577c7984c9709ca110e4fd37fe7fd167b60422e6ccc2/pymdown_extensions-11.0.tar.gz", hash = "sha256:8269cef0247f9e2d0a62fcea10860aba05c1cbab5470fd4b63230b96434dc589", size = 857049, upload-time = "2026-06-23T02:27:45.146Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7e/85/545a951eecc270fcd688288c600017e2050a1aacb56c711d208586d3e470/pymdown_extensions-10.21.3-py3-none-any.whl", hash = "sha256:d7a5d08014fc571e80ca21dd6f854e31f94c489800350564d55d15b3c41e76b6", size = 269002, upload-time = "2026-05-13T12:57:30.296Z" },
+    { url = "https://files.pythonhosted.org/packages/af/b6/1ae53367e28b9cffa3be7574e13fbe4589694272fd47710fbdbafd3d63c6/pymdown_extensions-11.0-py3-none-any.whl", hash = "sha256:fbc4acb641814fa9d17521bbd21a5240ef739a662f11c06330c4b78c93e954d6", size = 269415, upload-time = "2026-06-23T02:27:43.826Z" },
 ]
 
 [[package]]
