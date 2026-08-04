@@ -1,0 +1,1 @@
+Upgrade transitive dependencies: cryptography 50.0, mcp 1.29, msgpack 1.2.1, pydantic-settings 2.14.2 (security fix), python-engineio 4.13.4, python-multipart 0.0.32, python-socketio 5.16.3, soupsieve 2.9.1, starlette 1.3.1.
