@@ -36,7 +36,7 @@ jobs:
         # the bundled markdownlint engine, which introduces new lint rules in
         # minor releases. v23.1.0 enabled MD060 by default and broke the v2.1.0
         # release PR. See #472, #461, #462.
-        uses: DavidAnson/markdownlint-cli2-action@v24.1.0
+        uses: DavidAnson/markdownlint-cli2-action@v24.2.0
         with:
           globs: |
             README.md
@@ -48,7 +48,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: errata-ai/vale-action@v2
+      - uses: errata-ai/vale-action@v3
         with:
           files: '["README.md", "CONTRIBUTING.md", "docs/quickstart.md", "docs/api-usage.md", "docs/troubleshooting.md", "docs/security.md"]'
           # Pin to match .mise.toml so CI and local dev agree on the Vale version.
@@ -59,7 +59,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: errata-ai/vale-action@v2
+      - uses: errata-ai/vale-action@v3
         with:
           files: '["changes", "CHANGELOG.md"]'
           # Pin to match .mise.toml so CI and local dev agree on the Vale version.
