@@ -24,7 +24,7 @@ dependencies = [
 
 [project.optional-dependencies]
 cli = [
-    "typer>=0.15",
+    "typer>=0.27.1",
     "rich>=13.0",
 ]
 dev = [
