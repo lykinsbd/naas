@@ -33,7 +33,7 @@ dev = [
     "pytest-asyncio>=0.25",
     "pytest-cov>=6.0",
     "mypy>=1.15",
-    "ruff>=0.16.0",
+    "ruff>=0.16.3",
 ]
 
 [project.scripts]
