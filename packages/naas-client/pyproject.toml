@@ -74,5 +74,5 @@ show_missing = true
 
 [dependency-groups]
 dev = [
-    "datamodel-code-generator>=0.56.0",
+    "datamodel-code-generator>=0.64.0",
 ]
