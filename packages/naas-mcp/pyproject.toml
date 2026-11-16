@@ -17,7 +17,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "fastmcp>=2.0",
+    "fastmcp>=4.1.8",
     "naas-client>=1.0.0a1",
     "pyjwt>=2.15.1",
     "redis>=8.0.1",
