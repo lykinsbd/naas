@@ -4,10 +4,10 @@ members = ["packages/*"]
 [dependency-groups]
 docs = [
     "mkdocs>=1.6.0",
-    "mkdocs-material>=9.8.0",
+    "mkdocs-material>=9.8.2",
     "mkdocstrings[python]>=1.0.6",
     "mkdocs-swagger-ui-tag>=0.8.0",
-    "mkdocs-include-markdown-plugin>=7.3.0",
+    "mkdocs-include-markdown-plugin>=7.3.2",
 ]
 # `dev` is uv's default group (synced by bare `uv sync` and `uv run`). It
 # includes the `docs` group so contributors get mkdocs and its plugins
